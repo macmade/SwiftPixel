@@ -7,6 +7,21 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		050F38022DEE0BBE00E84F97 /* BitsScale.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F37F92DEE0BBE00E84F97 /* BitsScale.swift */; };
+		050F38032DEE0BBE00E84F97 /* Debayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F37FB2DEE0BBE00E84F97 /* Debayer.swift */; };
+		050F38042DEE0BBE00E84F97 /* WhiteBalance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F38002DEE0BBE00E84F97 /* WhiteBalance.swift */; };
+		050F38052DEE0BBE00E84F97 /* BitsPerPixel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F37F42DEE0BBE00E84F97 /* BitsPerPixel.swift */; };
+		050F38062DEE0BBE00E84F97 /* PixelPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F37F72DEE0BBE00E84F97 /* PixelPipeline.swift */; };
+		050F38072DEE0BBE00E84F97 /* PixelBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F37F62DEE0BBE00E84F97 /* PixelBuffer.swift */; };
+		050F38082DEE0BBE00E84F97 /* Scale.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F37FE2DEE0BBE00E84F97 /* Scale.swift */; };
+		050F38092DEE0BBE00E84F97 /* CorrectGamma.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F37FA2DEE0BBE00E84F97 /* CorrectGamma.swift */; };
+		050F380A2DEE0BBE00E84F97 /* Stretch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F37FF2DEE0BBE00E84F97 /* Stretch.swift */; };
+		050F380B2DEE0BBE00E84F97 /* PixelProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F37F82DEE0BBE00E84F97 /* PixelProcessor.swift */; };
+		050F380C2DEE0BBE00E84F97 /* Normalize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F37FD2DEE0BBE00E84F97 /* Normalize.swift */; };
+		050F380E2DEE0BBE00E84F97 /* GrayscaleToRGB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F37FC2DEE0BBE00E84F97 /* GrayscaleToRGB.swift */; };
+		050F38102DEE0CD900E84F97 /* PixelUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F380F2DEE0CD900E84F97 /* PixelUtilities.swift */; };
+		050F38222DEE1A8900E84F97 /* BitsPerPixel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F38212DEE19E000E84F97 /* BitsPerPixel.swift */; };
+		050F38242DEE1AFD00E84F97 /* PixelBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F38232DEE1AF900E84F97 /* PixelBuffer.swift */; };
 		05C5278C2DD8E36300843626 /* SwiftPixel.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 05C527822DD8E36300843626 /* SwiftPixel.framework */; };
 /* End PBXBuildFile section */
 
@@ -21,6 +36,21 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		050F37F42DEE0BBE00E84F97 /* BitsPerPixel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitsPerPixel.swift; sourceTree = "<group>"; };
+		050F37F62DEE0BBE00E84F97 /* PixelBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelBuffer.swift; sourceTree = "<group>"; };
+		050F37F72DEE0BBE00E84F97 /* PixelPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelPipeline.swift; sourceTree = "<group>"; };
+		050F37F82DEE0BBE00E84F97 /* PixelProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelProcessor.swift; sourceTree = "<group>"; };
+		050F37F92DEE0BBE00E84F97 /* BitsScale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitsScale.swift; sourceTree = "<group>"; };
+		050F37FA2DEE0BBE00E84F97 /* CorrectGamma.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrectGamma.swift; sourceTree = "<group>"; };
+		050F37FB2DEE0BBE00E84F97 /* Debayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Debayer.swift; sourceTree = "<group>"; };
+		050F37FC2DEE0BBE00E84F97 /* GrayscaleToRGB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrayscaleToRGB.swift; sourceTree = "<group>"; };
+		050F37FD2DEE0BBE00E84F97 /* Normalize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Normalize.swift; sourceTree = "<group>"; };
+		050F37FE2DEE0BBE00E84F97 /* Scale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scale.swift; sourceTree = "<group>"; };
+		050F37FF2DEE0BBE00E84F97 /* Stretch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stretch.swift; sourceTree = "<group>"; };
+		050F38002DEE0BBE00E84F97 /* WhiteBalance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhiteBalance.swift; sourceTree = "<group>"; };
+		050F380F2DEE0CD900E84F97 /* PixelUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelUtilities.swift; sourceTree = "<group>"; };
+		050F38212DEE19E000E84F97 /* BitsPerPixel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitsPerPixel.swift; sourceTree = "<group>"; };
+		050F38232DEE1AF900E84F97 /* PixelBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelBuffer.swift; sourceTree = "<group>"; };
 		05C527822DD8E36300843626 /* SwiftPixel.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SwiftPixel.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		05C5278B2DD8E36300843626 /* SwiftPixelTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftPixelTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		05D589112DD8E47A000BA644 /* CODE_OF_CONDUCT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CODE_OF_CONDUCT.md; sourceTree = "<group>"; };
@@ -96,6 +126,21 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		050F38012DEE0BBE00E84F97 /* Processors */ = {
+			isa = PBXGroup;
+			children = (
+				050F37F92DEE0BBE00E84F97 /* BitsScale.swift */,
+				050F37FA2DEE0BBE00E84F97 /* CorrectGamma.swift */,
+				050F37FB2DEE0BBE00E84F97 /* Debayer.swift */,
+				050F37FC2DEE0BBE00E84F97 /* GrayscaleToRGB.swift */,
+				050F37FD2DEE0BBE00E84F97 /* Normalize.swift */,
+				050F37FE2DEE0BBE00E84F97 /* Scale.swift */,
+				050F37FF2DEE0BBE00E84F97 /* Stretch.swift */,
+				050F38002DEE0BBE00E84F97 /* WhiteBalance.swift */,
+			);
+			path = Processors;
+			sourceTree = "<group>";
+		};
 		05C527782DD8E36300843626 = {
 			isa = PBXGroup;
 			children = (
@@ -123,6 +168,8 @@
 		05D5890C2DD8E46E000BA644 /* SwiftPixelTests */ = {
 			isa = PBXGroup;
 			children = (
+				050F38232DEE1AF900E84F97 /* PixelBuffer.swift */,
+				050F38212DEE19E000E84F97 /* BitsPerPixel.swift */,
 			);
 			path = SwiftPixelTests;
 			sourceTree = "<group>";
@@ -130,6 +177,12 @@
 		05D5890F2DD8E470000BA644 /* SwiftPixel */ = {
 			isa = PBXGroup;
 			children = (
+				050F37F42DEE0BBE00E84F97 /* BitsPerPixel.swift */,
+				050F37F62DEE0BBE00E84F97 /* PixelBuffer.swift */,
+				050F37F72DEE0BBE00E84F97 /* PixelPipeline.swift */,
+				050F37F82DEE0BBE00E84F97 /* PixelProcessor.swift */,
+				050F380F2DEE0CD900E84F97 /* PixelUtilities.swift */,
+				050F38012DEE0BBE00E84F97 /* Processors */,
 			);
 			path = SwiftPixel;
 			sourceTree = "<group>";
@@ -390,6 +443,19 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				050F38022DEE0BBE00E84F97 /* BitsScale.swift in Sources */,
+				050F38032DEE0BBE00E84F97 /* Debayer.swift in Sources */,
+				050F38042DEE0BBE00E84F97 /* WhiteBalance.swift in Sources */,
+				050F38052DEE0BBE00E84F97 /* BitsPerPixel.swift in Sources */,
+				050F38062DEE0BBE00E84F97 /* PixelPipeline.swift in Sources */,
+				050F38072DEE0BBE00E84F97 /* PixelBuffer.swift in Sources */,
+				050F38082DEE0BBE00E84F97 /* Scale.swift in Sources */,
+				050F38092DEE0BBE00E84F97 /* CorrectGamma.swift in Sources */,
+				050F380A2DEE0BBE00E84F97 /* Stretch.swift in Sources */,
+				050F380B2DEE0BBE00E84F97 /* PixelProcessor.swift in Sources */,
+				050F380C2DEE0BBE00E84F97 /* Normalize.swift in Sources */,
+				050F38102DEE0CD900E84F97 /* PixelUtilities.swift in Sources */,
+				050F380E2DEE0BBE00E84F97 /* GrayscaleToRGB.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -397,6 +463,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				050F38242DEE1AFD00E84F97 /* PixelBuffer.swift in Sources */,
+				050F38222DEE1A8900E84F97 /* BitsPerPixel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

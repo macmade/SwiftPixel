@@ -22,7 +22,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+import Accelerate
 import Foundation
+import SwiftUtilities
 
 public extension Processors
 {
@@ -37,6 +39,23 @@ public extension Processors
         public let offset: Double
 
         public func process( buffer: inout PixelBuffer ) throws
-        {}
+        {
+            let count = vDSP_Length( buffer.pixels.count )
+
+            try buffer.pixels.withUnsafeMutableBufferPointer
+            {
+                guard let baseAddress = $0.baseAddress
+                else
+                {
+                    throw RuntimeError( message: "Failed to access data buffer" )
+                }
+
+                var scalar = self.scale
+                var addend = self.offset
+
+                vDSP_vsmulD( baseAddress, 1, &scalar, baseAddress, 1, count )
+                vDSP_vsaddD( baseAddress, 1, &addend, baseAddress, 1, count )
+            }
+        }
     }
 }

@@ -25,6 +25,7 @@
 		05398CDF2DEECF24005904EC /* SwiftUtilities.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 05398CDB2DEECF13005904EC /* SwiftUtilities.framework */; };
 		05398CE02DEECF24005904EC /* SwiftUtilities.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 05398CDB2DEECF13005904EC /* SwiftUtilities.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		05398CE52DEED19F005904EC /* PixelUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05398CE42DEED19C005904EC /* PixelUtilities.swift */; };
+		05398CF62DEEE0AA005904EC /* Processors-Scale.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05398CF52DEEE0A2005904EC /* Processors-Scale.swift */; };
 		05C5278C2DD8E36300843626 /* SwiftPixel.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 05C527822DD8E36300843626 /* SwiftPixel.framework */; };
 /* End PBXBuildFile section */
 
@@ -77,6 +78,7 @@
 		050F38232DEE1AF900E84F97 /* PixelBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelBuffer.swift; sourceTree = "<group>"; };
 		05398CD52DEECF13005904EC /* SwiftUtilities.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = SwiftUtilities.xcodeproj; path = Submodules/SwiftUtilities/SwiftUtilities.xcodeproj; sourceTree = "<group>"; };
 		05398CE42DEED19C005904EC /* PixelUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelUtilities.swift; sourceTree = "<group>"; };
+		05398CF52DEEE0A2005904EC /* Processors-Scale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Scale.swift"; sourceTree = "<group>"; };
 		05C527822DD8E36300843626 /* SwiftPixel.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SwiftPixel.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		05C5278B2DD8E36300843626 /* SwiftPixelTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftPixelTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		05D589112DD8E47A000BA644 /* CODE_OF_CONDUCT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CODE_OF_CONDUCT.md; sourceTree = "<group>"; };
@@ -215,6 +217,7 @@
 				050F38212DEE19E000E84F97 /* BitsPerPixel.swift */,
 				050F38232DEE1AF900E84F97 /* PixelBuffer.swift */,
 				05398CE42DEED19C005904EC /* PixelUtilities.swift */,
+				05398CF52DEEE0A2005904EC /* Processors-Scale.swift */,
 			);
 			path = SwiftPixelTests;
 			sourceTree = "<group>";
@@ -526,6 +529,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				050F38242DEE1AFD00E84F97 /* PixelBuffer.swift in Sources */,
+				05398CF62DEEE0AA005904EC /* Processors-Scale.swift in Sources */,
 				05398CE52DEED19F005904EC /* PixelUtilities.swift in Sources */,
 				050F38222DEE1A8900E84F97 /* BitsPerPixel.swift in Sources */,
 			);

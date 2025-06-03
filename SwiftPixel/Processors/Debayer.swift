@@ -29,12 +29,23 @@ public extension Processors
 {
     struct Debayer: PixelProcessor
     {
-        public enum Pattern: Sendable
+        public enum Pattern: Sendable, CustomStringConvertible
         {
             case bggr
             case rgbg
             case grbg
             case rggb
+
+            public var description: String
+            {
+                switch self
+                {
+                    case .bggr: return "BGGR"
+                    case .rgbg: return "RGBG"
+                    case .grbg: return "GRBG"
+                    case .rggb: return "RGGB"
+                }
+            }
         }
 
         public enum Mode: Sendable, CustomStringConvertible

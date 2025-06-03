@@ -24,9 +24,9 @@
 
 import Foundation
 
-public struct PixelPipeline
+public struct PixelPipeline: Sendable
 {
-    public struct Config
+    public struct Config: Sendable
     {
         public let scale:        ( scale: Double, offset: Double )?
         public let bayerPattern: Processors.Debayer.Pattern?

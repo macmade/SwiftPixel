@@ -37,7 +37,7 @@ public extension Processors
             case rggb
         }
 
-        public enum Mode: CustomStringConvertible
+        public enum Mode: Sendable, CustomStringConvertible
         {
             case vng
 

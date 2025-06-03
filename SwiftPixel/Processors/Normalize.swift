@@ -26,7 +26,7 @@ public extension Processors
 {
     struct Normalize: PixelProcessor
     {
-        public enum Mode: CustomStringConvertible
+        public enum Mode: Sendable, CustomStringConvertible
         {
             case minMax
             case percentile( Double, Double )

@@ -28,7 +28,7 @@ public extension Processors
 {
     struct Stretch: PixelProcessor
     {
-        public enum Algorithm: CustomStringConvertible
+        public enum Algorithm: Sendable, CustomStringConvertible
         {
             case log( Double )
             case arcsinh( Double )

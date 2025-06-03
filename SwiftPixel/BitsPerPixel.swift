@@ -24,7 +24,7 @@
 
 import Foundation
 
-public enum BitsPerPixel: CustomStringConvertible
+public enum BitsPerPixel: Sendable, CustomStringConvertible
 {
     case uint8
     case int16

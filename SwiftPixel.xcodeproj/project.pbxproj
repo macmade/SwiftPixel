@@ -22,10 +22,19 @@
 		050F38102DEE0CD900E84F97 /* PixelUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F380F2DEE0CD900E84F97 /* PixelUtilities.swift */; };
 		050F38222DEE1A8900E84F97 /* BitsPerPixel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F38212DEE19E000E84F97 /* BitsPerPixel.swift */; };
 		050F38242DEE1AFD00E84F97 /* PixelBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F38232DEE1AF900E84F97 /* PixelBuffer.swift */; };
+		05398CDF2DEECF24005904EC /* SwiftUtilities.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 05398CDB2DEECF13005904EC /* SwiftUtilities.framework */; };
+		05398CE02DEECF24005904EC /* SwiftUtilities.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 05398CDB2DEECF13005904EC /* SwiftUtilities.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		05C5278C2DD8E36300843626 /* SwiftPixel.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 05C527822DD8E36300843626 /* SwiftPixel.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		05398CDA2DEECF13005904EC /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 05398CD52DEECF13005904EC /* SwiftUtilities.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 05C527822DD8E36300843626;
+			remoteInfo = SwiftUtilities;
+		};
 		05C5278D2DD8E36300843626 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 05C527792DD8E36300843626 /* Project object */;
@@ -34,6 +43,20 @@
 			remoteInfo = SwiftFITS;
 		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		05398CE12DEECF24005904EC /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				05398CE02DEECF24005904EC /* SwiftUtilities.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		050F37F42DEE0BBE00E84F97 /* BitsPerPixel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitsPerPixel.swift; sourceTree = "<group>"; };
@@ -51,6 +74,7 @@
 		050F380F2DEE0CD900E84F97 /* PixelUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelUtilities.swift; sourceTree = "<group>"; };
 		050F38212DEE19E000E84F97 /* BitsPerPixel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitsPerPixel.swift; sourceTree = "<group>"; };
 		050F38232DEE1AF900E84F97 /* PixelBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelBuffer.swift; sourceTree = "<group>"; };
+		05398CD52DEECF13005904EC /* SwiftUtilities.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = SwiftUtilities.xcodeproj; path = Submodules/SwiftUtilities/SwiftUtilities.xcodeproj; sourceTree = "<group>"; };
 		05C527822DD8E36300843626 /* SwiftPixel.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SwiftPixel.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		05C5278B2DD8E36300843626 /* SwiftPixelTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftPixelTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		05D589112DD8E47A000BA644 /* CODE_OF_CONDUCT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CODE_OF_CONDUCT.md; sourceTree = "<group>"; };
@@ -112,6 +136,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				05398CDF2DEECF24005904EC /* SwiftUtilities.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -141,6 +166,21 @@
 			path = Processors;
 			sourceTree = "<group>";
 		};
+		05398CD62DEECF13005904EC /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				05398CDB2DEECF13005904EC /* SwiftUtilities.framework */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		05398CDE2DEECF24005904EC /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		05C527782DD8E36300843626 = {
 			isa = PBXGroup;
 			children = (
@@ -148,10 +188,12 @@
 				05D589122DD8E47A000BA644 /* LICENSE */,
 				05D589112DD8E47A000BA644 /* CODE_OF_CONDUCT.md */,
 				05EFC6812DE64B250096C4B4 /* SwiftPixel.xctestplan */,
+				05398CD52DEECF13005904EC /* SwiftUtilities.xcodeproj */,
 				05D589532DD8E67E000BA644 /* xcconfig */,
 				05D5891B2DD8E4EC000BA644 /* .github */,
 				05D5890F2DD8E470000BA644 /* SwiftPixel */,
 				05D5890C2DD8E46E000BA644 /* SwiftPixelTests */,
+				05398CDE2DEECF24005904EC /* Frameworks */,
 				05C527832DD8E36300843626 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -351,6 +393,7 @@
 				05C5277E2DD8E36300843626 /* Sources */,
 				05C5277F2DD8E36300843626 /* Frameworks */,
 				05C527802DD8E36300843626 /* Resources */,
+				05398CE12DEECF24005904EC /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -413,6 +456,12 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 05C527832DD8E36300843626 /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 05398CD62DEECF13005904EC /* Products */;
+					ProjectRef = 05398CD52DEECF13005904EC /* SwiftUtilities.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				05C527812DD8E36300843626 /* SwiftPixel */,
@@ -420,6 +469,16 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		05398CDB2DEECF13005904EC /* SwiftUtilities.framework */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.framework;
+			path = SwiftUtilities.framework;
+			remoteRef = 05398CDA2DEECF13005904EC /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
 
 /* Begin PBXResourcesBuildPhase section */
 		05C527802DD8E36300843626 /* Resources */ = {

@@ -18,7 +18,7 @@
 		050F380A2DEE0BBE00E84F97 /* Stretch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F37FF2DEE0BBE00E84F97 /* Stretch.swift */; };
 		050F380B2DEE0BBE00E84F97 /* PixelProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F37F82DEE0BBE00E84F97 /* PixelProcessor.swift */; };
 		050F380C2DEE0BBE00E84F97 /* Normalize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F37FD2DEE0BBE00E84F97 /* Normalize.swift */; };
-		050F380E2DEE0BBE00E84F97 /* GrayscaleToRGB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F37FC2DEE0BBE00E84F97 /* GrayscaleToRGB.swift */; };
+		050F380E2DEE0BBE00E84F97 /* MonoToRGB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F37FC2DEE0BBE00E84F97 /* MonoToRGB.swift */; };
 		050F38102DEE0CD900E84F97 /* PixelUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F380F2DEE0CD900E84F97 /* PixelUtilities.swift */; };
 		050F38222DEE1A8900E84F97 /* BitsPerPixel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F38212DEE19E000E84F97 /* BitsPerPixel.swift */; };
 		050F38242DEE1AFD00E84F97 /* PixelBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F38232DEE1AF900E84F97 /* PixelBuffer.swift */; };
@@ -67,7 +67,7 @@
 		050F37F92DEE0BBE00E84F97 /* BitsScale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitsScale.swift; sourceTree = "<group>"; };
 		050F37FA2DEE0BBE00E84F97 /* CorrectGamma.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrectGamma.swift; sourceTree = "<group>"; };
 		050F37FB2DEE0BBE00E84F97 /* Debayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Debayer.swift; sourceTree = "<group>"; };
-		050F37FC2DEE0BBE00E84F97 /* GrayscaleToRGB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrayscaleToRGB.swift; sourceTree = "<group>"; };
+		050F37FC2DEE0BBE00E84F97 /* MonoToRGB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonoToRGB.swift; sourceTree = "<group>"; };
 		050F37FD2DEE0BBE00E84F97 /* Normalize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Normalize.swift; sourceTree = "<group>"; };
 		050F37FE2DEE0BBE00E84F97 /* Scale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scale.swift; sourceTree = "<group>"; };
 		050F37FF2DEE0BBE00E84F97 /* Stretch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stretch.swift; sourceTree = "<group>"; };
@@ -159,7 +159,7 @@
 				050F37F92DEE0BBE00E84F97 /* BitsScale.swift */,
 				050F37FA2DEE0BBE00E84F97 /* CorrectGamma.swift */,
 				050F37FB2DEE0BBE00E84F97 /* Debayer.swift */,
-				050F37FC2DEE0BBE00E84F97 /* GrayscaleToRGB.swift */,
+				050F37FC2DEE0BBE00E84F97 /* MonoToRGB.swift */,
 				050F37FD2DEE0BBE00E84F97 /* Normalize.swift */,
 				050F37FE2DEE0BBE00E84F97 /* Scale.swift */,
 				050F37FF2DEE0BBE00E84F97 /* Stretch.swift */,
@@ -517,7 +517,7 @@
 				050F380B2DEE0BBE00E84F97 /* PixelProcessor.swift in Sources */,
 				050F380C2DEE0BBE00E84F97 /* Normalize.swift in Sources */,
 				050F38102DEE0CD900E84F97 /* PixelUtilities.swift in Sources */,
-				050F380E2DEE0BBE00E84F97 /* GrayscaleToRGB.swift in Sources */,
+				050F380E2DEE0BBE00E84F97 /* MonoToRGB.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

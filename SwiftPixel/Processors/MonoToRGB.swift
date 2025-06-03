@@ -26,11 +26,11 @@ import Foundation
 
 public extension Processors
 {
-    struct GrayscaleToRGB: PixelProcessor
+    struct MonoToRGB: PixelProcessor
     {
         public var name: String
         {
-            "Grayscale to RGB"
+            "Mono to RGB"
         }
 
         public func process( buffer: inout PixelBuffer ) throws

@@ -61,7 +61,7 @@ public struct PixelPipeline
         }
         else
         {
-            processors.append( Processors.GrayscaleToRGB() )
+            processors.append( Processors.MonoToRGB() )
         }
 
         if let normalize = config.normalize

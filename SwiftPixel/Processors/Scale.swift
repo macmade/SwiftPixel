@@ -30,13 +30,13 @@ public extension Processors
 {
     struct Scale: PixelProcessor
     {
+        public let scale:  Double
+        public let offset: Double
+
         public var name: String
         {
             String( format: "Scale (%.02f %.02f)", self.scale, self.offset )
         }
-
-        public let scale:  Double
-        public let offset: Double
 
         public func process( buffer: inout PixelBuffer ) throws
         {

@@ -28,12 +28,12 @@ public extension Processors
 {
     struct CorrectGamma: PixelProcessor
     {
+        public let gamma: Double
+
         public var name: String
         {
             String( format: "Gamma Correction", self.gamma )
         }
-
-        public let gamma: Double
 
         public func process( buffer: inout PixelBuffer ) throws
         {}

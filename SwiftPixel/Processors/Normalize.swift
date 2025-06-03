@@ -26,11 +26,6 @@ public extension Processors
 {
     struct Normalize: PixelProcessor
     {
-        public var name: String
-        {
-            "Normalize (\( self.mode ))"
-        }
-
         public enum Mode: CustomStringConvertible
         {
             case minMax
@@ -47,6 +42,11 @@ public extension Processors
         }
 
         public let mode: Mode
+
+        public var name: String
+        {
+            "Normalize (\( self.mode ))"
+        }
 
         public func process( buffer: inout PixelBuffer ) throws
         {}

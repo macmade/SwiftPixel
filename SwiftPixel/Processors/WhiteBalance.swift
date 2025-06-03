@@ -28,14 +28,14 @@ public extension Processors
 {
     struct WhiteBalance: PixelProcessor
     {
+        public let r: Double
+        public let g: Double
+        public let b: Double
+
         public var name: String
         {
             String( format: "White Balance (R:%.02f G:%.02f B:%.02f)" )
         }
-
-        public let r: Double
-        public let g: Double
-        public let b: Double
 
         public func process( buffer: inout PixelBuffer ) throws
         {}

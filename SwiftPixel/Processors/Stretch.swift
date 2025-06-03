@@ -28,11 +28,6 @@ public extension Processors
 {
     struct Stretch: PixelProcessor
     {
-        public var name: String
-        {
-            "Stretch (\( self.algorithm ))"
-        }
-
         public enum Algorithm: CustomStringConvertible
         {
             case log( Double )
@@ -51,6 +46,11 @@ public extension Processors
         }
 
         public let algorithm: Algorithm
+
+        public var name: String
+        {
+            "Stretch (\( self.algorithm ))"
+        }
 
         public func process( buffer: inout PixelBuffer ) throws
         {}

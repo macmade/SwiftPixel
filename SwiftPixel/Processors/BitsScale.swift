@@ -28,12 +28,12 @@ public extension Processors
 {
     struct BitsScale: PixelProcessor
     {
+        public var bits: UInt
+
         public var name: String
         {
             "Bits Scale (\( self.bits ))"
         }
-
-        public var bits: UInt
 
         public func process( buffer: inout PixelBuffer ) throws
         {}

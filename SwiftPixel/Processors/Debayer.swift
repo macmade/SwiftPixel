@@ -22,15 +22,19 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+import Accelerate
 import Foundation
 
 public extension Processors
 {
     struct Debayer: PixelProcessor
     {
-        public var name: String
+        public enum Pattern: Sendable
         {
-            "Debayering (\( self.mode ))"
+            case bggr
+            case rgbg
+            case grbg
+            case rggb
         }
 
         public enum Mode: CustomStringConvertible
@@ -46,7 +50,13 @@ public extension Processors
             }
         }
 
-        public let mode: Mode
+        public let mode:    Mode
+        public let pattern: Pattern
+
+        public var name: String
+        {
+            "Debayering (\( self.mode ))"
+        }
 
         public func process( buffer: inout PixelBuffer ) throws
         {}

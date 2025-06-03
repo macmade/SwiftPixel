@@ -28,8 +28,8 @@ public struct PixelPipeline
 {
     public struct Config
     {
-        public let isCFA:        Bool
         public let scale:        ( scale: Double, offset: Double )?
+        public let bayerPattern: Processors.Debayer.Pattern?
         public let normalize:    Processors.Normalize.Mode?
         public let stretch:      Processors.Stretch.Algorithm?
         public let correctGamma: Double?
@@ -55,9 +55,9 @@ public struct PixelPipeline
             processors.append( Processors.Scale( scale: scale.scale, offset: scale.offset ) )
         }
 
-        if config.isCFA
+        if let pattern = config.bayerPattern
         {
-            processors.append( Processors.Debayer( mode: .vng ) )
+            processors.append( Processors.Debayer( mode: .vng, pattern: pattern ) )
         }
         else
         {

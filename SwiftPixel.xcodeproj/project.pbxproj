@@ -29,6 +29,7 @@
 		05398D3F2DF02321005904EC /* Processors-Debayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05398D3A2DF0231E005904EC /* Processors-Debayer.swift */; };
 		05398D422DF03984005904EC /* Processors-MonoToRGB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05398D412DF0397C005904EC /* Processors-MonoToRGB.swift */; };
 		05398D6C2DF0A040005904EC /* PixelUtilities-PercentileBounds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05398D6B2DF0A03F005904EC /* PixelUtilities-PercentileBounds.swift */; };
+		05398D7D2DF0B9F7005904EC /* Processors-Normalize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05398D782DF0B9F2005904EC /* Processors-Normalize.swift */; };
 		05C5278C2DD8E36300843626 /* SwiftPixel.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 05C527822DD8E36300843626 /* SwiftPixel.framework */; };
 /* End PBXBuildFile section */
 
@@ -85,6 +86,7 @@
 		05398D3A2DF0231E005904EC /* Processors-Debayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Debayer.swift"; sourceTree = "<group>"; };
 		05398D412DF0397C005904EC /* Processors-MonoToRGB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-MonoToRGB.swift"; sourceTree = "<group>"; };
 		05398D6B2DF0A03F005904EC /* PixelUtilities-PercentileBounds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PixelUtilities-PercentileBounds.swift"; sourceTree = "<group>"; };
+		05398D782DF0B9F2005904EC /* Processors-Normalize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Normalize.swift"; sourceTree = "<group>"; };
 		05C527822DD8E36300843626 /* SwiftPixel.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SwiftPixel.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		05C5278B2DD8E36300843626 /* SwiftPixelTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftPixelTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		05D589112DD8E47A000BA644 /* CODE_OF_CONDUCT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CODE_OF_CONDUCT.md; sourceTree = "<group>"; };
@@ -222,10 +224,11 @@
 			children = (
 				050F38212DEE19E000E84F97 /* BitsPerPixel.swift */,
 				050F38232DEE1AF900E84F97 /* PixelBuffer.swift */,
-				05398CE42DEED19C005904EC /* PixelUtilities-ReadRawPixels.swift */,
 				05398D6B2DF0A03F005904EC /* PixelUtilities-PercentileBounds.swift */,
+				05398CE42DEED19C005904EC /* PixelUtilities-ReadRawPixels.swift */,
 				05398D3A2DF0231E005904EC /* Processors-Debayer.swift */,
 				05398D412DF0397C005904EC /* Processors-MonoToRGB.swift */,
+				05398D782DF0B9F2005904EC /* Processors-Normalize.swift */,
 				05398CF52DEEE0A2005904EC /* Processors-Scale.swift */,
 			);
 			path = SwiftPixelTests;
@@ -543,6 +546,7 @@
 				05398CE52DEED19F005904EC /* PixelUtilities-ReadRawPixels.swift in Sources */,
 				050F38222DEE1A8900E84F97 /* BitsPerPixel.swift in Sources */,
 				05398D422DF03984005904EC /* Processors-MonoToRGB.swift in Sources */,
+				05398D7D2DF0B9F7005904EC /* Processors-Normalize.swift in Sources */,
 				05398D3F2DF02321005904EC /* Processors-Debayer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

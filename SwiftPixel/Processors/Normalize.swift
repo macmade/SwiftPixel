@@ -22,6 +22,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+import Accelerate
+import Foundation
+
 public extension Processors
 {
     struct Normalize: PixelProcessor
@@ -49,6 +52,61 @@ public extension Processors
         }
 
         public func process( buffer: inout PixelBuffer ) throws
-        {}
+        {
+            guard buffer.pixels.isEmpty == false
+            else
+            {
+                buffer.isNormalized = true
+
+                return
+            }
+
+            let count = vDSP_Length( buffer.pixels.count )
+
+            switch self.mode
+            {
+                case .minMax:
+
+                    var minValue: Double = 0
+                    var maxValue: Double = 0
+
+                    vDSP_minvD( buffer.pixels, 1, &minValue, count )
+                    vDSP_maxvD( buffer.pixels, 1, &maxValue, count )
+
+                    guard minValue != maxValue
+                    else
+                    {
+                        return
+                    }
+
+                    let range  = maxValue - minValue
+                    let scale  = 1.0 / range
+                    let offset = -minValue / range
+
+                    vDSP_vsmsaD( buffer.pixels, 1, [ scale ], [ offset ], &buffer.pixels, 1, count )
+
+                case .percentile( let lowerPercentile, let upperPercentile ):
+
+                    let bounds = PixelUtilities.percentileBounds( in: buffer.pixels, lower: lowerPercentile, upper: upperPercentile )
+
+                    guard bounds.lower != bounds.upper
+                    else
+                    {
+                        return
+                    }
+
+                    vDSP_vclipD( buffer.pixels, 1, [ bounds.lower ], [ bounds.upper ], &buffer.pixels, 1, count )
+
+                    let range  = bounds.upper - bounds.lower
+                    let scale  = 1.0 / range
+                    let offset = -bounds.lower / range
+
+                    vDSP_vsmsaD( buffer.pixels, 1, [ scale ], [ offset ], &buffer.pixels, 1, count )
+            }
+
+            vDSP_vclipD( buffer.pixels, 1, [ 0.0 ], [ 1.0 ], &buffer.pixels, 1, count )
+
+            buffer.isNormalized = true
+        }
     }
 }

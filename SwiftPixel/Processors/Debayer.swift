@@ -272,15 +272,14 @@ public extension Processors
                         case ( false, false ): return .red
                     }
 
-                case .rggb,
-                     .rgbg:
+                case .rgbg:
 
                     switch ( evenRow, evenCol )
                     {
                         case ( true,  true  ): return .red
                         case ( true,  false ): return .green
-                        case ( false, true  ): return .green
-                        case ( false, false ): return .blue
+                        case ( false, true  ): return .blue
+                        case ( false, false ): return .green
                     }
 
                 case .grbg:
@@ -291,6 +290,16 @@ public extension Processors
                         case ( true,  true  ): return .green
                         case ( false, false ): return .green
                         case ( false, true  ): return .blue
+                    }
+
+                case .rggb:
+
+                    switch ( evenRow, evenCol )
+                    {
+                        case ( true,  true  ): return .red
+                        case ( true,  false ): return .green
+                        case ( false, true  ): return .green
+                        case ( false, false ): return .blue
                     }
             }
         }

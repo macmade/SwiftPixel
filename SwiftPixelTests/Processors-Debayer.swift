@@ -27,7 +27,7 @@ import Foundation
 import SwiftUtilities
 import Testing
 
-struct Test_Debayer
+struct Test_Processors_Debayer
 {
     @Test
     func testVNG_BGGR_2x2() async throws

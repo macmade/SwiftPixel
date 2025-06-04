@@ -27,7 +27,7 @@ import Foundation
 import SwiftUtilities
 import Testing
 
-struct Test_PixelUtilities
+struct Test_PixelUtilities_ReadRawPixels
 {
     @Test
     func readRawPixels_UInt8() async throws

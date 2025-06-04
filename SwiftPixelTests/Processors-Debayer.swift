@@ -30,6 +30,15 @@ import Testing
 struct Test_Processors_Debayer
 {
     @Test
+    func name() async throws
+    {
+        #expect( Processors.Debayer( mode: .vng, pattern: .bggr ).name == "Debayer (VNG BGGR)" )
+        #expect( Processors.Debayer( mode: .vng, pattern: .grbg ).name == "Debayer (VNG GRBG)" )
+        #expect( Processors.Debayer( mode: .vng, pattern: .rgbg ).name == "Debayer (VNG RGBG)" )
+        #expect( Processors.Debayer( mode: .vng, pattern: .rggb ).name == "Debayer (VNG RGGB)" )
+    }
+
+    @Test
     func testVNG_BGGR_2x2() async throws
     {
         // Simulated 2x2 Bayer pattern (BGGR):
@@ -47,7 +56,8 @@ struct Test_Processors_Debayer
 
         try debayer.process( buffer: &buffer )
 
-        #expect( buffer.pixels.count == buffer.width * buffer.height * 3 )
+        try #require( buffer.channels     == 3 )
+        try #require( buffer.pixels.count == 12 )
 
         buffer.pixels.forEach
         {
@@ -83,7 +93,8 @@ struct Test_Processors_Debayer
 
         try debayer.process( buffer: &buffer )
 
-        #expect( buffer.pixels.count == buffer.width * buffer.height * 3 )
+        try #require( buffer.channels     == 3 )
+        try #require( buffer.pixels.count == 12 )
 
         buffer.pixels.forEach
         {
@@ -119,7 +130,8 @@ struct Test_Processors_Debayer
 
         try debayer.process( buffer: &buffer )
 
-        #expect( buffer.pixels.count == buffer.width * buffer.height * 3 )
+        try #require( buffer.channels     == 3 )
+        try #require( buffer.pixels.count == 12 )
 
         buffer.pixels.forEach
         {
@@ -155,7 +167,8 @@ struct Test_Processors_Debayer
 
         try debayer.process( buffer: &buffer )
 
-        #expect( buffer.pixels.count == buffer.width * buffer.height * 3 )
+        try #require( buffer.channels     == 3 )
+        try #require( buffer.pixels.count == 12 )
 
         buffer.pixels.forEach
         {
@@ -180,8 +193,46 @@ struct Test_Processors_Debayer
             width:        2,
             height:       2,
             channels:     1,
-            pixels:       [ 0.1, 0.2 ],
+            pixels:       [ 10, 20 ],
             isNormalized: false
+        )
+
+        let debayer = Processors.Debayer( mode: .vng, pattern: .bggr )
+
+        #expect( throws: RuntimeError.self )
+        {
+            try debayer.process( buffer: &buffer )
+        }
+    }
+
+    @Test
+    func invalidChannels() async throws
+    {
+        var buffer = PixelBuffer(
+            width:        2,
+            height:       2,
+            channels:     3,
+            pixels:       [ 10, 20, 30, 40 ],
+            isNormalized: false
+        )
+
+        let debayer = Processors.Debayer( mode: .vng, pattern: .bggr )
+
+        #expect( throws: RuntimeError.self )
+        {
+            try debayer.process( buffer: &buffer )
+        }
+    }
+
+    @Test
+    func invalidNormalize() async throws
+    {
+        var buffer = PixelBuffer(
+            width:        2,
+            height:       2,
+            channels:     1,
+            pixels:       [ 10, 20, 30, 40 ],
+            isNormalized: true
         )
 
         let debayer = Processors.Debayer( mode: .vng, pattern: .bggr )

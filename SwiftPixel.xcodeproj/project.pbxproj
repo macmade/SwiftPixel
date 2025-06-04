@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		050F38022DEE0BBE00E84F97 /* BitsScale.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F37F92DEE0BBE00E84F97 /* BitsScale.swift */; };
 		050F38032DEE0BBE00E84F97 /* Debayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F37FB2DEE0BBE00E84F97 /* Debayer.swift */; };
 		050F38042DEE0BBE00E84F97 /* WhiteBalance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F38002DEE0BBE00E84F97 /* WhiteBalance.swift */; };
 		050F38052DEE0BBE00E84F97 /* BitsPerPixel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F37F42DEE0BBE00E84F97 /* BitsPerPixel.swift */; };
@@ -69,7 +68,6 @@
 		050F37F62DEE0BBE00E84F97 /* PixelBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelBuffer.swift; sourceTree = "<group>"; };
 		050F37F72DEE0BBE00E84F97 /* PixelPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelPipeline.swift; sourceTree = "<group>"; };
 		050F37F82DEE0BBE00E84F97 /* PixelProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelProcessor.swift; sourceTree = "<group>"; };
-		050F37F92DEE0BBE00E84F97 /* BitsScale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitsScale.swift; sourceTree = "<group>"; };
 		050F37FA2DEE0BBE00E84F97 /* CorrectGamma.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrectGamma.swift; sourceTree = "<group>"; };
 		050F37FB2DEE0BBE00E84F97 /* Debayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Debayer.swift; sourceTree = "<group>"; };
 		050F37FC2DEE0BBE00E84F97 /* MonoToRGB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonoToRGB.swift; sourceTree = "<group>"; };
@@ -166,7 +164,6 @@
 		050F38012DEE0BBE00E84F97 /* Processors */ = {
 			isa = PBXGroup;
 			children = (
-				050F37F92DEE0BBE00E84F97 /* BitsScale.swift */,
 				050F37FA2DEE0BBE00E84F97 /* CorrectGamma.swift */,
 				050F37FB2DEE0BBE00E84F97 /* Debayer.swift */,
 				050F37FC2DEE0BBE00E84F97 /* MonoToRGB.swift */,
@@ -520,7 +517,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				050F38022DEE0BBE00E84F97 /* BitsScale.swift in Sources */,
 				050F38032DEE0BBE00E84F97 /* Debayer.swift in Sources */,
 				050F38042DEE0BBE00E84F97 /* WhiteBalance.swift in Sources */,
 				050F38052DEE0BBE00E84F97 /* BitsPerPixel.swift in Sources */,

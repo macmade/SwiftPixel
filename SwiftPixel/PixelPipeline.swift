@@ -34,7 +34,6 @@ public struct PixelPipeline: Sendable
         public let stretch:      Processors.Stretch.Algorithm?
         public let correctGamma: Double?
         public let whiteBalance: ( r: Double, g: Double, b: Double )?
-        public let bitsScale:    UInt?
     }
 
     public let config: Config
@@ -82,11 +81,6 @@ public struct PixelPipeline: Sendable
         if let whiteBalance = config.whiteBalance
         {
             processors.append( Processors.WhiteBalance( r: whiteBalance.r, g: whiteBalance.g, b: whiteBalance.b ) )
-        }
-
-        if let bitsScale = config.bitsScale
-        {
-            processors.append( Processors.BitsScale( bits: bitsScale ) )
         }
 
         try processors.forEach

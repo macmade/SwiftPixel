@@ -12,6 +12,15 @@ SwiftPixel
 
 Pixel Processing Library for Swift.
 
+### Cloning
+
+This project uses submodules.  
+To clone it, use the following command:
+
+```bash
+git clone --recursive https://github.com/macmade/SwiftPixel.git
+```
+
 License
 -------
 

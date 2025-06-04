@@ -67,7 +67,7 @@ public extension Processors
 
         public var name: String
         {
-            "Debayering (\( self.mode ))"
+            "Debayer (\( self.mode ) \( self.pattern ))"
         }
 
         public func process( buffer: inout PixelBuffer ) throws
@@ -92,7 +92,10 @@ public extension Processors
 
             switch self.mode
             {
-                case .vng: buffer.pixels = try Self.vng( pixels: buffer.pixels, pattern: self.pattern, width: buffer.width, height: buffer.height )
+                case .vng:
+
+                    buffer.pixels   = try Self.vng( pixels: buffer.pixels, pattern: self.pattern, width: buffer.width, height: buffer.height )
+                    buffer.channels = 3
             }
         }
 

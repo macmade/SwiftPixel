@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+import Accelerate
 import Foundation
 import SwiftUtilities
 
@@ -98,5 +99,29 @@ public enum PixelUtilities
         }
 
         return result.value
+    }
+
+    public static func percentileBounds( in array: [ Double ], lower: Double, upper: Double ) -> ( lower: Double, upper: Double )
+    {
+        guard array.isEmpty == false
+        else
+        {
+            return ( 0, 0 )
+        }
+
+        var sorted = array
+
+        vDSP.sort( &sorted, sortOrder: .ascending )
+
+        let lowerPosition = Double( sorted.count - 1 ) * ( lower / 100.0 )
+        let upperPosition = Double( sorted.count - 1 ) * ( upper / 100.0 )
+        let lowerIndex    = Int( floor( lowerPosition ) )
+        let upperIndex    = Int( floor( upperPosition ) )
+        let lowerWeight   = lowerPosition - Double( lowerIndex )
+        let upperWeight   = upperPosition - Double( upperIndex )
+        let lowerValue    = sorted[ lowerIndex ] * ( 1.0 - lowerWeight ) + sorted[ Swift.min( lowerIndex + 1, sorted.count - 1 ) ] * lowerWeight
+        let upperValue    = sorted[ upperIndex ] * ( 1.0 - upperWeight ) + sorted[ Swift.min( upperIndex + 1, sorted.count - 1 ) ] * upperWeight
+
+        return ( lower: lowerValue, upper: upperValue )
     }
 }

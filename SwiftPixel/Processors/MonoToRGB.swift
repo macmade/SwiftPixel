@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 import Foundation
+import SwiftUtilities
 
 public extension Processors
 {
@@ -34,6 +35,45 @@ public extension Processors
         }
 
         public func process( buffer: inout PixelBuffer ) throws
-        {}
+        {
+            guard buffer.pixels.count == buffer.width * buffer.height
+            else
+            {
+                throw RuntimeError( message: "Data size does not match expected size: \( buffer.pixels.count ) != \( buffer.width * buffer.height )" )
+            }
+
+            guard buffer.channels == 1
+            else
+            {
+                throw RuntimeError( message: "Unsupported channel count: \( buffer.channels )" )
+            }
+
+            guard buffer.isNormalized == false
+            else
+            {
+                throw RuntimeError( message: "Input buffer must not be normalized" )
+            }
+
+            let count          = buffer.pixels.count
+            let rgb            = UnsafeMutableSendable( [ Double ]( repeating: 0.0, count: count * 3 ) )
+            let sendableBuffer = UnsafeMutableSendable( buffer )
+
+            rgb.value.withUnsafeMutableBufferPointer
+            {
+                let sendableRGBBuffer = UnsafeMutableSendable( $0 )
+
+                DispatchQueue.concurrentPerform( iterations: count )
+                {
+                    let value = sendableBuffer.value.pixels[ $0 ]
+                    let base  = $0 * 3
+
+                    sendableRGBBuffer.value[ base + 0 ] = value
+                    sendableRGBBuffer.value[ base + 1 ] = value
+                    sendableRGBBuffer.value[ base + 2 ] = value
+                }
+            }
+
+            buffer.pixels = rgb.value
+        }
     }
 }

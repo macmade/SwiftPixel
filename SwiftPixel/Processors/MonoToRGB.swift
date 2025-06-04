@@ -73,7 +73,8 @@ public extension Processors
                 }
             }
 
-            buffer.pixels = rgb.value
+            buffer.pixels   = rgb.value
+            buffer.channels = 3
         }
     }
 }

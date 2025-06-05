@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 import Foundation
+import SwiftUtilities
 
 public struct PixelPipeline: Sendable
 {
@@ -33,7 +34,17 @@ public struct PixelPipeline: Sendable
         public let normalize:    Processors.Normalize.Mode?
         public let stretch:      Processors.Stretch.Algorithm?
         public let correctGamma: Double?
-        public let whiteBalance: ( r: Double, g: Double, b: Double )?
+        public let whiteBalance: Processors.WhiteBalance.Mode?
+
+        public init( scale: ( scale: Double, offset: Double )?, bayerPattern: Processors.Debayer.Pattern?, normalize: Processors.Normalize.Mode?, stretch: Processors.Stretch.Algorithm?, correctGamma: Double?, whiteBalance: Processors.WhiteBalance.Mode? )
+        {
+            self.scale        = scale
+            self.bayerPattern = bayerPattern
+            self.normalize    = normalize
+            self.stretch      = stretch
+            self.correctGamma = correctGamma
+            self.whiteBalance = whiteBalance
+        }
     }
 
     public let config: Config
@@ -43,18 +54,18 @@ public struct PixelPipeline: Sendable
         self.config = config
     }
 
-    public func run( data: Data, width: Int, height: Int, bitsPerPixel: BitsPerPixel, config: Config ) throws -> PixelBuffer
+    public func run( data: Data, width: Int, height: Int, bitsPerPixel: BitsPerPixel ) throws -> PixelBuffer
     {
         let pixels     = try PixelUtilities.readRawPixels( data: data, width: width, height: height, bitsPerPixel: bitsPerPixel )
         var buffer     = PixelBuffer( width: width, height: height, channels: 1, pixels: pixels, isNormalized: false )
         var processors = [ PixelProcessor ]()
 
-        if let scale = config.scale
+        if let scale = self.config.scale
         {
             processors.append( Processors.Scale( scale: scale.scale, offset: scale.offset ) )
         }
 
-        if let pattern = config.bayerPattern
+        if let pattern = self.config.bayerPattern
         {
             processors.append( Processors.Debayer( mode: .vng, pattern: pattern ) )
         }
@@ -63,29 +74,32 @@ public struct PixelPipeline: Sendable
             processors.append( Processors.MonoToRGB() )
         }
 
-        if let normalize = config.normalize
+        if let normalize = self.config.normalize
         {
             processors.append( Processors.Normalize( mode: normalize ) )
         }
 
-        if let stretch = config.stretch
+        if let stretch = self.config.stretch
         {
             processors.append( Processors.Stretch( algorithm: stretch ) )
         }
 
-        if let correctGamma = config.correctGamma
+        if let correctGamma = self.config.correctGamma
         {
             processors.append( Processors.CorrectGamma( gamma: correctGamma ) )
         }
 
-        if let whiteBalance = config.whiteBalance
+        if let whiteBalance = self.config.whiteBalance
         {
-            processors.append( Processors.WhiteBalance( r: whiteBalance.r, g: whiteBalance.g, b: whiteBalance.b ) )
+            processors.append( Processors.WhiteBalance( mode: whiteBalance ) )
         }
 
         try processors.forEach
         {
-            try $0.process( buffer: &buffer )
+            processor in try Benchmark.run( label: processor.description )
+            {
+                try processor.process( buffer: &buffer )
+            }
         }
 
         return buffer

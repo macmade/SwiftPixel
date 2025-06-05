@@ -24,6 +24,7 @@
 
 import Foundation
 @testable import SwiftPixel
+import SwiftUtilities
 import Testing
 
 struct Test_PixelBuffer
@@ -67,5 +68,181 @@ struct Test_PixelBuffer
         )
 
         #expect( buffer.description == "PixelBuffer( width: 10, height: 20, channels: 1, pixels: 4, isNormalized: true )" )
+    }
+
+    @Test
+    func convert() async throws
+    {
+        let buffer = PixelBuffer(
+            width:        2,
+            height:       2,
+            channels:     1,
+            pixels:       [ 0.0, 0.5, 1.0, 0.25 ],
+            isNormalized: true
+        )
+
+        let result = try buffer.convertTo8Bits()
+
+        #expect( result == [ 0, 128, 255, 64 ] )
+    }
+
+    @Test
+    func comvertClamp() async throws
+    {
+        let buffer = PixelBuffer(
+            width:        2,
+            height:       2,
+            channels:     1,
+            pixels:       [ -0.1, 0.0, 1.0, 1.1 ],
+            isNormalized: true
+        )
+
+        let result = try buffer.convertTo8Bits()
+
+        #expect( result == [ 0, 0, 255, 255 ] )
+    }
+
+    @Test
+    func convertNotNormalized() async throws
+    {
+        let buffer = PixelBuffer(
+            width:        2,
+            height:       2,
+            channels:     1,
+            pixels:       [ 0.0, 0.5, 1.0, 0.25 ],
+            isNormalized: false
+        )
+
+        #expect( throws: RuntimeError.self )
+        {
+            try buffer.convertTo8Bits()
+        }
+    }
+
+    @Test
+    func convertEmpty() async throws
+    {
+        let buffer = PixelBuffer(
+            width:        0,
+            height:       0,
+            channels:     0,
+            pixels:       [ ],
+            isNormalized: true
+        )
+
+        let result = try buffer.convertTo8Bits()
+
+        #expect( result == [] )
+    }
+
+    @Test
+    func createCGImageWith1Channel() async throws
+    {
+        let buffer = PixelBuffer(
+            width:        2,
+            height:       2,
+            channels:     1,
+            pixels:       [ 0.0, 0.5, 0.5, 1.0 ],
+            isNormalized: true
+        )
+
+        let image = try buffer.createCGImage()
+
+        #expect( image.width            == 2 )
+        #expect( image.height           == 2 )
+        #expect( image.bitsPerComponent == 8 )
+        #expect( image.bitsPerPixel     == 8 )
+        #expect( image.bytesPerRow      == 2 )
+    }
+
+    @Test
+    func createCGImageWith3Channels() async throws
+    {
+        let buffer = PixelBuffer(
+            width:        1,
+            height:       1,
+            channels:     3,
+            pixels:       [ 1.0, 0.0, 0.5 ],
+            isNormalized: true
+        )
+
+        let image = try buffer.createCGImage()
+
+        #expect( image.width            == 1 )
+        #expect( image.height           == 1 )
+        #expect( image.bitsPerComponent == 8 )
+        #expect( image.bitsPerPixel     == 24 )
+        #expect( image.bytesPerRow      == 3 )
+    }
+
+    @Test
+    func createCGImageWith4Channels() async throws
+    {
+        let buffer = PixelBuffer(
+            width:        1,
+            height:       1,
+            channels:     4,
+            pixels:       [ 1.0, 0.0, 0.5, 1.0 ],
+            isNormalized: true
+        )
+
+        let image = try buffer.createCGImage()
+
+        #expect( image.width            == 1 )
+        #expect( image.height           == 1 )
+        #expect( image.bitsPerComponent == 8 )
+        #expect( image.bitsPerPixel     == 32 )
+        #expect( image.bytesPerRow      == 4 )
+    }
+
+    @Test
+    func createCGImageUnsupportedChannels() async throws
+    {
+        let buffer = PixelBuffer(
+            width:        1,
+            height:       1,
+            channels:     2,
+            pixels:       [ 0.0, 1.0 ],
+            isNormalized: true
+        )
+
+        #expect( throws: RuntimeError.self )
+        {
+            try buffer.createCGImage()
+        }
+    }
+
+    @Test
+    func createCGImageIncorrectPixelCount() async throws
+    {
+        let buffer = PixelBuffer(
+            width:        2,
+            height:       2,
+            channels:     3,
+            pixels:       [ 1.0, 0.0, 0.5 ],
+            isNormalized: true
+        )
+
+        #expect( throws: RuntimeError.self )
+        {
+            try buffer.createCGImage()
+        }
+    }
+
+    @Test
+    func createCGImageNotNormalized() async throws
+    {
+        let buffer = PixelBuffer(
+            width:        1,
+            height:       1,
+            channels:     3,
+            pixels:       [ 1.0, 0.0, 0.5 ],
+            isNormalized: false
+        )
+
+        #expect( throws: RuntimeError.self )
+        {
+            try buffer.createCGImage()
+        }
     }
 }

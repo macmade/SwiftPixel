@@ -22,7 +22,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+import Accelerate
 import Foundation
+import SwiftUtilities
 
 public extension Processors
 {
@@ -36,6 +38,27 @@ public extension Processors
         }
 
         public func process( buffer: inout PixelBuffer ) throws
-        {}
+        {
+            guard buffer.isNormalized
+            else
+            {
+                throw RuntimeError( message: "Buffer needs to be normalized" )
+            }
+
+            var count        = Int32( buffer.pixels.count )
+            let inverseGamma = 1.0 / self.gamma
+            let exponents    = [ Double ]( repeating: inverseGamma, count: buffer.pixels.count )
+
+            try buffer.pixels.withUnsafeMutableBufferPointer
+            {
+                guard let baseAddress = $0.baseAddress
+                else
+                {
+                    throw RuntimeError( message: "Failed to access data buffer" )
+                }
+
+                vvpow( baseAddress, exponents, baseAddress, &count )
+            }
+        }
     }
 }

@@ -146,13 +146,20 @@ struct Test_PixelBuffer
             isNormalized: true
         )
 
-        let image = try buffer.createCGImage()
+        let image1 = try buffer.createCGImage()
+        let image2 = try PixelBuffer.createCGImage( bytes: try buffer.convertTo8Bits(), width: buffer.width, height: buffer.height, channels: buffer.channels )
 
-        #expect( image.width            == 2 )
-        #expect( image.height           == 2 )
-        #expect( image.bitsPerComponent == 8 )
-        #expect( image.bitsPerPixel     == 8 )
-        #expect( image.bytesPerRow      == 2 )
+        #expect( image1.width            == 2 )
+        #expect( image1.height           == 2 )
+        #expect( image1.bitsPerComponent == 8 )
+        #expect( image1.bitsPerPixel     == 8 )
+        #expect( image1.bytesPerRow      == 2 )
+
+        #expect( image2.width            == 2 )
+        #expect( image2.height           == 2 )
+        #expect( image2.bitsPerComponent == 8 )
+        #expect( image2.bitsPerPixel     == 8 )
+        #expect( image2.bytesPerRow      == 2 )
     }
 
     @Test
@@ -166,13 +173,20 @@ struct Test_PixelBuffer
             isNormalized: true
         )
 
-        let image = try buffer.createCGImage()
+        let image1 = try buffer.createCGImage()
+        let image2 = try PixelBuffer.createCGImage( bytes: try buffer.convertTo8Bits(), width: buffer.width, height: buffer.height, channels: buffer.channels )
 
-        #expect( image.width            == 1 )
-        #expect( image.height           == 1 )
-        #expect( image.bitsPerComponent == 8 )
-        #expect( image.bitsPerPixel     == 24 )
-        #expect( image.bytesPerRow      == 3 )
+        #expect( image1.width            == 1 )
+        #expect( image1.height           == 1 )
+        #expect( image1.bitsPerComponent == 8 )
+        #expect( image1.bitsPerPixel     == 24 )
+        #expect( image1.bytesPerRow      == 3 )
+
+        #expect( image2.width            == 1 )
+        #expect( image2.height           == 1 )
+        #expect( image2.bitsPerComponent == 8 )
+        #expect( image2.bitsPerPixel     == 24 )
+        #expect( image2.bytesPerRow      == 3 )
     }
 
     @Test
@@ -186,13 +200,20 @@ struct Test_PixelBuffer
             isNormalized: true
         )
 
-        let image = try buffer.createCGImage()
+        let image1 = try buffer.createCGImage()
+        let image2 = try PixelBuffer.createCGImage( bytes: try buffer.convertTo8Bits(), width: buffer.width, height: buffer.height, channels: buffer.channels )
 
-        #expect( image.width            == 1 )
-        #expect( image.height           == 1 )
-        #expect( image.bitsPerComponent == 8 )
-        #expect( image.bitsPerPixel     == 32 )
-        #expect( image.bytesPerRow      == 4 )
+        #expect( image1.width            == 1 )
+        #expect( image1.height           == 1 )
+        #expect( image1.bitsPerComponent == 8 )
+        #expect( image1.bitsPerPixel     == 32 )
+        #expect( image1.bytesPerRow      == 4 )
+
+        #expect( image2.width            == 1 )
+        #expect( image2.height           == 1 )
+        #expect( image2.bitsPerComponent == 8 )
+        #expect( image2.bitsPerPixel     == 32 )
+        #expect( image2.bytesPerRow      == 4 )
     }
 
     @Test
@@ -209,6 +230,11 @@ struct Test_PixelBuffer
         #expect( throws: RuntimeError.self )
         {
             try buffer.createCGImage()
+        }
+
+        #expect( throws: RuntimeError.self )
+        {
+            try PixelBuffer.createCGImage( bytes: try buffer.convertTo8Bits(), width: buffer.width, height: buffer.height, channels: buffer.channels )
         }
     }
 
@@ -227,6 +253,11 @@ struct Test_PixelBuffer
         {
             try buffer.createCGImage()
         }
+
+        #expect( throws: RuntimeError.self )
+        {
+            try PixelBuffer.createCGImage( bytes: try buffer.convertTo8Bits(), width: buffer.width, height: buffer.height, channels: buffer.channels )
+        }
     }
 
     @Test
@@ -243,6 +274,11 @@ struct Test_PixelBuffer
         #expect( throws: RuntimeError.self )
         {
             try buffer.createCGImage()
+        }
+
+        #expect( throws: RuntimeError.self )
+        {
+            try PixelBuffer.createCGImage( bytes: try buffer.convertTo8Bits(), width: buffer.width, height: buffer.height, channels: buffer.channels )
         }
     }
 }

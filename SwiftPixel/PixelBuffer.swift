@@ -74,15 +74,19 @@ public struct PixelBuffer: CustomStringConvertible
             throw RuntimeError( message: "Data size does not match expected size: \( self.pixels.count ) != \( count )" )
         }
 
-        let bytes            = try self.convertTo8Bits()
+        return try Self.createCGImage( bytes: try self.convertTo8Bits(), width: self.width, height: self.height, channels: self.channels )
+    }
+
+    public static func createCGImage( bytes: [ UInt8 ], width: Int, height: Int, channels: Int ) throws -> CGImage
+    {
         let bitsPerComponent = 8
-        let bitsPerPixel     = self.channels * bitsPerComponent
-        let bytesPerRow      = self.width * self.channels
+        let bitsPerPixel     = channels * bitsPerComponent
+        let bytesPerRow      = width * channels
 
         let colorSpace: CGColorSpace
         let bitmapInfo: CGBitmapInfo
 
-        switch self.channels
+        switch channels
         {
             case 1:
 
@@ -111,8 +115,8 @@ public struct PixelBuffer: CustomStringConvertible
         }
 
         guard let image = CGImage(
-            width:             self.width,
-            height:            self.height,
+            width:             width,
+            height:            height,
             bitsPerComponent:  bitsPerComponent,
             bitsPerPixel:      bitsPerPixel,
             bytesPerRow:       bytesPerRow,

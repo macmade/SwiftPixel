@@ -21,6 +21,10 @@
 		050F38102DEE0CD900E84F97 /* PixelUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F380F2DEE0CD900E84F97 /* PixelUtilities.swift */; };
 		050F38222DEE1A8900E84F97 /* BitsPerPixel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F38212DEE19E000E84F97 /* BitsPerPixel.swift */; };
 		050F38242DEE1AFD00E84F97 /* PixelBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 050F38232DEE1AF900E84F97 /* PixelBuffer.swift */; };
+		0524AD672DF3354100180358 /* Histogram.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0524AD622DF3353D00180358 /* Histogram.swift */; };
+		0524AD692DF3369D00180358 /* HistogramStatistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0524AD682DF3369700180358 /* HistogramStatistics.swift */; };
+		0524AD6B2DF339D900180358 /* Histogram.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0524AD6A2DF339D500180358 /* Histogram.swift */; };
+		0524AD7C2DF33DDB00180358 /* HistogramStatistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0524AD772DF33DDA00180358 /* HistogramStatistics.swift */; };
 		05398CDF2DEECF24005904EC /* SwiftUtilities.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 05398CDB2DEECF13005904EC /* SwiftUtilities.framework */; };
 		05398CE02DEECF24005904EC /* SwiftUtilities.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 05398CDB2DEECF13005904EC /* SwiftUtilities.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		05398CE52DEED19F005904EC /* PixelUtilities-ReadRawPixels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05398CE42DEED19C005904EC /* PixelUtilities-ReadRawPixels.swift */; };
@@ -83,6 +87,10 @@
 		050F380F2DEE0CD900E84F97 /* PixelUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelUtilities.swift; sourceTree = "<group>"; };
 		050F38212DEE19E000E84F97 /* BitsPerPixel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitsPerPixel.swift; sourceTree = "<group>"; };
 		050F38232DEE1AF900E84F97 /* PixelBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelBuffer.swift; sourceTree = "<group>"; };
+		0524AD622DF3353D00180358 /* Histogram.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Histogram.swift; sourceTree = "<group>"; };
+		0524AD682DF3369700180358 /* HistogramStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistogramStatistics.swift; sourceTree = "<group>"; };
+		0524AD6A2DF339D500180358 /* Histogram.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Histogram.swift; sourceTree = "<group>"; };
+		0524AD772DF33DDA00180358 /* HistogramStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistogramStatistics.swift; sourceTree = "<group>"; };
 		05398CD52DEECF13005904EC /* SwiftUtilities.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = SwiftUtilities.xcodeproj; path = Submodules/SwiftUtilities/SwiftUtilities.xcodeproj; sourceTree = "<group>"; };
 		05398CE42DEED19C005904EC /* PixelUtilities-ReadRawPixels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PixelUtilities-ReadRawPixels.swift"; sourceTree = "<group>"; };
 		05398CF52DEEE0A2005904EC /* Processors-Scale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Scale.swift"; sourceTree = "<group>"; };
@@ -230,6 +238,8 @@
 			isa = PBXGroup;
 			children = (
 				050F38212DEE19E000E84F97 /* BitsPerPixel.swift */,
+				0524AD6A2DF339D500180358 /* Histogram.swift */,
+				0524AD772DF33DDA00180358 /* HistogramStatistics.swift */,
 				050F38232DEE1AF900E84F97 /* PixelBuffer.swift */,
 				05D710C22DF1D89700CE32E3 /* PixelPipeline.swift */,
 				05D710B62DF1D5AB00CE32E3 /* PixelPipeline-Config.swift */,
@@ -250,6 +260,8 @@
 			isa = PBXGroup;
 			children = (
 				050F37F42DEE0BBE00E84F97 /* BitsPerPixel.swift */,
+				0524AD622DF3353D00180358 /* Histogram.swift */,
+				0524AD682DF3369700180358 /* HistogramStatistics.swift */,
 				050F37F62DEE0BBE00E84F97 /* PixelBuffer.swift */,
 				050F37F72DEE0BBE00E84F97 /* PixelPipeline.swift */,
 				050F37F82DEE0BBE00E84F97 /* PixelProcessor.swift */,
@@ -533,6 +545,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				050F38032DEE0BBE00E84F97 /* Debayer.swift in Sources */,
+				0524AD692DF3369D00180358 /* HistogramStatistics.swift in Sources */,
 				050F38042DEE0BBE00E84F97 /* WhiteBalance.swift in Sources */,
 				050F38052DEE0BBE00E84F97 /* BitsPerPixel.swift in Sources */,
 				050F38062DEE0BBE00E84F97 /* PixelPipeline.swift in Sources */,
@@ -542,6 +555,7 @@
 				050F380A2DEE0BBE00E84F97 /* Stretch.swift in Sources */,
 				050F380B2DEE0BBE00E84F97 /* PixelProcessor.swift in Sources */,
 				050F380C2DEE0BBE00E84F97 /* Normalize.swift in Sources */,
+				0524AD672DF3354100180358 /* Histogram.swift in Sources */,
 				050F38102DEE0CD900E84F97 /* PixelUtilities.swift in Sources */,
 				050F380E2DEE0BBE00E84F97 /* MonoToRGB.swift in Sources */,
 			);
@@ -555,8 +569,10 @@
 				050F38242DEE1AFD00E84F97 /* PixelBuffer.swift in Sources */,
 				05D710BF2DF1D84D00CE32E3 /* Processors-WhiteBalance.swift in Sources */,
 				05398CF62DEEE0AA005904EC /* Processors-Scale.swift in Sources */,
+				0524AD7C2DF33DDB00180358 /* HistogramStatistics.swift in Sources */,
 				05398D6C2DF0A040005904EC /* PixelUtilities-PercentileBounds.swift in Sources */,
 				05398CE52DEED19F005904EC /* PixelUtilities-ReadRawPixels.swift in Sources */,
+				0524AD6B2DF339D900180358 /* Histogram.swift in Sources */,
 				05D710C32DF1D89B00CE32E3 /* PixelPipeline.swift in Sources */,
 				050F38222DEE1A8900E84F97 /* BitsPerPixel.swift in Sources */,
 				05D710BB2DF1D5B200CE32E3 /* PixelPipeline-Config.swift in Sources */,

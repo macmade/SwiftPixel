@@ -26,14 +26,14 @@ import Foundation
 
 public struct HistogramStatistics
 {
-    let count:        Int
-    let mean:         Double
-    let median:       Int
-    let stdDev:       Double
-    let min:          Int
-    let max:          Int
-    let percentile1:  Int
-    let percentile99: Int
+    public let count:        Int
+    public let mean:         Double
+    public let median:       Int
+    public let stdDev:       Double
+    public let min:          Int
+    public let max:          Int
+    public let percentile1:  Int
+    public let percentile99: Int
 
     public init( data: [ Int ] )
     {

@@ -56,7 +56,13 @@ public struct PixelPipeline: Sendable
 
     public func run( data: Data, width: Int, height: Int, bitsPerPixel: BitsPerPixel ) throws -> PixelBuffer
     {
-        let pixels     = try PixelUtilities.readRawPixels( data: data, width: width, height: height, bitsPerPixel: bitsPerPixel )
+        let pixels = try PixelUtilities.readRawPixels( data: data, width: width, height: height, bitsPerPixel: bitsPerPixel )
+
+        return try self.run( pixels: pixels, width: width, height: height, bitsPerPixel: bitsPerPixel )
+    }
+
+    public func run( pixels: [ Double ], width: Int, height: Int, bitsPerPixel: BitsPerPixel ) throws -> PixelBuffer
+    {
         var buffer     = PixelBuffer( width: width, height: height, channels: 1, pixels: pixels, isNormalized: false )
         var processors = [ PixelProcessor ]()
 

@@ -49,7 +49,7 @@ public extension Processors
 
         public var name: String
         {
-            String( format: "White Balance (\( self.mode )" )
+            "White Balance (\( self.mode ))"
         }
 
         public func process( buffer: inout PixelBuffer ) throws
@@ -99,6 +99,8 @@ public extension Processors
                 vDSP_vsmulD( baseAddress, 3, &r, baseAddress, 3, count )
                 vDSP_vsmulD( baseAddress.advanced( by: 1 ), 3, &g, baseAddress.advanced( by: 1 ), 3, count )
                 vDSP_vsmulD( baseAddress.advanced( by: 2 ), 3, &b, baseAddress.advanced( by: 2 ), 3, count )
+
+                vDSP_vclipD( baseAddress, 1, [ 0.0 ], [ 1.0 ], baseAddress, 1, count * 3 )
             }
         }
 
@@ -126,9 +128,9 @@ public extension Processors
                 let avgG  = sumG / Double( count )
                 let avgB  = sumB / Double( count )
                 let gray  = ( avgR + avgG + avgB ) / 3.0
-                let gainR = gray > 0 ? gray / avgR : 1.0
-                let gainG = gray > 0 ? gray / avgG : 1.0
-                let gainB = gray > 0 ? gray / avgB : 1.0
+                let gainR = avgR > 0 ? gray / avgR : 1.0
+                let gainG = avgG > 0 ? gray / avgG : 1.0
+                let gainB = avgB > 0 ? gray / avgB : 1.0
 
                 return ( gainR, gainG, gainB )
             }

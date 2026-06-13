@@ -24,7 +24,108 @@
 
 import Foundation
 @testable import SwiftPixel
+import SwiftUtilities
 import Testing
 
 struct Test_Processors_WhiteBalance
-{}
+{
+    @Test
+    func manualGain() async throws
+    {
+        var buffer = PixelBuffer(
+            width:        1,
+            height:       1,
+            channels:     3,
+            pixels:       [ 0.2, 0.3, 0.4 ],
+            isNormalized: true
+        )
+
+        let processor = Processors.WhiteBalance( mode: .manual( red: 2.0, green: 1.0, blue: 0.5 ) )
+
+        try processor.process( buffer: &buffer )
+
+        #expect( buffer.pixels == [ 0.4, 0.3, 0.2 ] )
+    }
+
+    @Test
+    func manualGainClipsToRange() async throws
+    {
+        var buffer = PixelBuffer(
+            width:        1,
+            height:       1,
+            channels:     3,
+            pixels:       [ 0.5, 0.5, 0.5 ],
+            isNormalized: true
+        )
+
+        let processor = Processors.WhiteBalance( mode: .manual( red: 4.0, green: 1.0, blue: 1.0 ) )
+
+        try processor.process( buffer: &buffer )
+
+        #expect( buffer.pixels == [ 1.0, 0.5, 0.5 ] )
+    }
+
+    @Test
+    func autoGainNormalImage() async throws
+    {
+        var buffer = PixelBuffer(
+            width:        2,
+            height:       1,
+            channels:     3,
+            pixels:       [ 0.2, 0.4, 0.6, 0.3, 0.5, 0.7 ],
+            isNormalized: true
+        )
+
+        let processor = Processors.WhiteBalance( mode: .auto )
+
+        try processor.process( buffer: &buffer )
+
+        #expect( buffer.pixels.allSatisfy { $0.isFinite } )
+        #expect( buffer.pixels.allSatisfy { $0 >= 0.0 && $0 <= 1.0 } )
+    }
+
+    @Test
+    func autoGainZeroChannel() async throws
+    {
+        var buffer = PixelBuffer(
+            width:        2,
+            height:       1,
+            channels:     3,
+            pixels:       [ 0.5, 0.5, 0.0, 0.5, 0.5, 0.0 ],
+            isNormalized: true
+        )
+
+        let processor = Processors.WhiteBalance( mode: .auto )
+
+        try processor.process( buffer: &buffer )
+
+        #expect( buffer.pixels.allSatisfy { $0.isFinite } )
+        #expect( buffer.pixels.allSatisfy { $0 >= 0.0 && $0 <= 1.0 } )
+    }
+
+    @Test
+    func notNormalizedThrows() async throws
+    {
+        var buffer = PixelBuffer(
+            width:        1,
+            height:       1,
+            channels:     3,
+            pixels:       [ 0.2, 0.3, 0.4 ],
+            isNormalized: false
+        )
+
+        let processor = Processors.WhiteBalance( mode: .auto )
+
+        #expect( throws: RuntimeError.self )
+        {
+            try processor.process( buffer: &buffer )
+        }
+    }
+
+    @Test
+    func name() async throws
+    {
+        #expect( Processors.WhiteBalance( mode: .auto ).name == "White Balance (Auto)" )
+        #expect( Processors.WhiteBalance( mode: .manual( red: 1.0, green: 2.0, blue: 0.5 ) ).name == "White Balance (Manual - R: 1.00, G: 2.00, B: 0.50)" )
+    }
+}

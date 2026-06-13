@@ -76,6 +76,9 @@ public extension Processors
                     guard minValue != maxValue
                     else
                     {
+                        buffer.pixels       = [ Double ]( repeating: 0.0, count: buffer.pixels.count )
+                        buffer.isNormalized = true
+
                         return
                     }
 
@@ -92,6 +95,9 @@ public extension Processors
                     guard bounds.lower != bounds.upper
                     else
                     {
+                        buffer.pixels       = [ Double ]( repeating: 0.0, count: buffer.pixels.count )
+                        buffer.isNormalized = true
+
                         return
                     }
 

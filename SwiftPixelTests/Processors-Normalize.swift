@@ -67,6 +67,44 @@ struct Test_Processors_Normalize
     }
 
     @Test
+    func minMaxConstant() async throws
+    {
+        var buffer = PixelBuffer(
+            width:        2,
+            height:       2,
+            channels:     1,
+            pixels:       [ 42, 42, 42, 42 ],
+            isNormalized: false
+        )
+
+        let processor = Processors.Normalize( mode: .minMax )
+
+        try processor.process( buffer: &buffer )
+
+        #expect( buffer.isNormalized == true )
+        #expect( buffer.pixels == [ 0.0, 0.0, 0.0, 0.0 ] )
+    }
+
+    @Test
+    func percentileConstant() async throws
+    {
+        var buffer = PixelBuffer(
+            width:        2,
+            height:       2,
+            channels:     1,
+            pixels:       [ 42, 42, 42, 42 ],
+            isNormalized: false
+        )
+
+        let processor = Processors.Normalize( mode: .percentile( 0.0, 100.0 ) )
+
+        try processor.process( buffer: &buffer )
+
+        #expect( buffer.isNormalized == true )
+        #expect( buffer.pixels == [ 0.0, 0.0, 0.0, 0.0 ] )
+    }
+
+    @Test
     func empty() async throws
     {
         var buffer = PixelBuffer(

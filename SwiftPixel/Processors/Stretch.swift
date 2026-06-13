@@ -72,6 +72,12 @@ public extension Processors
 
         private static func logStretch( buffer: inout PixelBuffer, n: Double ) throws
         {
+            guard n > 0
+            else
+            {
+                throw RuntimeError( message: "Logarithmic stretch requires n > 0: \( n )" )
+            }
+
             var denominator = log( 1.0 + n )
             var one         = 1.0
             let count       = vDSP_Length( buffer.pixels.count )
@@ -93,6 +99,12 @@ public extension Processors
 
         private static func arcsinhStretch( buffer: inout PixelBuffer, n: Double ) throws
         {
+            guard n != 0
+            else
+            {
+                throw RuntimeError( message: "Hyperbolic stretch requires n != 0: \( n )" )
+            }
+
             var denominator = asinh( n )
             let count       = vDSP_Length( buffer.pixels.count )
 

@@ -80,6 +80,61 @@ struct Test_PixelUtilities_ReadRawPixels
     }
 
     @Test
+    func largeRoundTrip_UInt8() async throws
+    {
+        let count             = 100_000
+        let values: [ UInt8 ] = ( 0 ..< count ).map { UInt8( $0 % 256 ) }
+        let data              = Data( values )
+        let result            = try PixelUtilities.readRawPixels( data: data, width: count, height: 1, bitsPerPixel: .uint8 )
+
+        #expect( result == values.map { Double( $0 ) } )
+    }
+
+    @Test
+    func largeRoundTrip_Int16() async throws
+    {
+        let count             = 100_000
+        let values: [ Int16 ] = ( 0 ..< count ).map { Int16( $0 % 30_000 - 15_000 ) }
+        let data              = Data( values.flatMap { withUnsafeBytes( of: $0.bigEndian, Array.init ) } )
+        let result            = try PixelUtilities.readRawPixels( data: data, width: count, height: 1, bitsPerPixel: .int16 )
+
+        #expect( result == values.map { Double( $0 ) } )
+    }
+
+    @Test
+    func largeRoundTrip_Int32() async throws
+    {
+        let count             = 100_000
+        let values: [ Int32 ] = ( 0 ..< count ).map { Int32( $0 - count / 2 ) }
+        let data              = Data( values.flatMap { withUnsafeBytes( of: $0.bigEndian, Array.init ) } )
+        let result            = try PixelUtilities.readRawPixels( data: data, width: count, height: 1, bitsPerPixel: .int32 )
+
+        #expect( result == values.map { Double( $0 ) } )
+    }
+
+    @Test
+    func largeRoundTrip_Float32() async throws
+    {
+        let count               = 100_000
+        let values: [ Float32 ] = ( 0 ..< count ).map { Float32( $0 ) * 0.5 - 1000.0 }
+        let data                = Data( values.flatMap { withUnsafeBytes( of: $0.bitPattern.bigEndian, Array.init ) } )
+        let result              = try PixelUtilities.readRawPixels( data: data, width: count, height: 1, bitsPerPixel: .float32 )
+
+        #expect( result == values.map { Double( $0 ) } )
+    }
+
+    @Test
+    func largeRoundTrip_Float64() async throws
+    {
+        let count               = 100_000
+        let values: [ Float64 ] = ( 0 ..< count ).map { Float64( $0 ) * 0.25 - 1000.0 }
+        let data                = Data( values.flatMap { withUnsafeBytes( of: $0.bitPattern.bigEndian, Array.init ) } )
+        let result              = try PixelUtilities.readRawPixels( data: data, width: count, height: 1, bitsPerPixel: .float64 )
+
+        #expect( result == values )
+    }
+
+    @Test
     func incorrectSize() async throws
     {
         #expect( throws: RuntimeError.self )

@@ -153,7 +153,7 @@ struct Test_Processors_Normalize
             isNormalized: false
         )
 
-        let processor = Processors.Normalize( mode: .minMax )
+        let processor = Processors.Normalize( mode: .percentile( 5.0, 95.0 ) )
 
         try processor.process( buffer: &buffer )
 

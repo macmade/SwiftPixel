@@ -113,8 +113,13 @@ public enum PixelUtilities
 
         vDSP.sort( &sorted, sortOrder: .ascending )
 
-        let lowerPosition = Double( sorted.count - 1 ) * ( lower / 100.0 )
-        let upperPosition = Double( sorted.count - 1 ) * ( upper / 100.0 )
+        let clampedLower = Swift.min( Swift.max( lower, 0.0 ), 100.0 )
+        let clampedUpper = Swift.min( Swift.max( upper, 0.0 ), 100.0 )
+        let orderedLower = Swift.min( clampedLower, clampedUpper )
+        let orderedUpper = Swift.max( clampedLower, clampedUpper )
+
+        let lowerPosition = Double( sorted.count - 1 ) * ( orderedLower / 100.0 )
+        let upperPosition = Double( sorted.count - 1 ) * ( orderedUpper / 100.0 )
         let lowerIndex    = Int( floor( lowerPosition ) )
         let upperIndex    = Int( floor( upperPosition ) )
         let lowerWeight   = lowerPosition - Double( lowerIndex )

@@ -91,4 +91,31 @@ struct Test_PixelUtilities_PercentileBounds
         #expect( result.lower == 21.25 )
         #expect( result.upper == 36.25 )
     }
+
+    @Test
+    func negativeLowerIsClamped() async throws
+    {
+        let result = PixelUtilities.percentileBounds( in: [ 10, 20, 30, 40, 50 ].shuffled(), lower: -10, upper: 100 )
+
+        #expect( result.lower == 10 )
+        #expect( result.upper == 50 )
+    }
+
+    @Test
+    func upperAbove100IsClamped() async throws
+    {
+        let result = PixelUtilities.percentileBounds( in: [ 10, 20, 30, 40, 50 ].shuffled(), lower: 0, upper: 150 )
+
+        #expect( result.lower == 10 )
+        #expect( result.upper == 50 )
+    }
+
+    @Test
+    func swappedBoundsAreOrdered() async throws
+    {
+        let result = PixelUtilities.percentileBounds( in: [ 10, 20, 30, 40, 50 ].shuffled(), lower: 75, upper: 25 )
+
+        #expect( result.lower == 20 )
+        #expect( result.upper == 40 )
+    }
 }

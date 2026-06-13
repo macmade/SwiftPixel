@@ -34,7 +34,7 @@ public extension Processors
 
         public var name: String
         {
-            String( format: "Gamma Correction", self.gamma )
+            String( format: "Gamma Correction (%.02f)", self.gamma )
         }
 
         public func process( buffer: inout PixelBuffer ) throws
@@ -43,6 +43,12 @@ public extension Processors
             else
             {
                 throw RuntimeError( message: "Buffer needs to be normalized" )
+            }
+
+            guard self.gamma > 0
+            else
+            {
+                throw RuntimeError( message: "Gamma must be greater than zero: \( self.gamma )" )
             }
 
             var count        = Int32( buffer.pixels.count )

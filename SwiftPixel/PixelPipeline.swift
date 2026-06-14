@@ -114,7 +114,7 @@ public struct PixelPipeline: Sendable
 
         if let pattern = self.config.bayerPattern
         {
-            processors.append( Processors.Debayer( mode: .vng, pattern: pattern ) )
+            processors.append( Processors.Debayer( mode: .bilinear, pattern: pattern ) )
         }
         else
         {

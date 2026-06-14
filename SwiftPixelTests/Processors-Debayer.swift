@@ -32,14 +32,14 @@ struct Test_Processors_Debayer
     @Test
     func name() async throws
     {
-        #expect( Processors.Debayer( mode: .vng, pattern: .bggr ).name == "Debayer (VNG BGGR)" )
-        #expect( Processors.Debayer( mode: .vng, pattern: .grbg ).name == "Debayer (VNG GRBG)" )
-        #expect( Processors.Debayer( mode: .vng, pattern: .rgbg ).name == "Debayer (VNG RGBG)" )
-        #expect( Processors.Debayer( mode: .vng, pattern: .rggb ).name == "Debayer (VNG RGGB)" )
+        #expect( Processors.Debayer( mode: .bilinear, pattern: .bggr ).name == "Debayer (Bilinear BGGR)" )
+        #expect( Processors.Debayer( mode: .bilinear, pattern: .grbg ).name == "Debayer (Bilinear GRBG)" )
+        #expect( Processors.Debayer( mode: .bilinear, pattern: .rgbg ).name == "Debayer (Bilinear RGBG)" )
+        #expect( Processors.Debayer( mode: .bilinear, pattern: .rggb ).name == "Debayer (Bilinear RGGB)" )
     }
 
     @Test
-    func testVNG_BGGR_2x2() async throws
+    func testBilinear_BGGR_2x2() async throws
     {
         // Simulated 2x2 Bayer pattern (BGGR):
         // [ B, G ]
@@ -52,7 +52,7 @@ struct Test_Processors_Debayer
             isNormalized: false
         )
 
-        let debayer = Processors.Debayer( mode: .vng, pattern: .bggr )
+        let debayer = Processors.Debayer( mode: .bilinear, pattern: .bggr )
 
         try debayer.process( buffer: &buffer )
 
@@ -76,7 +76,7 @@ struct Test_Processors_Debayer
     }
 
     @Test
-    func testVNG_GRBG_2x2() async throws
+    func testBilinear_GRBG_2x2() async throws
     {
         // Simulated 2x2 Bayer pattern (GRBG):
         // [ G, R ]
@@ -89,7 +89,7 @@ struct Test_Processors_Debayer
             isNormalized: false
         )
 
-        let debayer = Processors.Debayer( mode: .vng, pattern: .grbg )
+        let debayer = Processors.Debayer( mode: .bilinear, pattern: .grbg )
 
         try debayer.process( buffer: &buffer )
 
@@ -113,7 +113,7 @@ struct Test_Processors_Debayer
     }
 
     @Test
-    func testVNG_RGBG_2x2() async throws
+    func testBilinear_RGBG_2x2() async throws
     {
         // Simulated 2x2 Bayer pattern (RGBG):
         // [ R, G ]
@@ -126,7 +126,7 @@ struct Test_Processors_Debayer
             isNormalized: false
         )
 
-        let debayer = Processors.Debayer( mode: .vng, pattern: .rgbg )
+        let debayer = Processors.Debayer( mode: .bilinear, pattern: .rgbg )
 
         try debayer.process( buffer: &buffer )
 
@@ -150,7 +150,7 @@ struct Test_Processors_Debayer
     }
 
     @Test
-    func testVNG_RGGB_2x2() async throws
+    func testBilinear_RGGB_2x2() async throws
     {
         // Simulated 2x2 Bayer pattern (RGGB):
         // [ R, G ]
@@ -163,7 +163,7 @@ struct Test_Processors_Debayer
             isNormalized: false
         )
 
-        let debayer = Processors.Debayer( mode: .vng, pattern: .rggb )
+        let debayer = Processors.Debayer( mode: .bilinear, pattern: .rggb )
 
         try debayer.process( buffer: &buffer )
 
@@ -199,7 +199,7 @@ struct Test_Processors_Debayer
 
         buffer.pixels = [ 10, 20 ]
 
-        let debayer = Processors.Debayer( mode: .vng, pattern: .bggr )
+        let debayer = Processors.Debayer( mode: .bilinear, pattern: .bggr )
 
         #expect( throws: RuntimeError.self )
         {
@@ -220,7 +220,7 @@ struct Test_Processors_Debayer
 
         buffer.pixels = [ 10, 20, 30, 40 ]
 
-        let debayer = Processors.Debayer( mode: .vng, pattern: .bggr )
+        let debayer = Processors.Debayer( mode: .bilinear, pattern: .bggr )
 
         #expect( throws: RuntimeError.self )
         {
@@ -239,7 +239,7 @@ struct Test_Processors_Debayer
             isNormalized: true
         )
 
-        let debayer = Processors.Debayer( mode: .vng, pattern: .bggr )
+        let debayer = Processors.Debayer( mode: .bilinear, pattern: .bggr )
 
         #expect( throws: RuntimeError.self )
         {

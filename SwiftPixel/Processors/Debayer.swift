@@ -51,13 +51,13 @@ public extension Processors
 
         public enum Mode: Sendable, CustomStringConvertible
         {
-            case vng
+            case bilinear
 
             public var description: String
             {
                 switch self
                 {
-                    case .vng: return "VNG"
+                    case .bilinear: return "Bilinear"
                 }
             }
         }
@@ -92,9 +92,9 @@ public extension Processors
 
             switch self.mode
             {
-                case .vng:
+                case .bilinear:
 
-                    let pixels = try Self.vng( pixels: buffer.pixels, pattern: self.pattern, width: buffer.width, height: buffer.height )
+                    let pixels = try Self.bilinear( pixels: buffer.pixels, pattern: self.pattern, width: buffer.width, height: buffer.height )
 
                     buffer = try PixelBuffer( width: buffer.width, height: buffer.height, channels: 3, pixels: pixels, isNormalized: buffer.isNormalized )
             }
@@ -107,7 +107,7 @@ public extension Processors
             case blue
         }
 
-        private static func vng( pixels: [ Double ], pattern: Pattern, width: Int, height: Int ) throws -> [ Double ]
+        private static func bilinear( pixels: [ Double ], pattern: Pattern, width: Int, height: Int ) throws -> [ Double ]
         {
             let colorMap = self.colorMap( width: width, height: height, pattern: pattern )
             var output   = [ Double ]( repeating: 0.0, count: width * height * 3 )

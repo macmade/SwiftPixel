@@ -83,7 +83,7 @@ struct Test_Processors_MonoToRGB
 
         buffer.pixels = [ 10, 20 ]
 
-        let debayer = Processors.Debayer( mode: .vng, pattern: .bggr )
+        let debayer = Processors.Debayer( mode: .bilinear, pattern: .bggr )
 
         #expect( throws: RuntimeError.self )
         {
@@ -104,7 +104,7 @@ struct Test_Processors_MonoToRGB
 
         buffer.pixels = [ 10, 20, 30, 40 ]
 
-        let debayer = Processors.Debayer( mode: .vng, pattern: .bggr )
+        let debayer = Processors.Debayer( mode: .bilinear, pattern: .bggr )
 
         #expect( throws: RuntimeError.self )
         {
@@ -123,7 +123,7 @@ struct Test_Processors_MonoToRGB
             isNormalized: true
         )
 
-        let debayer = Processors.Debayer( mode: .vng, pattern: .bggr )
+        let debayer = Processors.Debayer( mode: .bilinear, pattern: .bggr )
 
         #expect( throws: RuntimeError.self )
         {

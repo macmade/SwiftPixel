@@ -63,7 +63,33 @@ public struct PixelPipeline: Sendable
 
     public func run( pixels: [ Double ], width: Int, height: Int, bitsPerPixel: BitsPerPixel ) throws -> PixelBuffer
     {
-        var buffer     = try PixelBuffer( width: width, height: height, channels: 1, pixels: pixels, isNormalized: false )
+        var buffer = try PixelBuffer( width: width, height: height, channels: 1, pixels: pixels, isNormalized: false )
+
+        try self.processors().forEach
+        {
+            processor in try Benchmark.run( label: processor.description )
+            {
+                try processor.process( buffer: &buffer )
+            }
+        }
+
+        return buffer
+    }
+
+    /*
+     * Builds the ordered processor chain for the configuration.
+     *
+     * The order is fixed and enforces the processors' preconditions: raw
+     * scaling, then demosaicing to RGB, then normalization, then the stages
+     * that require a normalized buffer (stretch, gamma, white balance).
+     *
+     * Stretch, gamma correction and white balance all require a normalized
+     * buffer. If any of them is requested without an explicit normalization
+     * mode, a default min/max Normalize is inserted automatically so the
+     * configuration cannot produce a "buffer needs to be normalized" failure.
+     */
+    func processors() -> [ PixelProcessor ]
+    {
         var processors = [ PixelProcessor ]()
 
         if let scale = self.config.scale
@@ -80,9 +106,25 @@ public struct PixelPipeline: Sendable
             processors.append( Processors.MonoToRGB() )
         }
 
-        if let normalize = self.config.normalize
+        let requiresNormalization = self.config.stretch != nil || self.config.correctGamma != nil || self.config.whiteBalance != nil
+        let normalizeMode: Processors.Normalize.Mode?
+
+        if let configured = self.config.normalize
         {
-            processors.append( Processors.Normalize( mode: normalize ) )
+            normalizeMode = configured
+        }
+        else if requiresNormalization
+        {
+            normalizeMode = .minMax
+        }
+        else
+        {
+            normalizeMode = nil
+        }
+
+        if let normalizeMode
+        {
+            processors.append( Processors.Normalize( mode: normalizeMode ) )
         }
 
         if let stretch = self.config.stretch
@@ -100,14 +142,6 @@ public struct PixelPipeline: Sendable
             processors.append( Processors.WhiteBalance( mode: whiteBalance ) )
         }
 
-        try processors.forEach
-        {
-            processor in try Benchmark.run( label: processor.description )
-            {
-                try processor.process( buffer: &buffer )
-            }
-        }
-
-        return buffer
+        return processors
     }
 }

@@ -27,4 +27,107 @@ import Foundation
 import Testing
 
 struct Test_PixelPipeline
-{}
+{
+    private static func config(
+        scale:        ( scale: Double, offset: Double )?     = nil,
+        bayerPattern: Processors.Debayer.Pattern?            = nil,
+        normalize:    Processors.Normalize.Mode?             = nil,
+        stretch:      Processors.Stretch.Algorithm?          = nil,
+        correctGamma: Double?                                = nil,
+        whiteBalance: Processors.WhiteBalance.Mode?          = nil
+    ) -> PixelPipeline.Config
+    {
+        PixelPipeline.Config( scale: scale, bayerPattern: bayerPattern, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance )
+    }
+
+    @Test
+    func runMono() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax ) )
+        let result   = try pipeline.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
+
+        #expect( result.channels     == 3 )
+        #expect( result.pixels.count == 12 )
+        #expect( result.isNormalized == true )
+        #expect( result.pixels.allSatisfy { $0 >= 0.0 && $0 <= 1.0 } )
+
+        let bytes = try result.convertTo8Bits()
+
+        #expect( bytes.count == 12 )
+    }
+
+    @Test
+    func runRGBViaDebayer() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( bayerPattern: .rggb, normalize: .minMax ) )
+        let result   = try pipeline.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
+
+        #expect( result.channels     == 3 )
+        #expect( result.pixels.count == 12 )
+        #expect( result.isNormalized == true )
+
+        let bytes = try result.convertTo8Bits()
+
+        #expect( bytes.count == 12 )
+    }
+
+    @Test
+    func autoInsertsNormalizeForStretch() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( stretch: .log( 1.0 ) ) )
+        let result   = try pipeline.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
+
+        #expect( result.isNormalized == true )
+        #expect( result.pixels.allSatisfy { $0 >= 0.0 && $0 <= 1.0 } )
+    }
+
+    @Test
+    func stageOrder() async throws
+    {
+        let pipeline = PixelPipeline(
+            config: Self.config(
+                scale:        ( scale: 2.0, offset: 1.0 ),
+                bayerPattern: .rggb,
+                normalize:    .minMax,
+                stretch:      .log( 1.0 ),
+                correctGamma: 2.0,
+                whiteBalance: .auto
+            )
+        )
+
+        let names = pipeline.processors().map { $0.name }
+
+        #expect( names.count == 6 )
+        #expect( names[ 0 ].hasPrefix( "Scale" ) )
+        #expect( names[ 1 ].hasPrefix( "Debayer" ) )
+        #expect( names[ 2 ].hasPrefix( "Normalize" ) )
+        #expect( names[ 3 ].hasPrefix( "Stretch" ) )
+        #expect( names[ 4 ].hasPrefix( "Gamma Correction" ) )
+        #expect( names[ 5 ].hasPrefix( "White Balance" ) )
+    }
+
+    @Test
+    func autoInsertedNormalizePrecedesStretch() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( stretch: .log( 1.0 ) ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        let normalizeIndex = names.firstIndex { $0.hasPrefix( "Normalize" ) }
+        let stretchIndex   = names.firstIndex { $0.hasPrefix( "Stretch" ) }
+
+        let normalize = try #require( normalizeIndex )
+        let stretch   = try #require( stretchIndex )
+
+        #expect( normalize < stretch )
+    }
+
+    @Test
+    func noNormalizeInsertedWhenNotRequired() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( scale: ( scale: 2.0, offset: 1.0 ) ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        #expect( names.contains { $0.hasPrefix( "Normalize" ) } == false )
+        #expect( names == [ "Scale (2.00 1.00)", "Mono to RGB" ] )
+    }
+}

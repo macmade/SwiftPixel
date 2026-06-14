@@ -28,16 +28,29 @@ import SwiftUtilities
 
 public extension Processors
 {
+    /// Applies an affine transform `sample × scale + offset` to every sample.
+    ///
+    /// Operates on the raw sample values; it does not require a normalized buffer
+    /// and does not change the channel count or normalization flag.
     struct Scale: PixelProcessor
     {
-        public let scale:  Double
+        /// The multiplicative factor applied to each sample.
+        public let scale: Double
+
+        /// The additive offset applied after scaling.
         public let offset: Double
 
+        /// A human-readable name including the scale and offset.
         public var name: String
         {
             String( format: "Scale (%.02f %.02f)", self.scale, self.offset )
         }
 
+        /// Multiplies every sample by `scale` and adds `offset`, in place.
+        ///
+        /// - Parameter buffer: The buffer to transform.
+        ///
+        /// - Throws: A `RuntimeError` if the sample buffer cannot be accessed.
         public func process( buffer: inout PixelBuffer ) throws
         {
             let count = vDSP_Length( buffer.pixels.count )
@@ -50,6 +63,7 @@ public extension Processors
                     throw RuntimeError( message: "Failed to access data buffer" )
                 }
 
+                // vDSP scalar registers for the in-place multiply-then-add.
                 var scalar = self.scale
                 var addend = self.offset
 

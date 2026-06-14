@@ -27,13 +27,26 @@ import SwiftUtilities
 
 public extension Processors
 {
+    /// Expands a single-channel buffer to 3-channel RGB by replicating the gray
+    /// value into each channel.
+    ///
+    /// Requires a non-normalized, 1-channel buffer; the result has 3 channels.
     struct MonoToRGB: PixelProcessor
     {
+        /// The fixed name `"Mono to RGB"`.
         public var name: String
         {
             "Mono to RGB"
         }
 
+        /// Replicates each gray sample into R, G and B, producing a 3-channel
+        /// buffer.
+        ///
+        /// - Parameter buffer: A non-normalized, 1-channel buffer.
+        ///
+        /// - Throws: A `RuntimeError` if the buffer is normalized, is not
+        ///           single-channel, or its sample count does not match its
+        ///           geometry.
         public func process( buffer: inout PixelBuffer ) throws
         {
             guard buffer.pixels.count == buffer.width * buffer.height

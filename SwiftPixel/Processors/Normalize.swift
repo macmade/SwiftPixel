@@ -27,13 +27,26 @@ import Foundation
 
 public extension Processors
 {
+    /// Rescales a buffer's samples into the `[0, 1]` range and marks it
+    /// normalized.
+    ///
+    /// A flat (constant) image has no dynamic range and is mapped to all-`0.0`.
+    /// After processing, `isNormalized` is `true`.
     struct Normalize: PixelProcessor
     {
+        /// The strategy used to choose the input range that maps to `[0, 1]`.
         public enum Mode: Sendable, CustomStringConvertible
         {
+            /// Maps the buffer's minimum and maximum sample values to `0` and `1`.
             case minMax
+
+            /// Maps the given lower and upper percentiles to `0` and `1`,
+            /// clipping values outside that range.
+            ///
+            /// The associated values are percentages in `0...100` (lower, upper).
             case percentile( Double, Double )
 
+            /// A human-readable description of the mode and its parameters.
             public var description: String
             {
                 switch self
@@ -44,13 +57,23 @@ public extension Processors
             }
         }
 
+        /// The normalization mode.
         public let mode: Mode
 
+        /// A human-readable name including the mode.
         public var name: String
         {
             "Normalize (\( self.mode ))"
         }
 
+        /// Rescales `buffer` into `[0, 1]` and marks it normalized.
+        ///
+        /// An empty buffer is simply marked normalized; a constant buffer (no
+        /// dynamic range) is mapped to all-`0.0`.
+        ///
+        /// - Parameter buffer: The buffer to normalize.
+        ///
+        /// - Throws: A `RuntimeError` if normalization fails.
         public func process( buffer: inout PixelBuffer ) throws
         {
             guard buffer.pixels.isEmpty == false

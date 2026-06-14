@@ -24,15 +24,29 @@
 
 import Foundation
 
+/// A single stage in an image-processing pipeline that transforms a
+/// `PixelBuffer` in place.
+///
+/// Stages are composed by `PixelPipeline`. Each stage documents its own
+/// preconditions (e.g. channel count or whether the buffer must be normalized)
+/// and throws if they are not met.
 public protocol PixelProcessor: CustomStringConvertible
 {
+    /// A human-readable name for the stage, including its parameters.
     var name: String
     {
         get
     }
 
+    /// Applies the stage to `buffer`, mutating it in place.
+    ///
+    /// - Parameter buffer: The buffer to transform.
+    ///
+    /// - Throws: A `RuntimeError` if the buffer does not meet the stage's
+    ///           preconditions, or if processing fails.
     func process( buffer: inout PixelBuffer ) throws
 
+    /// A textual representation of the stage; defaults to `name`.
     var description: String
     {
         get
@@ -41,11 +55,13 @@ public protocol PixelProcessor: CustomStringConvertible
 
 public extension PixelProcessor
 {
+    /// Defaults to `name`.
     var description: String
     {
         self.name
     }
 }
 
+/// A namespace for the built-in `PixelProcessor` implementations.
 public enum Processors
 {}

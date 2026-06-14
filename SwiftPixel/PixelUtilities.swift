@@ -26,8 +26,30 @@ import Accelerate
 import Foundation
 import SwiftUtilities
 
+/// A namespace of helpers for decoding and analyzing raw pixel data.
 public enum PixelUtilities
 {
+    /// Decodes raw, single-channel image data into an array of `Double` samples.
+    ///
+    /// The bytes are interpreted according to the FITS `BITPIX` convention
+    /// described by `bitsPerPixel`: 8-bit samples are unsigned, 16- and 32-bit
+    /// integer samples are signed, and all multi-byte samples (integer and
+    /// floating-point) are decoded big-endian. No `BZERO`/`BSCALE` rescaling is
+    /// applied — each sample is converted to `Double` at its stored value.
+    ///
+    /// Decoding is parallelized across samples.
+    ///
+    /// - Parameters:
+    ///   - data:         The raw sample bytes. Its length must equal
+    ///                   `bitsPerPixel.size( numberOfPixels: width × height )`.
+    ///   - width:        The image width in pixels.
+    ///   - height:       The image height in pixels.
+    ///   - bitsPerPixel: The sample format of `data`.
+    ///
+    /// - Returns: `width × height` samples as `Double`s, in row-major order.
+    ///
+    /// - Throws: A `RuntimeError` if `data`'s length does not match the expected
+    ///           size for the given geometry and format.
     public static func readRawPixels( data: Data, width: Int, height: Int, bitsPerPixel: BitsPerPixel ) throws -> [ Double ]
     {
         let count = width * height
@@ -106,6 +128,19 @@ public enum PixelUtilities
         return result
     }
 
+    /// Returns the values at the given lower and upper percentiles of `array`.
+    ///
+    /// The array is sorted and the bounds are linearly interpolated between
+    /// adjacent samples. `lower` and `upper` are percentages in `0...100`; values
+    /// outside that range are clamped, and if `lower` exceeds `upper` they are
+    /// reordered, so the call never traps on out-of-range input.
+    ///
+    /// - Parameters:
+    ///   - array: The samples to analyze. An empty array yields `(0, 0)`.
+    ///   - lower: The lower percentile, as a percentage in `0...100`.
+    ///   - upper: The upper percentile, as a percentage in `0...100`.
+    ///
+    /// - Returns: The interpolated values at the lower and upper percentiles.
     public static func percentileBounds( in array: [ Double ], lower: Double, upper: Double ) -> ( lower: Double, upper: Double )
     {
         guard array.isEmpty == false

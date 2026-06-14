@@ -24,28 +24,42 @@
 
 import Foundation
 
+/// 256-bin intensity histograms computed from interleaved 8-bit pixel data.
 public struct Histogram
 {
+    /// Which histogram(s) to compute.
     public enum Mode
     {
+        /// Three separate histograms, one per color channel.
         case rgb
+
+        /// A single luminance histogram (Rec. 709 weighted).
         case luminance
     }
 
-    public let bytes:    [ UInt8 ]
-    public let channels: Int
-    public let mode:     Mode
-    public let data:     [ [ Int ] ]
+    /// The source bytes the histogram was built from.
+    public let bytes: [ UInt8 ]
 
-    /*
-     * Builds per-channel (or luminance) histograms from interleaved 8-bit
-     * pixel data.
-     *
-     * `channels` is the number of interleaved samples per pixel and sets the
-     * read stride: 1 (grayscale, replicated into R/G/B), 3 (RGB), or 4 (RGBA,
-     * the alpha sample is ignored). Any trailing bytes that don't form a
-     * complete pixel are skipped.
-     */
+    /// The number of interleaved samples per pixel in `bytes`.
+    public let channels: Int
+
+    /// The mode the histogram was built in.
+    public let mode: Mode
+
+    /// The computed bins: three arrays (R, G, B) in `.rgb` mode, or one
+    /// (luminance) in `.luminance` mode; each array has 256 entries.
+    public let data: [ [ Int ] ]
+
+    /// Builds per-channel (or luminance) histograms from interleaved 8-bit pixel
+    /// data.
+    ///
+    /// - Parameters:
+    ///   - bytes:    The interleaved 8-bit samples, in row-major order.
+    ///   - channels: The number of interleaved samples per pixel, which sets the
+    ///               read stride: 1 (grayscale, replicated into R/G/B), 3 (RGB),
+    ///               or 4 (RGBA, the alpha sample is ignored). Trailing bytes
+    ///               that don't form a complete pixel are skipped.
+    ///   - mode:     Whether to compute per-channel or luminance histograms.
     public init( bytes: [ UInt8 ], channels: Int, mode: Mode )
     {
         self.bytes    = bytes

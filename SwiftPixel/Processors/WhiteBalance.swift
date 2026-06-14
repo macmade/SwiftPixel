@@ -28,13 +28,23 @@ import SwiftUtilities
 
 public extension Processors
 {
+    /// Adjusts the per-channel balance of a 3-channel (RGB) buffer.
+    ///
+    /// Requires a normalized, 3-channel buffer. After applying the gains the
+    /// samples are re-clipped to `[0, 1]`.
     struct WhiteBalance: PixelProcessor
     {
+        /// How the per-channel gains are determined.
         public enum Mode: Sendable, CustomStringConvertible
         {
+            /// Computes gains automatically using the gray-world assumption (each
+            /// channel is scaled so its average matches the overall gray average).
             case auto
+
+            /// Applies the given per-channel multiplicative gains directly.
             case manual( red: Double, green: Double, blue: Double )
 
+            /// A human-readable description of the mode and any gains.
             public var description: String
             {
                 switch self
@@ -45,13 +55,21 @@ public extension Processors
             }
         }
 
+        /// How the per-channel gains are determined.
         public let mode: Mode
 
+        /// A human-readable name including the mode.
         public var name: String
         {
             "White Balance (\( self.mode ))"
         }
 
+        /// Applies white-balance gains to `buffer`, in place.
+        ///
+        /// - Parameter buffer: A normalized, 3-channel buffer.
+        ///
+        /// - Throws: A `RuntimeError` if the buffer is not normalized, is not
+        ///           3-channel, or its sample count does not match its geometry.
         public func process( buffer: inout PixelBuffer ) throws
         {
             guard buffer.isNormalized
@@ -86,6 +104,16 @@ public extension Processors
             }
         }
 
+        /// Multiplies each channel by its gain and re-clips the result to
+        /// `[0, 1]`, in place.
+        ///
+        /// - Parameters:
+        ///   - buffer: A 3-channel buffer.
+        ///   - r:      The gain for the red channel.
+        ///   - g:      The gain for the green channel.
+        ///   - b:      The gain for the blue channel.
+        ///
+        /// - Throws: A `RuntimeError` if the sample buffer cannot be accessed.
         private static func whiteBalance( buffer: inout PixelBuffer, r: Double, g: Double, b: Double ) throws
         {
             let count = vDSP_Length( buffer.width * buffer.height )
@@ -110,6 +138,17 @@ public extension Processors
             }
         }
 
+        /// Computes gray-world white-balance gains for a 3-channel buffer.
+        ///
+        /// Each gain scales a channel's average toward the overall gray average.
+        /// A channel whose average is zero gets a gain of `1.0`, avoiding a
+        /// division by zero.
+        ///
+        /// - Parameter buffer: A 3-channel buffer.
+        ///
+        /// - Returns: The per-channel gains.
+        ///
+        /// - Throws: A `RuntimeError` if the sample buffer cannot be accessed.
         private static func computeGains( buffer: PixelBuffer ) throws -> ( r: Double, g: Double, b: Double )
         {
             let count = vDSP_Length( buffer.width * buffer.height )

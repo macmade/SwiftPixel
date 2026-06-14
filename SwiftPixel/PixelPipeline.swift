@@ -25,19 +25,59 @@
 import Foundation
 import SwiftUtilities
 
+/// A configurable image-processing pipeline that decodes raw pixels and applies
+/// an ordered chain of processors.
+///
+/// The stage order is fixed and enforces each processor's preconditions: scale,
+/// then demosaic to RGB, then normalize, then the normalization-dependent stages
+/// (stretch, gamma, white balance). A default normalization is inserted
+/// automatically when a normalization-dependent stage is requested without one.
 public struct PixelPipeline: Sendable
 {
+    /// Declarative description of which stages to run and how.
+    ///
+    /// Each optional property enables the corresponding stage when non-`nil`.
+    /// The pipeline applies them in a fixed order regardless of declaration
+    /// order; see `PixelPipeline`.
     public struct Config: Sendable
     {
-        public let scale:           ( scale: Double, offset: Double )?
-        public let bayerPattern:    Processors.Debayer.Pattern?
-        public let normalize:       Processors.Normalize.Mode?
-        public let stretch:         Processors.Stretch.Algorithm?
-        public let correctGamma:    Double?
-        public let whiteBalance:    Processors.WhiteBalance.Mode?
-        public let benchmark:       Bool
+        /// Affine scaling applied to the raw samples (`scale`, `offset`).
+        public let scale: ( scale: Double, offset: Double )?
+
+        /// The Bayer pattern to demosaic; when `nil`, mono is expanded to RGB.
+        public let bayerPattern: Processors.Debayer.Pattern?
+
+        /// The normalization mode. May be inserted automatically (as `.minMax`)
+        /// when a normalization-dependent stage is requested without one.
+        public let normalize: Processors.Normalize.Mode?
+
+        /// The tone-stretch algorithm. Requires normalization.
+        public let stretch: Processors.Stretch.Algorithm?
+
+        /// The gamma exponent for gamma correction. Requires normalization.
+        public let correctGamma: Double?
+
+        /// The white-balance mode. Requires normalization.
+        public let whiteBalance: Processors.WhiteBalance.Mode?
+
+        /// Whether to emit per-stage timing measurements. Off by default.
+        public let benchmark: Bool
+
+        /// The sink for benchmarking output when `benchmark` is `true`; falls
+        /// back to printing to standard output when `nil`.
         public let benchmarkOutput: ( @Sendable ( String ) -> Void )?
 
+        /// Creates a pipeline configuration.
+        ///
+        /// - Parameters:
+        ///   - scale:           Optional affine scaling of the raw samples.
+        ///   - bayerPattern:    Optional Bayer pattern to demosaic; `nil` expands mono to RGB.
+        ///   - normalize:       Optional normalization mode.
+        ///   - stretch:         Optional tone-stretch algorithm.
+        ///   - correctGamma:    Optional gamma exponent.
+        ///   - whiteBalance:    Optional white-balance mode.
+        ///   - benchmark:       Whether to emit per-stage timings. Defaults to `false`.
+        ///   - benchmarkOutput: Optional sink for timing output. Defaults to `nil` (prints).
         public init( scale: ( scale: Double, offset: Double )?, bayerPattern: Processors.Debayer.Pattern?, normalize: Processors.Normalize.Mode?, stretch: Processors.Stretch.Algorithm?, correctGamma: Double?, whiteBalance: Processors.WhiteBalance.Mode?, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
         {
             self.scale           = scale
@@ -51,13 +91,28 @@ public struct PixelPipeline: Sendable
         }
     }
 
+    /// The configuration driving this pipeline.
     public let config: Config
 
+    /// Creates a pipeline with the given configuration.
+    ///
+    /// - Parameter config: The stages to run and how.
     public init( config: Config )
     {
         self.config = config
     }
 
+    /// Decodes raw bytes and runs the pipeline over them.
+    ///
+    /// - Parameters:
+    ///   - data:         The raw, single-channel sample bytes.
+    ///   - width:        The image width in pixels.
+    ///   - height:       The image height in pixels.
+    ///   - bitsPerPixel: The sample format of `data`.
+    ///
+    /// - Returns: The processed buffer.
+    ///
+    /// - Throws: A `RuntimeError` if decoding fails or any stage fails.
     public func run( data: Data, width: Int, height: Int, bitsPerPixel: BitsPerPixel ) throws -> PixelBuffer
     {
         let pixels = try PixelUtilities.readRawPixels( data: data, width: width, height: height, bitsPerPixel: bitsPerPixel )
@@ -65,6 +120,18 @@ public struct PixelPipeline: Sendable
         return try self.run( pixels: pixels, width: width, height: height, bitsPerPixel: bitsPerPixel )
     }
 
+    /// Runs the pipeline over already-decoded single-channel samples.
+    ///
+    /// - Parameters:
+    ///   - pixels:       The single-channel samples, in row-major order.
+    ///   - width:        The image width in pixels.
+    ///   - height:       The image height in pixels.
+    ///   - bitsPerPixel: The original sample format (informational).
+    ///
+    /// - Returns: The processed buffer.
+    ///
+    /// - Throws: A `RuntimeError` if the geometry is inconsistent or any stage
+    ///           fails.
     public func run( pixels: [ Double ], width: Int, height: Int, bitsPerPixel: BitsPerPixel ) throws -> PixelBuffer
     {
         var buffer = try PixelBuffer( width: width, height: height, channels: 1, pixels: pixels, isNormalized: false )
@@ -91,18 +158,18 @@ public struct PixelPipeline: Sendable
         return buffer
     }
 
-    /*
-     * Builds the ordered processor chain for the configuration.
-     *
-     * The order is fixed and enforces the processors' preconditions: raw
-     * scaling, then demosaicing to RGB, then normalization, then the stages
-     * that require a normalized buffer (stretch, gamma, white balance).
-     *
-     * Stretch, gamma correction and white balance all require a normalized
-     * buffer. If any of them is requested without an explicit normalization
-     * mode, a default min/max Normalize is inserted automatically so the
-     * configuration cannot produce a "buffer needs to be normalized" failure.
-     */
+    /// Builds the ordered processor chain for the configuration.
+    ///
+    /// The order is fixed and enforces the processors' preconditions: raw
+    /// scaling, then demosaicing to RGB, then normalization, then the stages
+    /// that require a normalized buffer (stretch, gamma, white balance).
+    ///
+    /// Stretch, gamma correction and white balance all require a normalized
+    /// buffer. If any of them is requested without an explicit normalization
+    /// mode, a default min/max Normalize is inserted automatically so the
+    /// configuration cannot produce a "buffer needs to be normalized" failure.
+    ///
+    /// - Returns: The processors to apply, in execution order.
     func processors() -> [ PixelProcessor ]
     {
         var processors = [ PixelProcessor ]()

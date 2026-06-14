@@ -28,14 +28,33 @@ import SwiftUtilities
 
 public extension Processors
 {
+    /// Applies a non-linear tone stretch to a buffer, expanding faint detail.
+    ///
+    /// Requires a normalized buffer (samples in `[0, 1]`). Each algorithm rejects
+    /// the parameter values that would produce a divide-by-zero or `NaN`.
     struct Stretch: PixelProcessor
     {
+        /// The stretch curve and its tuning constant(s).
         public enum Algorithm: Sendable, CustomStringConvertible
         {
+            /// Logarithmic stretch `log(1 + n·x) / log(1 + n)`.
+            ///
+            /// The associated value `n` controls the curve's strength and must be
+            /// `> 0`.
             case log( Double )
+
+            /// Inverse-hyperbolic-sine stretch `asinh(n·x) / asinh(n)`.
+            ///
+            /// The associated value `n` controls the curve's strength and must be
+            /// non-zero.
             case arcsinh( Double )
+
+            /// Logistic (sigmoid) stretch `1 / (1 + exp(-n1·(x - n2)))`.
+            ///
+            /// The associated values are the slope `n1` and the midpoint `n2`.
             case sigmoid( Double, Double )
 
+            /// A human-readable description of the algorithm and its constants.
             public var description: String
             {
                 switch self
@@ -47,13 +66,21 @@ public extension Processors
             }
         }
 
+        /// The stretch algorithm and its tuning constant(s).
         public let algorithm: Algorithm
 
+        /// A human-readable name including the algorithm.
         public var name: String
         {
             "Stretch (\( self.algorithm ))"
         }
 
+        /// Applies the configured stretch to `buffer`, in place.
+        ///
+        /// - Parameter buffer: The normalized buffer to transform.
+        ///
+        /// - Throws: A `RuntimeError` if the buffer is not normalized or if the
+        ///           algorithm's tuning constant is degenerate.
         public func process( buffer: inout PixelBuffer ) throws
         {
             guard buffer.isNormalized
@@ -70,6 +97,13 @@ public extension Processors
             }
         }
 
+        /// Applies a logarithmic stretch `log(1 + n·x) / log(1 + n)` in place.
+        ///
+        /// - Parameters:
+        ///   - buffer: The buffer to transform.
+        ///   - n:      The curve strength. Must be `> 0`.
+        ///
+        /// - Throws: A `RuntimeError` if `n <= 0` or the buffer cannot be accessed.
         private static func logStretch( buffer: inout PixelBuffer, n: Double ) throws
         {
             guard n > 0
@@ -97,6 +131,14 @@ public extension Processors
             }
         }
 
+        /// Applies an inverse-hyperbolic-sine stretch `asinh(n·x) / asinh(n)` in
+        /// place.
+        ///
+        /// - Parameters:
+        ///   - buffer: The buffer to transform.
+        ///   - n:      The curve strength. Must be non-zero.
+        ///
+        /// - Throws: A `RuntimeError` if `n == 0` or the buffer cannot be accessed.
         private static func arcsinhStretch( buffer: inout PixelBuffer, n: Double ) throws
         {
             guard n != 0
@@ -122,6 +164,15 @@ public extension Processors
             }
         }
 
+        /// Applies a logistic (sigmoid) stretch `1 / (1 + exp(-n1·(x - n2)))` in
+        /// place.
+        ///
+        /// - Parameters:
+        ///   - buffer: The buffer to transform.
+        ///   - n1:     The slope (steepness) of the curve.
+        ///   - n2:     The midpoint (the input mapped to `0.5`).
+        ///
+        /// - Throws: A `RuntimeError` if the buffer cannot be accessed.
         private static func sigmoidStretch( buffer: inout PixelBuffer, n1: Double, n2: Double ) throws
         {
             let count    = vDSP_Length( buffer.pixels.count )

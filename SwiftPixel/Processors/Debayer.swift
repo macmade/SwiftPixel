@@ -28,15 +28,29 @@ import SwiftUtilities
 
 public extension Processors
 {
+    /// Demosaics a single-channel Bayer-mosaic buffer into 3-channel RGB.
+    ///
+    /// Requires a non-normalized, 1-channel buffer; the result has 3 channels.
     struct Debayer: PixelProcessor
     {
+        /// The arrangement of color filters in the 2×2 Bayer tile, identified by
+        /// the colors of the top-left, top-right, bottom-left and bottom-right
+        /// samples.
         public enum Pattern: Sendable, CustomStringConvertible
         {
+            /// Blue, Green / Green, Red.
             case bggr
+
+            /// Red, Green / Blue, Green.
             case rgbg
+
+            /// Green, Red / Blue, Green.
             case grbg
+
+            /// Red, Green / Green, Blue.
             case rggb
 
+            /// The four-letter pattern code (e.g. `"RGGB"`).
             public var description: String
             {
                 switch self
@@ -49,10 +63,14 @@ public extension Processors
             }
         }
 
+        /// The demosaicing algorithm.
         public enum Mode: Sendable, CustomStringConvertible
         {
+            /// Bilinear interpolation: each missing color is the equal-weight
+            /// average of its nearest same-color neighbors.
             case bilinear
 
+            /// A human-readable name for the algorithm.
             public var description: String
             {
                 switch self
@@ -62,14 +80,25 @@ public extension Processors
             }
         }
 
-        public let mode:    Mode
+        /// The demosaicing algorithm.
+        public let mode: Mode
+
+        /// The Bayer color-filter arrangement of the input mosaic.
         public let pattern: Pattern
 
+        /// A human-readable name including the mode and pattern.
         public var name: String
         {
             "Debayer (\( self.mode ) \( self.pattern ))"
         }
 
+        /// Demosaics `buffer` from a Bayer mosaic into 3-channel RGB, in place.
+        ///
+        /// - Parameter buffer: A non-normalized, 1-channel mosaic buffer.
+        ///
+        /// - Throws: A `RuntimeError` if the buffer is normalized, is not
+        ///           single-channel, or its sample count does not match its
+        ///           geometry.
         public func process( buffer: inout PixelBuffer ) throws
         {
             guard buffer.pixels.count == buffer.width * buffer.height
@@ -100,13 +129,37 @@ public extension Processors
             }
         }
 
+        /// The color a given mosaic site samples.
         private enum ColorType: Sendable
         {
+            /// A red sample site.
             case red
+
+            /// A green sample site.
             case green
+
+            /// A blue sample site.
             case blue
         }
 
+        /// Reconstructs a 3-channel RGB image from a Bayer mosaic using bilinear
+        /// interpolation.
+        ///
+        /// At each site the present color is taken directly and the two missing
+        /// colors are the equal-weight average of their nearest same-color
+        /// neighbors (a 4-neighbor cross or 4-corner set at red/blue sites, a
+        /// 2-neighbor pair at green sites). Interpolation runs in parallel over
+        /// rows. Out-of-bounds neighbors are clamped to the image edge.
+        ///
+        /// - Parameters:
+        ///   - pixels:  The single-channel mosaic samples, row-major.
+        ///   - pattern: The Bayer arrangement of `pixels`.
+        ///   - width:   The image width in pixels.
+        ///   - height:  The image height in pixels.
+        ///
+        /// - Returns: `width × height × 3` interleaved RGB samples.
+        ///
+        /// - Throws: A `RuntimeError` if the sample buffers cannot be accessed.
         private static func bilinear( pixels: [ Double ], pattern: Pattern, width: Int, height: Int ) throws -> [ Double ]
         {
             let colorMap = self.colorMap( width: width, height: height, pattern: pattern )
@@ -239,11 +292,28 @@ public extension Processors
             return output
         }
 
+        /// Returns the row-major buffer index of pixel `(x, y)`.
+        ///
+        /// - Parameters:
+        ///   - x:     The column.
+        ///   - y:     The row.
+        ///   - width: The image width in pixels.
+        ///
+        /// - Returns: `y × width + x`.
         private static func index( x: Int, y: Int, width: Int ) -> Int
         {
             return y * width + x
         }
 
+        /// Precomputes the color type of every site for a pattern, so the inner
+        /// loop avoids recomputing it per pixel.
+        ///
+        /// - Parameters:
+        ///   - width:   The image width in pixels.
+        ///   - height:  The image height in pixels.
+        ///   - pattern: The Bayer arrangement.
+        ///
+        /// - Returns: A row-major map of `ColorType` per site.
         private static func colorMap( width: Int, height: Int, pattern: Pattern ) -> [ ColorType ]
         {
             var map = [ ColorType ]( repeating: .red, count: width * height )
@@ -259,6 +329,15 @@ public extension Processors
             return map
         }
 
+        /// Returns the color sampled at site `(x, y)` for a Bayer pattern, based
+        /// on the parity of the row and column within the 2×2 tile.
+        ///
+        /// - Parameters:
+        ///   - x:       The column.
+        ///   - y:       The row.
+        ///   - pattern: The Bayer arrangement.
+        ///
+        /// - Returns: The `ColorType` sampled at that site.
         private static func colorAt( x: Int, y: Int, pattern: Pattern ) -> ColorType
         {
             let evenCol = x % 2 == 0
@@ -308,6 +387,17 @@ public extension Processors
             }
         }
 
+        /// Reads sample `(x, y)`, clamping coordinates to the image edge so
+        /// neighbor reads near the border stay in bounds.
+        ///
+        /// - Parameters:
+        ///   - x:      The column (may be out of range).
+        ///   - y:      The row (may be out of range).
+        ///   - width:  The image width in pixels.
+        ///   - height: The image height in pixels.
+        ///   - data:   The single-channel sample buffer.
+        ///
+        /// - Returns: The sample at the clamped coordinate.
         private static func safeRead( x: Int, y: Int, width: Int, height: Int, data: UnsafePointer< Double > ) -> Double
         {
             let clampedX = min( max( x, 0 ), width  - 1 )
@@ -316,6 +406,11 @@ public extension Processors
             return data[ self.index( x: clampedX, y: clampedY, width: width ) ]
         }
 
+        /// Returns the arithmetic mean of `values` using vDSP.
+        ///
+        /// - Parameter values: The values to average.
+        ///
+        /// - Returns: Their mean.
         private static func averageSIMD( values: [ Double ] ) -> Double
         {
             var result = 0.0

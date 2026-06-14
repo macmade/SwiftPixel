@@ -24,17 +24,41 @@
 
 import Foundation
 
+/// Summary statistics computed from a single histogram channel.
+///
+/// All index-valued statistics (`median`, `min`, `max`, percentiles) are bin
+/// indices, i.e. intensity values in `0...255`. For empty input (no samples),
+/// every field is `0`.
 public struct HistogramStatistics
 {
-    public let count:        Int
-    public let mean:         Double
-    public let median:       Int
-    public let stdDev:       Double
-    public let min:          Int
-    public let max:          Int
-    public let percentile1:  Int
+    /// The total number of samples across all bins.
+    public let count: Int
+
+    /// The intensity-weighted mean.
+    public let mean: Double
+
+    /// The bin index at which the cumulative count reaches half the total.
+    public let median: Int
+
+    /// The standard deviation of the intensities.
+    public let stdDev: Double
+
+    /// The lowest bin index with a non-zero count.
+    public let min: Int
+
+    /// The highest bin index with a non-zero count.
+    public let max: Int
+
+    /// The bin index at the 1st percentile.
+    public let percentile1: Int
+
+    /// The bin index at the 99th percentile.
     public let percentile99: Int
 
+    /// Computes summary statistics from a histogram channel.
+    ///
+    /// - Parameter data: The per-bin counts (typically 256 entries). If the
+    ///                   counts sum to zero, every statistic is `0`.
     public init( data: [ Int ] )
     {
         let total = data.reduce( 0, + )
@@ -111,6 +135,16 @@ public struct HistogramStatistics
         self.percentile99 = percentiles.p2
     }
 
+    /// Returns the bin indices at two cumulative-fraction thresholds.
+    ///
+    /// - Parameters:
+    ///   - data:  The per-bin counts.
+    ///   - total: The sum of all counts.
+    ///   - p1:    The lower cumulative fraction (e.g. `0.01` for the 1st percentile).
+    ///   - p2:    The upper cumulative fraction (e.g. `0.99` for the 99th percentile).
+    ///
+    /// - Returns: The bin indices at which the cumulative count first reaches
+    ///            `p1·total` and `p2·total`.
     public static func percentiles( data: [ Int ], total: Int, p1: Double, p2: Double ) -> ( p1: Int, p2: Int )
     {
         let t1         = Int( Double( total ) * p1 )

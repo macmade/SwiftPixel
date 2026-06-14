@@ -28,15 +28,28 @@ import SwiftUtilities
 
 public extension Processors
 {
+    /// Applies a power-law gamma curve, raising each sample to `1 / gamma`.
+    ///
+    /// Requires a normalized buffer (samples in `[0, 1]`). `gamma` must be
+    /// greater than zero.
     struct CorrectGamma: PixelProcessor
     {
+        /// The gamma exponent. Must be `> 0`; each sample is raised to its
+        /// reciprocal (`pow(sample, 1 / gamma)`).
         public let gamma: Double
 
+        /// A human-readable name including the gamma value.
         public var name: String
         {
             String( format: "Gamma Correction (%.02f)", self.gamma )
         }
 
+        /// Raises every sample to `1 / gamma`, in place.
+        ///
+        /// - Parameter buffer: The normalized buffer to transform.
+        ///
+        /// - Throws: A `RuntimeError` if the buffer is not normalized or if
+        ///           `gamma <= 0`.
         public func process( buffer: inout PixelBuffer ) throws
         {
             guard buffer.isNormalized

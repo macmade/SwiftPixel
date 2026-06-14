@@ -37,7 +37,7 @@ struct Test_Histogram
             UInt8( 70 ), UInt8( 80 ), UInt8( 90 ),
         ]
 
-        let histogram = Histogram( bytes: bytes, mode: .rgb )
+        let histogram = Histogram( bytes: bytes, channels: 3, mode: .rgb )
 
         try #require( histogram.data.count == 3 )
 
@@ -61,7 +61,7 @@ struct Test_Histogram
             UInt8( 70 ), UInt8( 80 ), UInt8( 90 ),
         ]
 
-        let histogram = Histogram( bytes: bytes, mode: .luminance )
+        let histogram = Histogram( bytes: bytes, channels: 3, mode: .luminance )
 
         try #require( histogram.data.count == 1 )
 
@@ -80,7 +80,7 @@ struct Test_Histogram
     @Test
     func emptyRGB() async throws
     {
-        let histogram = Histogram( bytes: [], mode: .rgb )
+        let histogram = Histogram( bytes: [], channels: 3, mode: .rgb )
 
         try #require( histogram.data.count == 3 )
 
@@ -92,7 +92,7 @@ struct Test_Histogram
     @Test
     func emptyLuminance() async throws
     {
-        let histogram = Histogram( bytes: [], mode: .luminance )
+        let histogram = Histogram( bytes: [], channels: 3, mode: .luminance )
 
         try #require( histogram.data.count == 1 )
 
@@ -107,7 +107,7 @@ struct Test_Histogram
             UInt8( 40 ), UInt8( 50 ),
         ]
 
-        let histogram = Histogram( bytes: bytes, mode: .rgb )
+        let histogram = Histogram( bytes: bytes, channels: 3, mode: .rgb )
 
         try #require( histogram.data.count == 3 )
 
@@ -126,7 +126,7 @@ struct Test_Histogram
             UInt8( 40 ), UInt8( 50 ),
         ]
 
-        let histogram = Histogram( bytes: bytes, mode: .luminance )
+        let histogram = Histogram( bytes: bytes, channels: 3, mode: .luminance )
 
         try #require( histogram.data.count == 1 )
 
@@ -135,5 +135,59 @@ struct Test_Histogram
 
         #expect( histogram.data[ 0 ][ expectedY ] == 1 )
         #expect( histogram.data[ 0 ][ missingY  ] == 0 )
+    }
+
+    @Test
+    func grayscale() async throws
+    {
+        let bytes = [ UInt8( 10 ), UInt8( 20 ), UInt8( 30 ) ]
+
+        let histogram = Histogram( bytes: bytes, channels: 1, mode: .rgb )
+
+        try #require( histogram.data.count == 3 )
+
+        #expect( histogram.data[ 0 ][ 10 ] == 1 )
+        #expect( histogram.data[ 1 ][ 10 ] == 1 )
+        #expect( histogram.data[ 2 ][ 10 ] == 1 )
+        #expect( histogram.data[ 0 ][ 20 ] == 1 )
+        #expect( histogram.data[ 1 ][ 20 ] == 1 )
+        #expect( histogram.data[ 2 ][ 30 ] == 1 )
+    }
+
+    @Test
+    func grayscaleLuminance() async throws
+    {
+        let bytes = [ UInt8( 10 ), UInt8( 20 ), UInt8( 30 ) ]
+
+        let histogram = Histogram( bytes: bytes, channels: 1, mode: .luminance )
+
+        try #require( histogram.data.count == 1 )
+
+        #expect( histogram.data[ 0 ][ 10 ] == 1 )
+        #expect( histogram.data[ 0 ][ 20 ] == 1 )
+        #expect( histogram.data[ 0 ][ 30 ] == 1 )
+    }
+
+    @Test
+    func rgba() async throws
+    {
+        let bytes = [
+            UInt8( 10 ), UInt8( 20 ), UInt8( 30 ), UInt8( 255 ),
+            UInt8( 40 ), UInt8( 50 ), UInt8( 60 ), UInt8( 128 ),
+        ]
+
+        let histogram = Histogram( bytes: bytes, channels: 4, mode: .rgb )
+
+        try #require( histogram.data.count == 3 )
+
+        #expect( histogram.data[ 0 ][ 10 ] == 1 )
+        #expect( histogram.data[ 1 ][ 20 ] == 1 )
+        #expect( histogram.data[ 2 ][ 30 ] == 1 )
+        #expect( histogram.data[ 0 ][ 40 ] == 1 )
+        #expect( histogram.data[ 1 ][ 50 ] == 1 )
+        #expect( histogram.data[ 2 ][ 60 ] == 1 )
+
+        #expect( histogram.data[ 0 ][ 255 ] == 0 )
+        #expect( histogram.data[ 0 ][ 128 ] == 0 )
     }
 }

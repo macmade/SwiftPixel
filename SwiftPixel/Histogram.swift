@@ -32,14 +32,25 @@ public struct Histogram
         case luminance
     }
 
-    public let bytes: [ UInt8 ]
-    public let mode:  Mode
-    public let data:  [ [ Int ] ]
+    public let bytes:    [ UInt8 ]
+    public let channels: Int
+    public let mode:     Mode
+    public let data:     [ [ Int ] ]
 
-    public init( bytes: [ UInt8 ], mode: Mode )
+    /*
+     * Builds per-channel (or luminance) histograms from interleaved 8-bit
+     * pixel data.
+     *
+     * `channels` is the number of interleaved samples per pixel and sets the
+     * read stride: 1 (grayscale, replicated into R/G/B), 3 (RGB), or 4 (RGBA,
+     * the alpha sample is ignored). Any trailing bytes that don't form a
+     * complete pixel are skipped.
+     */
+    public init( bytes: [ UInt8 ], channels: Int, mode: Mode )
     {
-        self.bytes = bytes
-        self.mode  = mode
+        self.bytes    = bytes
+        self.channels = channels
+        self.mode     = mode
 
         let bins      = 256
         var red       = [ Int ]( repeating: 0, count: bins )
@@ -47,19 +58,37 @@ public struct Histogram
         var blue      = [ Int ]( repeating: 0, count: bins )
         var luminance = [ Int ]( repeating: 0, count: bins )
 
-        for i in stride( from: 0, to: bytes.count - 2, by: 3 )
+        if channels >= 1
         {
-            let r = Int( bytes[ i ] )
-            let g = Int( bytes[ i + 1 ] )
-            let b = Int( bytes[ i + 2 ] )
+            for i in stride( from: 0, to: bytes.count - channels + 1, by: channels )
+            {
+                let r: Int
+                let g: Int
+                let b: Int
 
-            red[   r ] += 1
-            green[ g ] += 1
-            blue[  b ] += 1
+                if channels >= 3
+                {
+                    r = Int( bytes[ i ] )
+                    g = Int( bytes[ i + 1 ] )
+                    b = Int( bytes[ i + 2 ] )
+                }
+                else
+                {
+                    let value = Int( bytes[ i ] )
 
-            let y = ( 2126 * r + 7152 * g + 722 * b ) / 10000
+                    r = value
+                    g = value
+                    b = value
+                }
 
-            luminance[ y ] += 1
+                red[   r ] += 1
+                green[ g ] += 1
+                blue[  b ] += 1
+
+                let y = ( 2126 * r + 7152 * g + 722 * b ) / 10000
+
+                luminance[ y ] += 1
+            }
         }
 
         self.data = mode == .rgb ? [ red, green, blue ] : [ luminance ]

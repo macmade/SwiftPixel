@@ -44,6 +44,21 @@ struct Test_HistogramStatistics
     }
 
     @Test
+    func emptyArray() async throws
+    {
+        let stats = HistogramStatistics( data: [] )
+
+        #expect( stats.count        == 0 )
+        #expect( stats.mean         == 0 )
+        #expect( stats.median       == 0 )
+        #expect( stats.stdDev       == 0 )
+        #expect( stats.min          == 0 )
+        #expect( stats.max          == 0 )
+        #expect( stats.percentile1  == 0 )
+        #expect( stats.percentile99 == 0 )
+    }
+
+    @Test
     func singlePeak() async throws
     {
         var data   = [ Int ]( repeating: 0, count: 256 )

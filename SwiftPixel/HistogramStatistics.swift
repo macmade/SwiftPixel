@@ -98,12 +98,15 @@ public struct HistogramStatistics
         let stdDev      = sqrt( ( sumSq / Double( total ) ) - ( mean * mean ) )
         let percentiles = Self.percentiles( data: data, total: total, p1: 0.01, p2: 0.99 )
 
+        // minVal/maxVal are always set once total > 0 (there is at least one
+        // non-zero bin), so these fallbacks are defensive and unreachable here;
+        // 0 is used consistently to match the empty-input convention above.
         self.count        = total
         self.mean         = mean
         self.median       = median
         self.stdDev       = stdDev
         self.min          = minVal ?? 0
-        self.max          = maxVal ?? 255
+        self.max          = maxVal ?? 0
         self.percentile1  = percentiles.p1
         self.percentile99 = percentiles.p2
     }
@@ -136,6 +139,8 @@ public struct HistogramStatistics
             }
         }
 
-        return ( r1 ?? 255, r2 ?? 255 )
+        // r1/r2 are always set when total > 0; the 0 fallback is defensive and
+        // matches the empty-input convention.
+        return ( r1 ?? 0, r2 ?? 0 )
     }
 }

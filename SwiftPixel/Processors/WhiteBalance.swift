@@ -66,6 +66,12 @@ public extension Processors
                 throw RuntimeError( message: "Unsupported channel count: \( buffer.channels )" )
             }
 
+            guard buffer.pixels.count == buffer.width * buffer.height * buffer.channels
+            else
+            {
+                throw RuntimeError( message: "Data size does not match expected size: \( buffer.pixels.count ) != \( buffer.width * buffer.height * buffer.channels )" )
+            }
+
             switch ( self.mode )
             {
                 case .auto:

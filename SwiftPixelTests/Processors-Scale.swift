@@ -38,7 +38,7 @@ struct Test_Processors_Scale
     func scaleAndOffset() async throws
     {
         let scale  = Processors.Scale( scale: 2.0, offset: 1.0 )
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
@@ -59,7 +59,7 @@ struct Test_Processors_Scale
     func scaleOnly() async throws
     {
         let scale  = Processors.Scale( scale: 0.5, offset: 0.0 )
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
@@ -80,7 +80,7 @@ struct Test_Processors_Scale
     func offsetOnly() async throws
     {
         let scale  = Processors.Scale( scale: 1.0, offset: 2.0 )
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
@@ -101,7 +101,7 @@ struct Test_Processors_Scale
     func noScaleOrOffset() async throws
     {
         let scale  = Processors.Scale( scale: 1.0, offset: 0.0 )
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
@@ -122,7 +122,7 @@ struct Test_Processors_Scale
     func zeroScaleZeroOffset() async throws
     {
         let scale  = Processors.Scale( scale: 0.0, offset: 0.0 )
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
@@ -143,7 +143,7 @@ struct Test_Processors_Scale
     func zeroScale() async throws
     {
         let scale  = Processors.Scale( scale: 0.0, offset: 2.0 )
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
@@ -164,7 +164,7 @@ struct Test_Processors_Scale
     func negativeScale() async throws
     {
         let scale  = Processors.Scale( scale: -1.0, offset: 0.0 )
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
@@ -185,7 +185,7 @@ struct Test_Processors_Scale
     func negativeOffset() async throws
     {
         let scale  = Processors.Scale( scale: 1.0, offset: -2.0 )
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
@@ -206,7 +206,7 @@ struct Test_Processors_Scale
     func negativeScaleAndOffset() async throws
     {
         let scale  = Processors.Scale( scale: -1.0, offset: -2.0 )
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
@@ -227,7 +227,7 @@ struct Test_Processors_Scale
     func emptyBuffer() async throws
     {
         let scale  = Processors.Scale( scale: 2.0, offset: 1.0 )
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        0,
             height:       0,
             channels:     1,

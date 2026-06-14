@@ -63,7 +63,7 @@ public struct PixelPipeline: Sendable
 
     public func run( pixels: [ Double ], width: Int, height: Int, bitsPerPixel: BitsPerPixel ) throws -> PixelBuffer
     {
-        var buffer     = PixelBuffer( width: width, height: height, channels: 1, pixels: pixels, isNormalized: false )
+        var buffer     = try PixelBuffer( width: width, height: height, channels: 1, pixels: pixels, isNormalized: false )
         var processors = [ PixelProcessor ]()
 
         if let scale = self.config.scale

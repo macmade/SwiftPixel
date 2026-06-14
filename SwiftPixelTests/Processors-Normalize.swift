@@ -31,9 +31,9 @@ struct Test_Processors_Normalize
     @Test
     func minMax() async throws
     {
-        var buffer = PixelBuffer(
-            width:        2,
-            height:       2,
+        var buffer = try PixelBuffer(
+            width:        5,
+            height:       1,
             channels:     1,
             pixels:       [ 0, 25, 50, 75, 100 ],
             isNormalized: false
@@ -50,9 +50,9 @@ struct Test_Processors_Normalize
     @Test
     func percentile() async throws
     {
-        var buffer = PixelBuffer(
-            width:        2,
-            height:       2,
+        var buffer = try PixelBuffer(
+            width:        5,
+            height:       1,
             channels:     1,
             pixels:       [ 0, 25, 50, 75, 100 ],
             isNormalized: false
@@ -69,7 +69,7 @@ struct Test_Processors_Normalize
     @Test
     func minMaxConstant() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
@@ -88,7 +88,7 @@ struct Test_Processors_Normalize
     @Test
     func percentileConstant() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
@@ -107,7 +107,7 @@ struct Test_Processors_Normalize
     @Test
     func empty() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        0,
             height:       0,
             channels:     1,
@@ -126,7 +126,7 @@ struct Test_Processors_Normalize
     @Test
     func minMaxRandom() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        1000,
             height:       1,
             channels:     1,
@@ -145,7 +145,7 @@ struct Test_Processors_Normalize
     @Test
     func percentileRandom() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        1000,
             height:       1,
             channels:     1,

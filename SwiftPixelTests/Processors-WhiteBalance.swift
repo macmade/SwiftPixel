@@ -32,7 +32,7 @@ struct Test_Processors_WhiteBalance
     @Test
     func manualGain() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        1,
             height:       1,
             channels:     3,
@@ -50,7 +50,7 @@ struct Test_Processors_WhiteBalance
     @Test
     func manualGainClipsToRange() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        1,
             height:       1,
             channels:     3,
@@ -68,7 +68,7 @@ struct Test_Processors_WhiteBalance
     @Test
     func autoGainNormalImage() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       1,
             channels:     3,
@@ -87,7 +87,7 @@ struct Test_Processors_WhiteBalance
     @Test
     func autoGainZeroChannel() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       1,
             channels:     3,
@@ -106,7 +106,7 @@ struct Test_Processors_WhiteBalance
     @Test
     func notNormalizedThrows() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        1,
             height:       1,
             channels:     3,

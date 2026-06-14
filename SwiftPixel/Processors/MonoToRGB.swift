@@ -73,8 +73,7 @@ public extension Processors
                 }
             }
 
-            buffer.pixels   = rgb.value
-            buffer.channels = 3
+            buffer = try PixelBuffer( width: buffer.width, height: buffer.height, channels: 3, pixels: rgb.value, isNormalized: buffer.isNormalized )
         }
     }
 }

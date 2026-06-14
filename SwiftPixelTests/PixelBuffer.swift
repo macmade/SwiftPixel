@@ -30,7 +30,7 @@ import Testing
 struct Test_PixelBuffer
 {
     @Test
-    func initialize()
+    func initialize() throws
     {
         let width      = 4
         let height     = 3
@@ -38,7 +38,7 @@ struct Test_PixelBuffer
         let pixelData  = Array( stride( from: 0.0, to: Double( width * height * channels ), by: 1.0 ))
         let normalized = true
 
-        let buffer = PixelBuffer(
+        let buffer = try PixelBuffer(
             width: width,
             height: height,
             channels: channels,
@@ -57,23 +57,50 @@ struct Test_PixelBuffer
     }
 
     @Test
-    func description()
+    func initializeThrowsOnPixelCountMismatch()
     {
-        let buffer = PixelBuffer(
-            width:        10,
-            height:       20,
+        #expect( throws: RuntimeError.self )
+        {
+            _ = try PixelBuffer( width: 2, height: 2, channels: 1, pixels: [ 0.0, 0.5, 1.0 ], isNormalized: true )
+        }
+    }
+
+    @Test
+    func initializeThrowsOnChannelsBelowOne()
+    {
+        #expect( throws: RuntimeError.self )
+        {
+            _ = try PixelBuffer( width: 0, height: 0, channels: 0, pixels: [], isNormalized: true )
+        }
+    }
+
+    @Test
+    func initializeThrowsOnNegativeDimensions()
+    {
+        #expect( throws: RuntimeError.self )
+        {
+            _ = try PixelBuffer( width: -1, height: 1, channels: 1, pixels: [ 0.5 ], isNormalized: true )
+        }
+    }
+
+    @Test
+    func description() throws
+    {
+        let buffer = try PixelBuffer(
+            width:        4,
+            height:       1,
             channels:     1,
             pixels:       [ 0.0, 0.5, 1.0, 0.75 ],
             isNormalized: true
         )
 
-        #expect( buffer.description == "PixelBuffer( width: 10, height: 20, channels: 1, pixels: 4, isNormalized: true )" )
+        #expect( buffer.description == "PixelBuffer( width: 4, height: 1, channels: 1, pixels: 4, isNormalized: true )" )
     }
 
     @Test
     func convert() async throws
     {
-        let buffer = PixelBuffer(
+        let buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
@@ -89,7 +116,7 @@ struct Test_PixelBuffer
     @Test
     func comvertClamp() async throws
     {
-        let buffer = PixelBuffer(
+        let buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
@@ -105,7 +132,7 @@ struct Test_PixelBuffer
     @Test
     func convertNotNormalized() async throws
     {
-        let buffer = PixelBuffer(
+        let buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
@@ -122,10 +149,10 @@ struct Test_PixelBuffer
     @Test
     func convertEmpty() async throws
     {
-        let buffer = PixelBuffer(
+        let buffer = try PixelBuffer(
             width:        0,
             height:       0,
-            channels:     0,
+            channels:     1,
             pixels:       [ ],
             isNormalized: true
         )
@@ -138,7 +165,7 @@ struct Test_PixelBuffer
     @Test
     func createCGImageWith1Channel() async throws
     {
-        let buffer = PixelBuffer(
+        let buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
@@ -165,7 +192,7 @@ struct Test_PixelBuffer
     @Test
     func createCGImageWith3Channels() async throws
     {
-        let buffer = PixelBuffer(
+        let buffer = try PixelBuffer(
             width:        1,
             height:       1,
             channels:     3,
@@ -192,7 +219,7 @@ struct Test_PixelBuffer
     @Test
     func createCGImageWith4Channels() async throws
     {
-        let buffer = PixelBuffer(
+        let buffer = try PixelBuffer(
             width:        1,
             height:       1,
             channels:     4,
@@ -219,7 +246,7 @@ struct Test_PixelBuffer
     @Test
     func createCGImageUnsupportedChannels() async throws
     {
-        let buffer = PixelBuffer(
+        let buffer = try PixelBuffer(
             width:        1,
             height:       1,
             channels:     2,
@@ -239,31 +266,9 @@ struct Test_PixelBuffer
     }
 
     @Test
-    func createCGImageIncorrectPixelCount() async throws
-    {
-        let buffer = PixelBuffer(
-            width:        2,
-            height:       2,
-            channels:     3,
-            pixels:       [ 1.0, 0.0, 0.5 ],
-            isNormalized: true
-        )
-
-        #expect( throws: RuntimeError.self )
-        {
-            try buffer.createCGImage()
-        }
-
-        #expect( throws: RuntimeError.self )
-        {
-            try PixelBuffer.createCGImage( bytes: try buffer.convertTo8Bits(), width: buffer.width, height: buffer.height, channels: buffer.channels )
-        }
-    }
-
-    @Test
     func createCGImageNotNormalized() async throws
     {
-        let buffer = PixelBuffer(
+        let buffer = try PixelBuffer(
             width:        1,
             height:       1,
             channels:     3,

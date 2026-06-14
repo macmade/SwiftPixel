@@ -94,8 +94,9 @@ public extension Processors
             {
                 case .vng:
 
-                    buffer.pixels   = try Self.vng( pixels: buffer.pixels, pattern: self.pattern, width: buffer.width, height: buffer.height )
-                    buffer.channels = 3
+                    let pixels = try Self.vng( pixels: buffer.pixels, pattern: self.pattern, width: buffer.width, height: buffer.height )
+
+                    buffer = try PixelBuffer( width: buffer.width, height: buffer.height, channels: 3, pixels: pixels, isNormalized: buffer.isNormalized )
             }
         }
 

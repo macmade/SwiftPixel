@@ -38,7 +38,7 @@ struct Test_Processors_MonoToRGB
     @Test
     func conversion() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
@@ -73,13 +73,15 @@ struct Test_Processors_MonoToRGB
     @Test
     func invalidSize() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
-            pixels:       [ 10, 20 ],
+            pixels:       [ 10, 20, 30, 40 ],
             isNormalized: false
         )
+
+        buffer.pixels = [ 10, 20 ]
 
         let debayer = Processors.Debayer( mode: .vng, pattern: .bggr )
 
@@ -92,13 +94,15 @@ struct Test_Processors_MonoToRGB
     @Test
     func invalidChannels() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     3,
-            pixels:       [ 10, 20, 30, 40 ],
+            pixels:       [ 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120 ],
             isNormalized: false
         )
+
+        buffer.pixels = [ 10, 20, 30, 40 ]
 
         let debayer = Processors.Debayer( mode: .vng, pattern: .bggr )
 
@@ -111,7 +115,7 @@ struct Test_Processors_MonoToRGB
     @Test
     func invalidNormalize() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,

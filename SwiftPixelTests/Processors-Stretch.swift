@@ -29,9 +29,9 @@ import Testing
 
 struct Test_Processors_Stretch
 {
-    private static func makeBuffer( _ pixels: [ Double ] ) -> PixelBuffer
+    private static func makeBuffer( _ pixels: [ Double ] ) throws -> PixelBuffer
     {
-        PixelBuffer( width: pixels.count, height: 1, channels: 1, pixels: pixels, isNormalized: true )
+        try PixelBuffer( width: pixels.count, height: 1, channels: 1, pixels: pixels, isNormalized: true )
     }
 
     @Test
@@ -39,7 +39,7 @@ struct Test_Processors_Stretch
     {
         let n        = 1.0
         let input    = [ 0.0, 0.25, 0.5, 0.75, 1.0 ]
-        var buffer   = Self.makeBuffer( input )
+        var buffer   = try Self.makeBuffer( input )
         let expected = input.map { log( 1.0 + n * $0 ) / log( 1.0 + n ) }
 
         try Processors.Stretch( algorithm: .log( n ) ).process( buffer: &buffer )
@@ -53,7 +53,7 @@ struct Test_Processors_Stretch
     {
         let n        = 3.0
         let input    = [ 0.0, 0.25, 0.5, 0.75, 1.0 ]
-        var buffer   = Self.makeBuffer( input )
+        var buffer   = try Self.makeBuffer( input )
         let expected = input.map { asinh( n * $0 ) / asinh( n ) }
 
         try Processors.Stretch( algorithm: .arcsinh( n ) ).process( buffer: &buffer )
@@ -65,7 +65,7 @@ struct Test_Processors_Stretch
     @Test
     func sigmoidStretch() async throws
     {
-        var buffer = Self.makeBuffer( [ 0.0, 0.25, 0.5, 0.75, 1.0 ] )
+        var buffer = try Self.makeBuffer( [ 0.0, 0.25, 0.5, 0.75, 1.0 ] )
 
         try Processors.Stretch( algorithm: .sigmoid( 10.0, 0.5 ) ).process( buffer: &buffer )
 
@@ -77,8 +77,8 @@ struct Test_Processors_Stretch
     @Test
     func logRejectsNonPositiveN() async throws
     {
-        var zero     = Self.makeBuffer( [ 0.5 ] )
-        var negative = Self.makeBuffer( [ 0.5 ] )
+        var zero     = try Self.makeBuffer( [ 0.5 ] )
+        var negative = try Self.makeBuffer( [ 0.5 ] )
 
         #expect( throws: RuntimeError.self )
         {
@@ -94,7 +94,7 @@ struct Test_Processors_Stretch
     @Test
     func arcsinhRejectsZeroN() async throws
     {
-        var buffer = Self.makeBuffer( [ 0.5 ] )
+        var buffer = try Self.makeBuffer( [ 0.5 ] )
 
         #expect( throws: RuntimeError.self )
         {
@@ -105,7 +105,7 @@ struct Test_Processors_Stretch
     @Test
     func notNormalizedThrows() async throws
     {
-        var buffer = PixelBuffer( width: 1, height: 1, channels: 1, pixels: [ 0.5 ], isNormalized: false )
+        var buffer = try PixelBuffer( width: 1, height: 1, channels: 1, pixels: [ 0.5 ], isNormalized: false )
 
         #expect( throws: RuntimeError.self )
         {

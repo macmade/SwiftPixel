@@ -32,7 +32,7 @@ struct Test_Processors_CorrectGamma
     @Test
     func transform() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        3,
             height:       1,
             channels:     1,
@@ -52,7 +52,7 @@ struct Test_Processors_CorrectGamma
     @Test
     func zeroGammaThrows() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        1,
             height:       1,
             channels:     1,
@@ -71,7 +71,7 @@ struct Test_Processors_CorrectGamma
     @Test
     func negativeGammaThrows() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        1,
             height:       1,
             channels:     1,
@@ -90,7 +90,7 @@ struct Test_Processors_CorrectGamma
     @Test
     func notNormalizedThrows() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        1,
             height:       1,
             channels:     1,

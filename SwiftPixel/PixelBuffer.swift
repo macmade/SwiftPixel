@@ -30,9 +30,36 @@ public struct PixelBuffer: CustomStringConvertible
 {
     public let width:        Int
     public let height:       Int
-    public var channels:     Int
+    public let channels:     Int
     public var pixels:       [ Double ]
     public var isNormalized: Bool
+
+    public init( width: Int, height: Int, channels: Int, pixels: [ Double ], isNormalized: Bool ) throws
+    {
+        guard channels >= 1
+        else
+        {
+            throw RuntimeError( message: "Channel count must be at least 1: \( channels )" )
+        }
+
+        guard width >= 0, height >= 0
+        else
+        {
+            throw RuntimeError( message: "Dimensions must not be negative: \( width )x\( height )" )
+        }
+
+        guard pixels.count == width * height * channels
+        else
+        {
+            throw RuntimeError( message: "Pixel count does not match geometry: \( pixels.count ) != \( width * height * channels )" )
+        }
+
+        self.width        = width
+        self.height       = height
+        self.channels     = channels
+        self.pixels       = pixels
+        self.isNormalized = isNormalized
+    }
 
     public var description: String
     {
@@ -64,14 +91,6 @@ public struct PixelBuffer: CustomStringConvertible
         else
         {
             throw RuntimeError( message: "Unsupported number of channels: \( self.channels )" )
-        }
-
-        let count = self.width * self.height * self.channels
-
-        guard self.pixels.count >= count
-        else
-        {
-            throw RuntimeError( message: "Data size does not match expected size: \( self.pixels.count ) != \( count )" )
         }
 
         return try Self.createCGImage( bytes: try self.convertTo8Bits(), width: self.width, height: self.height, channels: self.channels )

@@ -44,7 +44,7 @@ struct Test_Processors_Debayer
         // Simulated 2x2 Bayer pattern (BGGR):
         // [ B, G ]
         // [ G, R ]
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
@@ -81,7 +81,7 @@ struct Test_Processors_Debayer
         // Simulated 2x2 Bayer pattern (GRBG):
         // [ G, R ]
         // [ B, G ]
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
@@ -118,7 +118,7 @@ struct Test_Processors_Debayer
         // Simulated 2x2 Bayer pattern (RGBG):
         // [ R, G ]
         // [ B, G ]
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
@@ -155,7 +155,7 @@ struct Test_Processors_Debayer
         // Simulated 2x2 Bayer pattern (RGGB):
         // [ R, G ]
         // [ G, B ]
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
@@ -189,13 +189,15 @@ struct Test_Processors_Debayer
     @Test
     func invalidSize() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,
-            pixels:       [ 10, 20 ],
+            pixels:       [ 10, 20, 30, 40 ],
             isNormalized: false
         )
+
+        buffer.pixels = [ 10, 20 ]
 
         let debayer = Processors.Debayer( mode: .vng, pattern: .bggr )
 
@@ -208,13 +210,15 @@ struct Test_Processors_Debayer
     @Test
     func invalidChannels() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     3,
-            pixels:       [ 10, 20, 30, 40 ],
+            pixels:       [ 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120 ],
             isNormalized: false
         )
+
+        buffer.pixels = [ 10, 20, 30, 40 ]
 
         let debayer = Processors.Debayer( mode: .vng, pattern: .bggr )
 
@@ -227,7 +231,7 @@ struct Test_Processors_Debayer
     @Test
     func invalidNormalize() async throws
     {
-        var buffer = PixelBuffer(
+        var buffer = try PixelBuffer(
             width:        2,
             height:       2,
             channels:     1,

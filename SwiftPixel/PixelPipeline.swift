@@ -29,21 +29,25 @@ public struct PixelPipeline: Sendable
 {
     public struct Config: Sendable
     {
-        public let scale:        ( scale: Double, offset: Double )?
-        public let bayerPattern: Processors.Debayer.Pattern?
-        public let normalize:    Processors.Normalize.Mode?
-        public let stretch:      Processors.Stretch.Algorithm?
-        public let correctGamma: Double?
-        public let whiteBalance: Processors.WhiteBalance.Mode?
+        public let scale:           ( scale: Double, offset: Double )?
+        public let bayerPattern:    Processors.Debayer.Pattern?
+        public let normalize:       Processors.Normalize.Mode?
+        public let stretch:         Processors.Stretch.Algorithm?
+        public let correctGamma:    Double?
+        public let whiteBalance:    Processors.WhiteBalance.Mode?
+        public let benchmark:       Bool
+        public let benchmarkOutput: ( @Sendable ( String ) -> Void )?
 
-        public init( scale: ( scale: Double, offset: Double )?, bayerPattern: Processors.Debayer.Pattern?, normalize: Processors.Normalize.Mode?, stretch: Processors.Stretch.Algorithm?, correctGamma: Double?, whiteBalance: Processors.WhiteBalance.Mode? )
+        public init( scale: ( scale: Double, offset: Double )?, bayerPattern: Processors.Debayer.Pattern?, normalize: Processors.Normalize.Mode?, stretch: Processors.Stretch.Algorithm?, correctGamma: Double?, whiteBalance: Processors.WhiteBalance.Mode?, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
         {
-            self.scale        = scale
-            self.bayerPattern = bayerPattern
-            self.normalize    = normalize
-            self.stretch      = stretch
-            self.correctGamma = correctGamma
-            self.whiteBalance = whiteBalance
+            self.scale           = scale
+            self.bayerPattern    = bayerPattern
+            self.normalize       = normalize
+            self.stretch         = stretch
+            self.correctGamma    = correctGamma
+            self.whiteBalance    = whiteBalance
+            self.benchmark       = benchmark
+            self.benchmarkOutput = benchmarkOutput
         }
     }
 
@@ -65,9 +69,20 @@ public struct PixelPipeline: Sendable
     {
         var buffer = try PixelBuffer( width: width, height: height, channels: 1, pixels: pixels, isNormalized: false )
 
+        let output: ( String ) -> Void
+
+        if self.config.benchmark
+        {
+            output = self.config.benchmarkOutput ?? { print( $0 ) }
+        }
+        else
+        {
+            output = { _ in }
+        }
+
         try self.processors().forEach
         {
-            processor in try Benchmark.run( label: processor.description )
+            processor in try Benchmark.run( label: processor.description, output: output )
             {
                 try processor.process( buffer: &buffer )
             }

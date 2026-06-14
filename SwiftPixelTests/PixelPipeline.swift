@@ -26,18 +26,45 @@ import Foundation
 @testable import SwiftPixel
 import Testing
 
+private final class OutputCollector: @unchecked Sendable
+{
+    private let lock    = NSLock()
+    private var storage = [ String ]()
+
+    func append( _ line: String )
+    {
+        self.lock.lock()
+        self.storage.append( line )
+        self.lock.unlock()
+    }
+
+    var lines: [ String ]
+    {
+        self.lock.lock()
+
+        defer
+        {
+            self.lock.unlock()
+        }
+
+        return self.storage
+    }
+}
+
 struct Test_PixelPipeline
 {
     private static func config(
-        scale:        ( scale: Double, offset: Double )?     = nil,
-        bayerPattern: Processors.Debayer.Pattern?            = nil,
-        normalize:    Processors.Normalize.Mode?             = nil,
-        stretch:      Processors.Stretch.Algorithm?          = nil,
-        correctGamma: Double?                                = nil,
-        whiteBalance: Processors.WhiteBalance.Mode?          = nil
+        scale:           ( scale: Double, offset: Double )?      = nil,
+        bayerPattern:    Processors.Debayer.Pattern?             = nil,
+        normalize:       Processors.Normalize.Mode?              = nil,
+        stretch:         Processors.Stretch.Algorithm?           = nil,
+        correctGamma:    Double?                                 = nil,
+        whiteBalance:    Processors.WhiteBalance.Mode?           = nil,
+        benchmark:       Bool                                    = false,
+        benchmarkOutput: ( @Sendable ( String ) -> Void )?       = nil
     ) -> PixelPipeline.Config
     {
-        PixelPipeline.Config( scale: scale, bayerPattern: bayerPattern, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance )
+        PixelPipeline.Config( scale: scale, bayerPattern: bayerPattern, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, benchmark: benchmark, benchmarkOutput: benchmarkOutput )
     }
 
     @Test
@@ -129,5 +156,28 @@ struct Test_PixelPipeline
 
         #expect( names.contains { $0.hasPrefix( "Normalize" ) } == false )
         #expect( names == [ "Scale (2.00 1.00)", "Mono to RGB" ] )
+    }
+
+    @Test
+    func benchmarkSilentByDefault() async throws
+    {
+        let collector = OutputCollector()
+        let pipeline  = PixelPipeline( config: Self.config( normalize: .minMax, benchmarkOutput: { collector.append( $0 ) } ) )
+
+        _ = try pipeline.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
+
+        #expect( collector.lines.isEmpty )
+    }
+
+    @Test
+    func benchmarkEmitsOneLinePerStage() async throws
+    {
+        let collector = OutputCollector()
+        let pipeline  = PixelPipeline( config: Self.config( normalize: .minMax, benchmark: true, benchmarkOutput: { collector.append( $0 ) } ) )
+
+        _ = try pipeline.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
+
+        #expect( collector.lines.count == 2 )
+        #expect( collector.lines.allSatisfy { $0.hasPrefix( "Benchmarking - " ) } )
     }
 }

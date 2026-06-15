@@ -71,27 +71,6 @@ struct Test_Processors_MonoToRGB
     }
 
     @Test
-    func invalidSize() async throws
-    {
-        var buffer = try PixelBuffer(
-            width:        2,
-            height:       2,
-            channels:     1,
-            pixels:       [ 10, 20, 30, 40 ],
-            isNormalized: false
-        )
-
-        buffer.pixels = [ 10, 20 ]
-
-        let debayer = Processors.Debayer( mode: .bilinear, pattern: .bggr )
-
-        #expect( throws: RuntimeError.self )
-        {
-            try debayer.process( buffer: &buffer )
-        }
-    }
-
-    @Test
     func invalidChannels() async throws
     {
         var buffer = try PixelBuffer(
@@ -102,13 +81,11 @@ struct Test_Processors_MonoToRGB
             isNormalized: false
         )
 
-        buffer.pixels = [ 10, 20, 30, 40 ]
-
-        let debayer = Processors.Debayer( mode: .bilinear, pattern: .bggr )
+        let monoToRGB = Processors.MonoToRGB()
 
         #expect( throws: RuntimeError.self )
         {
-            try debayer.process( buffer: &buffer )
+            try monoToRGB.process( buffer: &buffer )
         }
     }
 

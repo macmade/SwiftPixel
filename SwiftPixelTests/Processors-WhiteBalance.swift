@@ -123,27 +123,6 @@ struct Test_Processors_WhiteBalance
     }
 
     @Test
-    func geometryMismatchThrows() async throws
-    {
-        var buffer = try PixelBuffer(
-            width:        1,
-            height:       1,
-            channels:     3,
-            pixels:       [ 0.2, 0.3, 0.4 ],
-            isNormalized: true
-        )
-
-        buffer.pixels = [ 0.2, 0.3, 0.4, 0.5, 0.6, 0.7 ]
-
-        let processor = Processors.WhiteBalance( mode: .auto )
-
-        #expect( throws: RuntimeError.self )
-        {
-            try processor.process( buffer: &buffer )
-        }
-    }
-
-    @Test
     func name() async throws
     {
         #expect( Processors.WhiteBalance( mode: .auto ).name == "White Balance (Auto)" )

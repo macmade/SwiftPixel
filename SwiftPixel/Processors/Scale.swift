@@ -31,7 +31,9 @@ public extension Processors
     /// Applies an affine transform `sample × scale + offset` to every sample.
     ///
     /// Operates on the raw sample values; it does not require a normalized buffer
-    /// and does not change the channel count or normalization flag.
+    /// and does not change the channel count. Because a non-identity transform
+    /// changes the value range, it clears `isNormalized` so a previously
+    /// normalized buffer is not left flagged as normalized.
     struct Scale: PixelProcessor
     {
         /// The multiplicative factor applied to each sample.
@@ -53,9 +55,11 @@ public extension Processors
         /// - Throws: A `RuntimeError` if the sample buffer cannot be accessed.
         public func process( buffer: inout PixelBuffer ) throws
         {
-            let count = vDSP_Length( buffer.pixels.count )
+            let count            = vDSP_Length( buffer.pixels.count )
+            let changesRange     = self.scale != 1.0 || self.offset != 0.0
+            let resultNormalized = changesRange ? false : buffer.isNormalized
 
-            try buffer.pixels.withUnsafeMutableBufferPointer
+            try buffer.withUnsafeMutablePixels( isNormalized: resultNormalized )
             {
                 guard let baseAddress = $0.baseAddress
                 else

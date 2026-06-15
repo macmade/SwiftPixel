@@ -68,7 +68,7 @@ public extension Processors
             let inverseGamma = 1.0 / self.gamma
             let exponents    = [ Double ]( repeating: inverseGamma, count: buffer.pixels.count )
 
-            try buffer.pixels.withUnsafeMutableBufferPointer
+            try buffer.withUnsafeMutablePixels
             {
                 guard let baseAddress = $0.baseAddress
                 else

@@ -35,6 +35,40 @@ struct Test_Processors_Scale
     }
 
     @Test
+    func clearsNormalizedFlagWhenChangingRange() async throws
+    {
+        let scale  = Processors.Scale( scale: 2.0, offset: 1.0 )
+        var buffer = try PixelBuffer(
+            width:        2,
+            height:       2,
+            channels:     1,
+            pixels:       [ 0.0, 0.25, 0.5, 1.0 ],
+            isNormalized: true
+        )
+
+        try scale.process( buffer: &buffer )
+
+        #expect( buffer.isNormalized == false )
+    }
+
+    @Test
+    func preservesNormalizedFlagForIdentity() async throws
+    {
+        let scale  = Processors.Scale( scale: 1.0, offset: 0.0 )
+        var buffer = try PixelBuffer(
+            width:        2,
+            height:       2,
+            channels:     1,
+            pixels:       [ 0.0, 0.25, 0.5, 1.0 ],
+            isNormalized: true
+        )
+
+        try scale.process( buffer: &buffer )
+
+        #expect( buffer.isNormalized == true )
+    }
+
+    @Test
     func scaleAndOffset() async throws
     {
         let scale  = Processors.Scale( scale: 2.0, offset: 1.0 )

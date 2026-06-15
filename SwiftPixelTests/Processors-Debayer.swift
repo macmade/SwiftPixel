@@ -39,27 +39,6 @@ struct Test_Processors_Debayer
     }
 
     @Test
-    func invalidSize() async throws
-    {
-        var buffer = try PixelBuffer(
-            width:        2,
-            height:       2,
-            channels:     1,
-            pixels:       [ 10, 20, 30, 40 ],
-            isNormalized: false
-        )
-
-        buffer.pixels = [ 10, 20 ]
-
-        let debayer = Processors.Debayer( mode: .bilinear, pattern: .bggr )
-
-        #expect( throws: RuntimeError.self )
-        {
-            try debayer.process( buffer: &buffer )
-        }
-    }
-
-    @Test
     func invalidChannels() async throws
     {
         var buffer = try PixelBuffer(
@@ -69,8 +48,6 @@ struct Test_Processors_Debayer
             pixels:       [ 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120 ],
             isNormalized: false
         )
-
-        buffer.pixels = [ 10, 20, 30, 40 ]
 
         let debayer = Processors.Debayer( mode: .bilinear, pattern: .bggr )
 

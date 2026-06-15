@@ -48,10 +48,17 @@ public struct PixelBuffer: CustomStringConvertible
     public let channels: Int
 
     /// The interleaved samples, in row-major order.
-    public var pixels: [ Double ]
+    ///
+    /// Read-only from outside `PixelBuffer`; samples are mutated only through
+    /// `withUnsafeMutablePixels(isNormalized:_:)` (or by building a new buffer
+    /// via `init`), which keeps them in step with `isNormalized`.
+    public private( set ) var pixels: [ Double ]
 
     /// Whether the samples are normalized to the `[0, 1]` range.
-    public var isNormalized: Bool
+    ///
+    /// Read-only from outside `PixelBuffer` so the flag cannot drift out of step
+    /// with the sample data; see `withUnsafeMutablePixels(isNormalized:_:)`.
+    public private( set ) var isNormalized: Bool
 
     /// Creates a buffer, validating that the geometry and sample count are
     /// consistent.
@@ -93,6 +100,55 @@ public struct PixelBuffer: CustomStringConvertible
         self.channels     = channels
         self.pixels       = pixels
         self.isNormalized = isNormalized
+    }
+
+    /// Mutates the samples in place and sets the normalization flag in the same
+    /// call, keeping the two consistent.
+    ///
+    /// This is the supported way for any processor — built-in or third-party —
+    /// to transform samples without changing the geometry: it yields the
+    /// buffer's existing storage (no copy) and requires the caller to declare
+    /// whether the result is normalized, so the flag cannot drift out of step
+    /// with the data. Stages that change the channel count build a new buffer
+    /// via `init` instead.
+    ///
+    /// The sample count is fixed for the duration of `body`.
+    ///
+    /// - Parameters:
+    ///   - isNormalized: Whether the samples are in the `[0, 1]` range once
+    ///                   `body` returns. Applied only on a non-throwing return.
+    ///   - body:         A closure receiving a mutable pointer to the samples.
+    ///
+    /// - Returns: Whatever `body` returns.
+    ///
+    /// - Throws: Rethrows any error thrown by `body`; the flag is left unchanged
+    ///           in that case.
+    public mutating func withUnsafeMutablePixels< R >( isNormalized: Bool, _ body: ( UnsafeMutableBufferPointer< Double > ) throws -> R ) rethrows -> R
+    {
+        let result = try self.pixels.withUnsafeMutableBufferPointer { try body( $0 ) }
+
+        self.isNormalized = isNormalized
+
+        return result
+    }
+
+    /// Mutates the samples in place, leaving the normalization flag unchanged.
+    ///
+    /// For value transforms that do not change whether the samples are
+    /// normalized — typically stages that require a normalized buffer and
+    /// preserve that range. Stages that change the normalization status use
+    /// `withUnsafeMutablePixels(isNormalized:_:)` instead.
+    ///
+    /// The sample count is fixed for the duration of `body`.
+    ///
+    /// - Parameter body: A closure receiving a mutable pointer to the samples.
+    ///
+    /// - Returns: Whatever `body` returns.
+    ///
+    /// - Throws: Rethrows any error thrown by `body`.
+    public mutating func withUnsafeMutablePixels< R >( _ body: ( UnsafeMutableBufferPointer< Double > ) throws -> R ) rethrows -> R
+    {
+        return try self.pixels.withUnsafeMutableBufferPointer { try body( $0 ) }
     }
 
     /// A human-readable summary of the buffer's geometry and state.

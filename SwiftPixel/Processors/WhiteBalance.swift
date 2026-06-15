@@ -120,7 +120,7 @@ public extension Processors
         {
             let count = vDSP_Length( buffer.width * buffer.height )
 
-            try buffer.pixels.withUnsafeMutableBufferPointer
+            try buffer.withUnsafeMutablePixels
             {
                 guard let baseAddress = $0.baseAddress
                 else

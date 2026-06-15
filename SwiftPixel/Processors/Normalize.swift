@@ -79,7 +79,7 @@ public extension Processors
             guard buffer.pixels.isEmpty == false
             else
             {
-                buffer.isNormalized = true
+                buffer.withUnsafeMutablePixels( isNormalized: true ) { _ in }
 
                 return
             }
@@ -99,8 +99,7 @@ public extension Processors
                     guard minValue != maxValue
                     else
                     {
-                        buffer.pixels       = [ Double ]( repeating: 0.0, count: buffer.pixels.count )
-                        buffer.isNormalized = true
+                        buffer.withUnsafeMutablePixels( isNormalized: true ) { $0.update( repeating: 0.0 ) }
 
                         return
                     }
@@ -109,7 +108,17 @@ public extension Processors
                     let scale  = 1.0 / range
                     let offset = -minValue / range
 
-                    vDSP_vsmsaD( buffer.pixels, 1, [ scale ], [ offset ], &buffer.pixels, 1, count )
+                    buffer.withUnsafeMutablePixels( isNormalized: true )
+                    {
+                        guard let base = $0.baseAddress
+                        else
+                        {
+                            return
+                        }
+
+                        vDSP_vsmsaD( base, 1, [ scale ], [ offset ], base, 1, count )
+                        vDSP_vclipD( base, 1, [ 0.0 ],   [ 1.0 ],    base, 1, count )
+                    }
 
                 case .percentile( let lowerPercentile, let upperPercentile ):
 
@@ -118,24 +127,28 @@ public extension Processors
                     guard bounds.lower != bounds.upper
                     else
                     {
-                        buffer.pixels       = [ Double ]( repeating: 0.0, count: buffer.pixels.count )
-                        buffer.isNormalized = true
+                        buffer.withUnsafeMutablePixels( isNormalized: true ) { $0.update( repeating: 0.0 ) }
 
                         return
                     }
-
-                    vDSP_vclipD( buffer.pixels, 1, [ bounds.lower ], [ bounds.upper ], &buffer.pixels, 1, count )
 
                     let range  = bounds.upper - bounds.lower
                     let scale  = 1.0 / range
                     let offset = -bounds.lower / range
 
-                    vDSP_vsmsaD( buffer.pixels, 1, [ scale ], [ offset ], &buffer.pixels, 1, count )
+                    buffer.withUnsafeMutablePixels( isNormalized: true )
+                    {
+                        guard let base = $0.baseAddress
+                        else
+                        {
+                            return
+                        }
+
+                        vDSP_vclipD( base, 1, [ bounds.lower ], [ bounds.upper ], base, 1, count )
+                        vDSP_vsmsaD( base, 1, [ scale ],        [ offset ],       base, 1, count )
+                        vDSP_vclipD( base, 1, [ 0.0 ],          [ 1.0 ],          base, 1, count )
+                    }
             }
-
-            vDSP_vclipD( buffer.pixels, 1, [ 0.0 ], [ 1.0 ], &buffer.pixels, 1, count )
-
-            buffer.isNormalized = true
         }
     }
 }

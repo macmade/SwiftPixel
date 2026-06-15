@@ -116,7 +116,7 @@ public extension Processors
             var one         = 1.0
             let count       = vDSP_Length( buffer.pixels.count )
 
-            try buffer.pixels.withUnsafeMutableBufferPointer
+            try buffer.withUnsafeMutablePixels
             {
                 guard let baseAddress = $0.baseAddress
                 else
@@ -150,7 +150,7 @@ public extension Processors
             var denominator = asinh( n )
             let count       = vDSP_Length( buffer.pixels.count )
 
-            try buffer.pixels.withUnsafeMutableBufferPointer
+            try buffer.withUnsafeMutablePixels
             {
                 guard let baseAddress = $0.baseAddress
                 else
@@ -181,7 +181,7 @@ public extension Processors
             var minusOne = -1.0
             var one      = 1.0
 
-            try buffer.pixels.withUnsafeMutableBufferPointer
+            try buffer.withUnsafeMutablePixels
             {
                 guard let baseAddress = $0.baseAddress
                 else

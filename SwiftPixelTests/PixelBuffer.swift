@@ -75,6 +75,54 @@ struct Test_PixelBuffer
     }
 
     @Test
+    func withUnsafeMutablePixelsMutatesInPlaceAndSetsFlag() throws
+    {
+        var buffer = try PixelBuffer( width: 2, height: 1, channels: 1, pixels: [ 1.0, 2.0 ], isNormalized: false )
+
+        buffer.withUnsafeMutablePixels( isNormalized: true )
+        {
+            for index in $0.indices
+            {
+                $0[ index ] *= 10.0
+            }
+        }
+
+        #expect( buffer.pixels       == [ 10.0, 20.0 ] )
+        #expect( buffer.isNormalized == true )
+    }
+
+    @Test
+    func withUnsafeMutablePixelsPreservesFlag() throws
+    {
+        var buffer = try PixelBuffer( width: 2, height: 1, channels: 1, pixels: [ 1.0, 2.0 ], isNormalized: true )
+
+        buffer.withUnsafeMutablePixels
+        {
+            for index in $0.indices
+            {
+                $0[ index ] += 1.0
+            }
+        }
+
+        #expect( buffer.pixels       == [ 2.0, 3.0 ] )
+        #expect( buffer.isNormalized == true )
+    }
+
+    @Test
+    func withUnsafeMutablePixelsReturnsBodyResult() throws
+    {
+        var buffer = try PixelBuffer( width: 2, height: 1, channels: 1, pixels: [ 3.0, 4.0 ], isNormalized: true )
+
+        let sum = buffer.withUnsafeMutablePixels( isNormalized: false )
+        {
+            $0.reduce( 0.0, + )
+        }
+
+        #expect( sum                 == 7.0 )
+        #expect( buffer.isNormalized == false )
+    }
+
+    @Test
     func initializeThrowsOnChannelsBelowOne()
     {
         #expect( throws: RuntimeError.self )

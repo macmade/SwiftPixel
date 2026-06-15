@@ -29,6 +29,34 @@ import Testing
 struct Test_Processors_Debayer_Bilinear
 {
     @Test
+    func testBilinear_RGGB_2x2_GoldenOutput() async throws
+    {
+        // Simulated 2x2 Bayer pattern (RGGB):
+        // [ R, G ]
+        // [ G, B ]
+        var buffer = try PixelBuffer(
+            width:        2,
+            height:       2,
+            channels:     1,
+            pixels:       [ 10, 20, 30, 40 ],
+            isNormalized: false
+        )
+
+        let debayer = Processors.Debayer( mode: .bilinear, pattern: .rggb )
+
+        try debayer.process( buffer: &buffer )
+
+        #expect( buffer.pixels ==
+            [
+                10.0, 17.5, 25.0,
+                15.0, 20.0, 30.0,
+                20.0, 30.0, 35.0,
+                25.0, 32.5, 40.0,
+            ]
+        )
+    }
+
+    @Test
     func testBilinear_BGGR_2x2() async throws
     {
         // Simulated 2x2 Bayer pattern (BGGR):

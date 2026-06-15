@@ -22,7 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-import Accelerate
 import Foundation
 import SwiftUtilities
 
@@ -89,80 +88,59 @@ extension Processors.Debayer
                         {
                             case .red:
 
+                                let left  = self.safeRead( x: x - 1, y: y,     width: width, height: height, data: input.value )
+                                let right = self.safeRead( x: x + 1, y: y,     width: width, height: height, data: input.value )
+                                let up    = self.safeRead( x: x,     y: y - 1, width: width, height: height, data: input.value )
+                                let down  = self.safeRead( x: x,     y: y + 1, width: width, height: height, data: input.value )
+                                let ul    = self.safeRead( x: x - 1, y: y - 1, width: width, height: height, data: input.value )
+                                let ur    = self.safeRead( x: x + 1, y: y - 1, width: width, height: height, data: input.value )
+                                let ll    = self.safeRead( x: x - 1, y: y + 1, width: width, height: height, data: input.value )
+                                let lr    = self.safeRead( x: x + 1, y: y + 1, width: width, height: height, data: input.value )
+
                                 r = val
-                                g = self.averageSIMD( values:
-                                    [
-                                        self.safeRead( x: x - 1, y: y,     width: width, height: height, data: input.value ),
-                                        self.safeRead( x: x + 1, y: y,     width: width, height: height, data: input.value ),
-                                        self.safeRead( x: x,     y: y - 1, width: width, height: height, data: input.value ),
-                                        self.safeRead( x: x,     y: y + 1, width: width, height: height, data: input.value ),
-                                    ]
-                                )
-                                b = self.averageSIMD( values:
-                                    [
-                                        self.safeRead( x: x - 1, y: y - 1, width: width, height: height, data: input.value ),
-                                        self.safeRead( x: x + 1, y: y - 1, width: width, height: height, data: input.value ),
-                                        self.safeRead( x: x - 1, y: y + 1, width: width, height: height, data: input.value ),
-                                        self.safeRead( x: x + 1, y: y + 1, width: width, height: height, data: input.value ),
-                                    ]
-                                )
+                                g = ( left + right + up + down ) * 0.25
+                                b = ( ul + ur + ll + lr ) * 0.25
 
                             case .green:
 
                                 let left  = self.colorAt( x: x - 1, y: y, pattern: pattern )
                                 let right = self.colorAt( x: x + 1, y: y, pattern: pattern )
 
+                                let horizontal = (
+                                    self.safeRead( x: x - 1, y: y, width: width, height: height, data: input.value )
+                                  + self.safeRead( x: x + 1, y: y, width: width, height: height, data: input.value )
+                                ) * 0.5
+                                let vertical = (
+                                    self.safeRead( x: x, y: y - 1, width: width, height: height, data: input.value )
+                                  + self.safeRead( x: x, y: y + 1, width: width, height: height, data: input.value )
+                                ) * 0.5
+
+                                g = val
+
                                 if left == .red || right == .red
                                 {
-                                    r = self.averageSIMD( values:
-                                        [
-                                            self.safeRead( x: x - 1, y: y, width: width, height: height, data: input.value ),
-                                            self.safeRead( x: x + 1, y: y, width: width, height: height, data: input.value ),
-                                        ]
-                                    )
-                                    g = val
-                                    b = self.averageSIMD( values:
-                                        [
-                                            self.safeRead( x: x, y: y - 1, width: width, height: height, data: input.value ),
-                                            self.safeRead( x: x, y: y + 1, width: width, height: height, data: input.value ),
-                                        ]
-                                    )
+                                    r = horizontal
+                                    b = vertical
                                 }
                                 else
                                 {
-                                    r = self.averageSIMD( values:
-                                        [
-                                            self.safeRead( x: x, y: y - 1, width: width, height: height, data: input.value ),
-                                            self.safeRead( x: x, y: y + 1, width: width, height: height, data: input.value ),
-                                        ]
-                                    )
-                                    g = val
-                                    b = self.averageSIMD( values:
-                                        [
-                                            self.safeRead( x: x - 1, y: y, width: width, height: height, data: input.value ),
-                                            self.safeRead( x: x + 1, y: y, width: width, height: height, data: input.value ),
-                                        ]
-                                    )
+                                    r = vertical
+                                    b = horizontal
                                 }
 
                             case .blue:
 
-                                r = self.averageSIMD( values:
-                                    [
-                                        self.safeRead( x: x - 1, y: y - 1, width: width, height: height, data: input.value ),
-                                        self.safeRead( x: x + 1, y: y - 1, width: width, height: height, data: input.value ),
-                                        self.safeRead( x: x - 1, y: y + 1, width: width, height: height, data: input.value ),
-                                        self.safeRead( x: x + 1, y: y + 1, width: width, height: height, data: input.value ),
-                                    ]
-                                )
-                                g = self.averageSIMD( values:
-                                    [
-                                        self.safeRead( x: x - 1, y: y,     width: width, height: height, data: input.value ),
-                                        self.safeRead( x: x + 1, y: y,     width: width, height: height, data: input.value ),
-                                        self.safeRead( x: x,     y: y - 1, width: width, height: height, data: input.value ),
-                                        self.safeRead( x: x,     y: y + 1, width: width, height: height, data: input.value ),
-                                    ]
-                                )
+                                let left  = self.safeRead( x: x - 1, y: y,     width: width, height: height, data: input.value )
+                                let right = self.safeRead( x: x + 1, y: y,     width: width, height: height, data: input.value )
+                                let up    = self.safeRead( x: x,     y: y - 1, width: width, height: height, data: input.value )
+                                let down  = self.safeRead( x: x,     y: y + 1, width: width, height: height, data: input.value )
+                                let ul    = self.safeRead( x: x - 1, y: y - 1, width: width, height: height, data: input.value )
+                                let ur    = self.safeRead( x: x + 1, y: y - 1, width: width, height: height, data: input.value )
+                                let ll    = self.safeRead( x: x - 1, y: y + 1, width: width, height: height, data: input.value )
+                                let lr    = self.safeRead( x: x + 1, y: y + 1, width: width, height: height, data: input.value )
+
+                                r = ( ul + ur + ll + lr ) * 0.25
+                                g = ( left + right + up + down ) * 0.25
                                 b = val
                         }
 
@@ -195,19 +173,5 @@ extension Processors.Debayer
         let clampedY = min( max( y, 0 ), height - 1 )
 
         return data[ self.index( x: clampedX, y: clampedY, width: width ) ]
-    }
-
-    /// Returns the arithmetic mean of `values` using vDSP.
-    ///
-    /// - Parameter values: The values to average.
-    ///
-    /// - Returns: Their mean.
-    private static func averageSIMD( values: [ Double ] ) -> Double
-    {
-        var result = 0.0
-
-        vDSP_meanvD( values, 1, &result, vDSP_Length( values.count ) )
-
-        return result
     }
 }

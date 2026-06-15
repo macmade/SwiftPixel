@@ -460,7 +460,7 @@
 			productReference = 05C527822DD8E36300843626 /* SwiftPixel.framework */;
 			productType = "com.apple.product-type.framework";
 		};
-		05C5278A2DD8E36300843626 /* SwiftPixelTests */ = {
+		05F175B22DD8E36300843626 /* SwiftPixelTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 05C527972DD8E36300843626 /* Build configuration list for PBXNativeTarget "SwiftPixelTests" */;
 			buildPhases = (
@@ -493,7 +493,7 @@
 					05C527812DD8E36300843626 = {
 						CreatedOnToolsVersion = 16.3;
 					};
-					05C5278A2DD8E36300843626 = {
+					05F175B22DD8E36300843626 = {
 						CreatedOnToolsVersion = 16.3;
 					};
 				};
@@ -519,7 +519,7 @@
 			projectRoot = "";
 			targets = (
 				05C527812DD8E36300843626 /* SwiftPixel */,
-				05C5278A2DD8E36300843626 /* SwiftPixelTests */,
+				05F175B22DD8E36300843626 /* SwiftPixelTests */,
 			);
 		};
 /* End PBXProject section */

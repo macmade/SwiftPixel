@@ -12,6 +12,17 @@ SwiftPixel
 
 Pixel Processing Library for Swift.
 
+### Installation
+
+Add the package to your `Package.swift` dependencies:
+
+```swift
+.package( url: "https://github.com/macmade/SwiftPixel.git", branch: "main" )
+```
+
+Then add `SwiftPixel` to your target's dependencies. The library can also be
+used directly through its Xcode project.
+
 ### Cloning
 
 This project uses submodules.  

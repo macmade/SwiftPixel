@@ -15,3 +15,20 @@ jobs:
                 submodules: 'recursive'
                 
             - uses: macmade/action-xcodebuild@v1.0.0
+
+    spm:
+        runs-on: macos-15
+        strategy:
+            matrix:
+                configuration: [ 'debug', 'release' ]
+        steps:
+
+            - uses: actions/checkout@v6
+              with:
+                submodules: 'recursive'
+
+            - name: Build
+              run: swift build --configuration ${{ matrix.configuration }}
+
+            - name: Test
+              run: swift test --configuration ${{ matrix.configuration }}

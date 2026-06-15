@@ -103,8 +103,8 @@ extension Processors.Debayer
 
                             case .green:
 
-                                let left  = self.colorAt( x: x - 1, y: y, pattern: pattern )
-                                let right = self.colorAt( x: x + 1, y: y, pattern: pattern )
+                                let left  = self.colorAt( x: x - 1, y: y, width: width, height: height, pattern: pattern )
+                                let right = self.colorAt( x: x + 1, y: y, width: width, height: height, pattern: pattern )
 
                                 let horizontal = (
                                     self.safeRead( x: x - 1, y: y, width: width, height: height, data: input.value )

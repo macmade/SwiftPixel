@@ -30,6 +30,17 @@ import Testing
 struct Test_Processors_Debayer
 {
     @Test
+    func colorAtClampsBorderCoordinates() async throws
+    {
+        // A neighbour one step off the top/left/right edge classifies as the
+        // clamped edge pixel, matching the edge-clamped sample reads. This
+        // guards against the negative-modulo parity bug, e.g. (-1) % 2 == -1.
+        #expect( Processors.Debayer.colorAt( x: -1, y:  0, width: 4, height: 4, pattern: .rggb ) == Processors.Debayer.colorAt( x: 0, y: 0, width: 4, height: 4, pattern: .rggb ) )
+        #expect( Processors.Debayer.colorAt( x:  0, y: -1, width: 4, height: 4, pattern: .rggb ) == Processors.Debayer.colorAt( x: 0, y: 0, width: 4, height: 4, pattern: .rggb ) )
+        #expect( Processors.Debayer.colorAt( x:  4, y:  0, width: 4, height: 4, pattern: .rggb ) == Processors.Debayer.colorAt( x: 3, y: 0, width: 4, height: 4, pattern: .rggb ) )
+    }
+
+    @Test
     func name() async throws
     {
         #expect( Processors.Debayer( mode: .bilinear, pattern: .bggr ).name == "Debayer (Bilinear BGGR)" )

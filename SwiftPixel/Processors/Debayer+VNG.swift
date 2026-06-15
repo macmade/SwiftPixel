@@ -222,7 +222,7 @@ extension Processors.Debayer
 
         for offset in Self.orthogonalOffsets
         {
-            guard self.colorAt( x: x + offset.dx, y: y + offset.dy, pattern: pattern ) == color
+            guard self.colorAt( x: x + offset.dx, y: y + offset.dy, width: width, height: height, pattern: pattern ) == color
             else
             {
                 continue

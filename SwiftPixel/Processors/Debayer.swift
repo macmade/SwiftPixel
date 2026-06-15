@@ -183,7 +183,7 @@ public extension Processors
             {
                 y in ( 0 ..< width ).forEach
                 {
-                    x in map[ self.index( x: x, y: y, width: width ) ] = self.colorAt( x: x, y: y, pattern: pattern )
+                    x in map[ self.index( x: x, y: y, width: width ) ] = self.colorAt( x: x, y: y, width: width, height: height, pattern: pattern )
                 }
             }
 
@@ -193,16 +193,25 @@ public extension Processors
         /// Returns the color sampled at site `(x, y)` for a Bayer pattern, based
         /// on the parity of the row and column within the 2×2 tile.
         ///
+        /// Coordinates are clamped to the image bounds before classification, so
+        /// a neighbour one step off an edge resolves to the same color as the
+        /// edge pixel that edge-clamped reads return — and the parity is computed
+        /// on a non-negative coordinate.
+        ///
         /// - Parameters:
-        ///   - x:       The column.
-        ///   - y:       The row.
+        ///   - x:       The column (may be out of range).
+        ///   - y:       The row (may be out of range).
+        ///   - width:   The image width in pixels.
+        ///   - height:  The image height in pixels.
         ///   - pattern: The Bayer arrangement.
         ///
         /// - Returns: The `ColorType` sampled at that site.
-        internal static func colorAt( x: Int, y: Int, pattern: Pattern ) -> ColorType
+        internal static func colorAt( x: Int, y: Int, width: Int, height: Int, pattern: Pattern ) -> ColorType
         {
-            let evenCol = x % 2 == 0
-            let evenRow = y % 2 == 0
+            let clampedX = Swift.min( Swift.max( x, 0 ), width  - 1 )
+            let clampedY = Swift.min( Swift.max( y, 0 ), height - 1 )
+            let evenCol  = clampedX % 2 == 0
+            let evenRow  = clampedY % 2 == 0
 
             switch pattern
             {

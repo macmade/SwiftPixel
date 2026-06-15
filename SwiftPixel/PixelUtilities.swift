@@ -29,6 +29,35 @@ import SwiftUtilities
 /// A namespace of helpers for decoding and analyzing raw pixel data.
 public enum PixelUtilities
 {
+    /// Returns `width × height × channels`, throwing instead of trapping if the
+    /// product overflows `Int`.
+    ///
+    /// Used to validate image geometry before allocating or comparing sample
+    /// counts, so a pathological dimension reports a `RuntimeError` rather than
+    /// crashing on multiplication overflow.
+    ///
+    /// - Parameters:
+    ///   - width:    The image width in pixels.
+    ///   - height:   The image height in pixels.
+    ///   - channels: The number of samples per pixel.
+    ///
+    /// - Returns: The total sample count.
+    ///
+    /// - Throws: A `RuntimeError` if the product overflows `Int`.
+    internal static func checkedSampleCount( width: Int, height: Int, channels: Int ) throws -> Int
+    {
+        let ( pixels, pixelsOverflow ) = width.multipliedReportingOverflow( by: height )
+        let ( total,  totalOverflow  ) = pixels.multipliedReportingOverflow( by: channels )
+
+        guard pixelsOverflow == false, totalOverflow == false
+        else
+        {
+            throw RuntimeError( message: "Image geometry overflows Int: \( width ) x \( height ) x \( channels )" )
+        }
+
+        return total
+    }
+
     /// Decodes raw, single-channel image data into an array of `Double` samples.
     ///
     /// The bytes are interpreted according to the FITS `BITPIX` convention
@@ -52,7 +81,7 @@ public enum PixelUtilities
     ///           size for the given geometry and format.
     public static func readRawPixels( data: Data, width: Int, height: Int, bitsPerPixel: BitsPerPixel ) throws -> [ Double ]
     {
-        let count = width * height
+        let count = try Self.checkedSampleCount( width: width, height: height, channels: 1 )
         let size  = bitsPerPixel.size( numberOfPixels: count )
 
         guard data.count == size

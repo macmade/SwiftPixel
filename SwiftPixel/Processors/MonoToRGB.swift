@@ -49,10 +49,12 @@ public extension Processors
         ///           geometry.
         public func process( buffer: inout PixelBuffer ) throws
         {
-            guard buffer.pixels.count == buffer.width * buffer.height
+            let expected = try PixelUtilities.checkedSampleCount( width: buffer.width, height: buffer.height, channels: 1 )
+
+            guard buffer.pixels.count == expected
             else
             {
-                throw RuntimeError( message: "Data size does not match expected size: \( buffer.pixels.count ) != \( buffer.width * buffer.height )" )
+                throw RuntimeError( message: "Data size does not match expected size: \( buffer.pixels.count ) != \( expected )" )
             }
 
             guard buffer.channels == 1

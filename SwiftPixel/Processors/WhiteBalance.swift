@@ -84,10 +84,12 @@ public extension Processors
                 throw RuntimeError( message: "Unsupported channel count: \( buffer.channels )" )
             }
 
-            guard buffer.pixels.count == buffer.width * buffer.height * buffer.channels
+            let expected = try PixelUtilities.checkedSampleCount( width: buffer.width, height: buffer.height, channels: buffer.channels )
+
+            guard buffer.pixels.count == expected
             else
             {
-                throw RuntimeError( message: "Data size does not match expected size: \( buffer.pixels.count ) != \( buffer.width * buffer.height * buffer.channels )" )
+                throw RuntimeError( message: "Data size does not match expected size: \( buffer.pixels.count ) != \( expected )" )
             }
 
             switch ( self.mode )

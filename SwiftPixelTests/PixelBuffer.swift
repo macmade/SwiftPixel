@@ -66,6 +66,15 @@ struct Test_PixelBuffer
     }
 
     @Test
+    func initializeThrowsOnGeometryOverflow()
+    {
+        #expect( throws: RuntimeError.self )
+        {
+            _ = try PixelBuffer( width: Int.max, height: 2, channels: 1, pixels: [], isNormalized: false )
+        }
+    }
+
+    @Test
     func initializeThrowsOnChannelsBelowOne()
     {
         #expect( throws: RuntimeError.self )

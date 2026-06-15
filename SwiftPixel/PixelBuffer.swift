@@ -80,10 +80,12 @@ public struct PixelBuffer: CustomStringConvertible
             throw RuntimeError( message: "Dimensions must not be negative: \( width )x\( height )" )
         }
 
-        guard pixels.count == width * height * channels
+        let expected = try PixelUtilities.checkedSampleCount( width: width, height: height, channels: channels )
+
+        guard pixels.count == expected
         else
         {
-            throw RuntimeError( message: "Pixel count does not match geometry: \( pixels.count ) != \( width * height * channels )" )
+            throw RuntimeError( message: "Pixel count does not match geometry: \( pixels.count ) != \( expected )" )
         }
 
         self.width        = width

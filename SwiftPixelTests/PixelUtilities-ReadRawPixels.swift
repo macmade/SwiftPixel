@@ -184,4 +184,39 @@ struct Test_PixelUtilities_ReadRawPixels
             _ = try PixelUtilities.readRawPixels( data: Data( [ 0x00, 0x01 ] ), width: 2, height: 2, bitsPerPixel: .int16 )
         }
     }
+
+    @Test
+    func checkedSampleCount_validProduct() async throws
+    {
+        let count = try PixelUtilities.checkedSampleCount( width: 3, height: 4, channels: 2 )
+
+        #expect( count == 24 )
+    }
+
+    @Test
+    func checkedSampleCount_overflowThrows() async throws
+    {
+        #expect( throws: RuntimeError.self )
+        {
+            _ = try PixelUtilities.checkedSampleCount( width: Int.max, height: 2, channels: 1 )
+        }
+    }
+
+    @Test
+    func checkedSampleCount_channelOverflowThrows() async throws
+    {
+        #expect( throws: RuntimeError.self )
+        {
+            _ = try PixelUtilities.checkedSampleCount( width: Int.max, height: 1, channels: 3 )
+        }
+    }
+
+    @Test
+    func readRawPixels_overflowThrows() async throws
+    {
+        #expect( throws: RuntimeError.self )
+        {
+            _ = try PixelUtilities.readRawPixels( data: Data(), width: Int.max, height: 2, bitsPerPixel: .uint8 )
+        }
+    }
 }

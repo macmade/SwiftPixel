@@ -54,25 +54,72 @@ extension Processors.Debayer
     /// - Returns: Eight gradient magnitudes, aligned with `gradientDirections`.
     internal static func gradients( pixels: [ Double ], x: Int, y: Int, width: Int, height: Int ) -> [ Double ]
     {
-        func read( _ px: Int, _ py: Int ) -> Double
-        {
-            let clampedX = Swift.min( Swift.max( px, 0 ), width  - 1 )
-            let clampedY = Swift.min( Swift.max( py, 0 ), height - 1 )
-
-            return pixels[ self.index( x: clampedX, y: clampedY, width: width ) ]
-        }
-
-        let center = read( x, y )
+        let center = self.sample( pixels: pixels, x: x, y: y, width: width, height: height )
 
         return self.gradientDirections.map
         {
-            direction in
-
-            let one = read( x + direction.dx,     y + direction.dy )
-            let two = read( x + 2 * direction.dx, y + 2 * direction.dy )
+            let one = self.sample( pixels: pixels, x: x + $0.dx,     y: y + $0.dy,     width: width, height: height )
+            let two = self.sample( pixels: pixels, x: x + 2 * $0.dx, y: y + 2 * $0.dy, width: width, height: height )
 
             return abs( center - one ) + abs( center - two )
         }
+    }
+
+    /// Interpolates the green value at a red or blue site, using the
+    /// gradient-selected directions.
+    ///
+    /// The orthogonal neighbours of a red/blue site are green. Only those lying
+    /// in a retained (low-variation) direction are averaged, so green neighbours
+    /// across an edge are dropped — reducing zippering. In a flat region all
+    /// four are retained, matching the bilinear green. If the gradient selection
+    /// retains no orthogonal direction, all four green neighbours are averaged
+    /// as a fallback.
+    ///
+    /// - Parameters:
+    ///   - pixels: The single-channel mosaic samples, row-major.
+    ///   - x:      The column of the red/blue site.
+    ///   - y:      The row of the red/blue site.
+    ///   - width:  The image width in pixels.
+    ///   - height: The image height in pixels.
+    ///
+    /// - Returns: The interpolated green value at `(x, y)`.
+    internal static func interpolateGreen( pixels: [ Double ], x: Int, y: Int, width: Int, height: Int ) -> Double
+    {
+        let good = self.goodGradients( self.gradients( pixels: pixels, x: x, y: y, width: width, height: height ) )
+
+        // Indices of the orthogonal directions (N, E, S, W) in gradientDirections.
+        let orthogonal = [ 0, 2, 4, 6 ]
+        var retained   = orthogonal.filter { good[ $0 ] }
+
+        if retained.isEmpty
+        {
+            retained = orthogonal
+        }
+
+        let values = retained.map
+        {
+            self.sample( pixels: pixels, x: x + self.gradientDirections[ $0 ].dx, y: y + self.gradientDirections[ $0 ].dy, width: width, height: height )
+        }
+
+        return values.reduce( 0.0, + ) / Double( values.count )
+    }
+
+    /// Reads sample `(x, y)`, clamping coordinates to the image edge.
+    ///
+    /// - Parameters:
+    ///   - pixels: The single-channel mosaic samples, row-major.
+    ///   - x:      The column (may be out of range).
+    ///   - y:      The row (may be out of range).
+    ///   - width:  The image width in pixels.
+    ///   - height: The image height in pixels.
+    ///
+    /// - Returns: The sample at the clamped coordinate.
+    private static func sample( pixels: [ Double ], x: Int, y: Int, width: Int, height: Int ) -> Double
+    {
+        let clampedX = Swift.min( Swift.max( x, 0 ), width  - 1 )
+        let clampedY = Swift.min( Swift.max( y, 0 ), height - 1 )
+
+        return pixels[ self.index( x: clampedX, y: clampedY, width: width ) ]
     }
 
     /// Computes the VNG gradient threshold `k1·min + k2·(max − min)`.

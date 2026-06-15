@@ -54,4 +54,32 @@ struct Test_Processors_Debayer_VNG
         #expect( good[ 2 ] == true )  // east, along the flat bright region -> retained
         #expect( good[ 6 ] == false ) // west, across the edge into the dark region -> excluded
     }
+
+    @Test
+    func greenInterpolationFlatMatchesValue() async throws
+    {
+        let pixels = [ Double ]( repeating: 50.0, count: 5 * 5 )
+
+        let green = Processors.Debayer.interpolateGreen( pixels: pixels, x: 2, y: 2, width: 5, height: 5 )
+
+        #expect( green == 50.0 )
+    }
+
+    @Test
+    func greenInterpolationReducesEdgeErrorVsBilinear() async throws
+    {
+        // 6x6, vertical edge: columns 0-2 are dark (10), columns 3-5 are bright (90).
+        let row    = [ 10.0, 10.0, 10.0, 90.0, 90.0, 90.0 ]
+        let pixels = ( 0 ..< 6 ).flatMap { _ in row }
+
+        // Site (2,2) lies on the dark side of the edge, so its true green is 10.
+        let trueGreen = 10.0
+
+        let vngGreen      = Processors.Debayer.interpolateGreen( pixels: pixels, x: 2, y: 2, width: 6, height: 6 )
+        let bilinear      = try Processors.Debayer.bilinear( pixels: pixels, pattern: .rggb, width: 6, height: 6 )
+        let bilinearGreen = bilinear[ ( 2 * 6 + 2 ) * 3 + 1 ]
+
+        // VNG drops the across-edge neighbour, so its green is closer to the truth.
+        #expect( abs( vngGreen - trueGreen ) < abs( bilinearGreen - trueGreen ) )
+    }
 }

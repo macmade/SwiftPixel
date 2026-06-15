@@ -135,6 +135,48 @@ struct Test_PixelUtilities_ReadRawPixels
     }
 
     @Test
+    func readRawPixels_Misaligned_Int16() async throws
+    {
+        let values: [ UInt8 ] = [ 0x00, 0x0A, 0x00, 0x14, 0x00, 0x1E, 0x00, 0x28 ]
+        let data              = Data( [ 0x00 ] + values ).dropFirst()
+        let result            = try PixelUtilities.readRawPixels( data: data, width: 2, height: 2, bitsPerPixel: .int16 )
+
+        #expect( result == [ 10.0, 20.0, 30.0, 40.0 ] )
+    }
+
+    @Test
+    func readRawPixels_Misaligned_Int32() async throws
+    {
+        let values: [ UInt8 ] = [ 0x00, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x1E, 0x00, 0x00, 0x00, 0x28 ]
+        let data              = Data( [ 0x00 ] + values ).dropFirst()
+        let result            = try PixelUtilities.readRawPixels( data: data, width: 2, height: 2, bitsPerPixel: .int32 )
+
+        #expect( result == [ 10.0, 20.0, 30.0, 40.0 ] )
+    }
+
+    @Test
+    func readRawPixels_Misaligned_Float32() async throws
+    {
+        let values: [ Float32 ] = [ 10.0, 20.0, 30.0, 40.0 ]
+        let bytes               = values.flatMap { withUnsafeBytes( of: $0.bitPattern.bigEndian, Array.init ) }
+        let data                = Data( [ 0x00 ] + bytes ).dropFirst()
+        let result              = try PixelUtilities.readRawPixels( data: data, width: 2, height: 2, bitsPerPixel: .float32 )
+
+        #expect( result == [ 10.0, 20.0, 30.0, 40.0 ] )
+    }
+
+    @Test
+    func readRawPixels_Misaligned_Float64() async throws
+    {
+        let values: [ Float64 ] = [ 10.0, 20.0, 30.0, 40.0 ]
+        let bytes               = values.flatMap { withUnsafeBytes( of: $0.bitPattern.bigEndian, Array.init ) }
+        let data                = Data( [ 0x00 ] + bytes ).dropFirst()
+        let result              = try PixelUtilities.readRawPixels( data: data, width: 2, height: 2, bitsPerPixel: .float64 )
+
+        #expect( result == [ 10.0, 20.0, 30.0, 40.0 ] )
+    }
+
+    @Test
     func incorrectSize() async throws
     {
         #expect( throws: RuntimeError.self )

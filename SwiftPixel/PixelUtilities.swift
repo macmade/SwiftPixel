@@ -75,51 +75,43 @@ public enum PixelUtilities
                     throw RuntimeError( message: "Failed to access data buffer" )
                 }
 
+                let base = UnsafeSendable( baseAddress )
+
                 switch bitsPerPixel
                 {
                     case .uint8:
 
-                        let buffer = UnsafeSendable( baseAddress.assumingMemoryBound( to: UInt8.self ) )
-
                         DispatchQueue.concurrentPerform( iterations: count )
                         {
-                            resultBuffer.value[ $0 ] = Double( buffer.value[ $0 ] )
+                            resultBuffer.value[ $0 ] = Double( base.value.loadUnaligned( fromByteOffset: $0, as: UInt8.self ) )
                         }
 
                     case .int16:
 
-                        let buffer = UnsafeSendable( baseAddress.assumingMemoryBound( to: Int16.self ) )
-
                         DispatchQueue.concurrentPerform( iterations: count )
                         {
-                            resultBuffer.value[ $0 ] = Double( Int16( bigEndian: buffer.value[ $0 ] ) )
+                            resultBuffer.value[ $0 ] = Double( Int16( bigEndian: base.value.loadUnaligned( fromByteOffset: $0 * 2, as: Int16.self ) ) )
                         }
 
                     case .int32:
 
-                        let buffer = UnsafeSendable( baseAddress.assumingMemoryBound( to: Int32.self ) )
-
                         DispatchQueue.concurrentPerform( iterations: count )
                         {
-                            resultBuffer.value[ $0 ] = Double( Int32( bigEndian: buffer.value[ $0 ] ) )
+                            resultBuffer.value[ $0 ] = Double( Int32( bigEndian: base.value.loadUnaligned( fromByteOffset: $0 * 4, as: Int32.self ) ) )
                         }
 
                     case .float32:
 
-                        let buffer = UnsafeSendable( baseAddress.assumingMemoryBound( to: UInt32.self ) )
-
                         DispatchQueue.concurrentPerform( iterations: count )
                         {
-                            resultBuffer.value[ $0 ] = Double( Float32( bitPattern: UInt32( bigEndian: buffer.value[ $0 ] ) ) )
+                            resultBuffer.value[ $0 ] = Double( Float32( bitPattern: UInt32( bigEndian: base.value.loadUnaligned( fromByteOffset: $0 * 4, as: UInt32.self ) ) ) )
                         }
 
                     case .float64:
 
-                        let buffer = UnsafeSendable( baseAddress.assumingMemoryBound( to: UInt64.self ) )
-
                         DispatchQueue.concurrentPerform( iterations: count )
                         {
-                            resultBuffer.value[ $0 ] = Double( bitPattern: UInt64( bigEndian: buffer.value[ $0 ] ) )
+                            resultBuffer.value[ $0 ] = Double( bitPattern: UInt64( bigEndian: base.value.loadUnaligned( fromByteOffset: $0 * 8, as: UInt64.self ) ) )
                         }
                 }
             }

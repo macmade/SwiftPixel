@@ -35,7 +35,7 @@ public extension Processors
     struct Stretch: PixelProcessor
     {
         /// The stretch curve and its tuning constant(s).
-        public enum Algorithm: Sendable, CustomStringConvertible
+        public enum Algorithm: Sendable, Equatable, CustomStringConvertible
         {
             /// Logarithmic stretch `log(1 + n·x) / log(1 + n)`.
             ///

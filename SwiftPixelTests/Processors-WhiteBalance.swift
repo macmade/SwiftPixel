@@ -128,4 +128,14 @@ struct Test_Processors_WhiteBalance
         #expect( Processors.WhiteBalance( mode: .auto ).name == "White Balance (Auto)" )
         #expect( Processors.WhiteBalance( mode: .manual( red: 1.0, green: 2.0, blue: 0.5 ) ).name == "White Balance (Manual - R: 1.00, G: 2.00, B: 0.50)" )
     }
+
+    @Test
+    func equatable() async throws
+    {
+        #expect( Processors.WhiteBalance.Mode.auto == .auto )
+        #expect( Processors.WhiteBalance.Mode.auto != .manual( red: 1.0, green: 1.0, blue: 1.0 ) )
+
+        #expect( Processors.WhiteBalance.Mode.manual( red: 1.0, green: 2.0, blue: 0.5 ) == .manual( red: 1.0, green: 2.0, blue: 0.5 ) )
+        #expect( Processors.WhiteBalance.Mode.manual( red: 1.0, green: 2.0, blue: 0.5 ) != .manual( red: 1.0, green: 2.0, blue: 1.0 ) )
+    }
 }

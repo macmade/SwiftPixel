@@ -38,7 +38,7 @@ public extension Processors
         /// The arrangement of color filters in the 2×2 Bayer tile, identified by
         /// the colors of the top-left, top-right, bottom-left and bottom-right
         /// samples.
-        public enum Pattern: Sendable, CustomStringConvertible
+        public enum Pattern: Sendable, Equatable, CustomStringConvertible
         {
             /// Blue, Green / Green, Red.
             case bggr
@@ -66,7 +66,7 @@ public extension Processors
         }
 
         /// The demosaicing algorithm.
-        public enum Mode: Sendable, CustomStringConvertible
+        public enum Mode: Sendable, Equatable, CustomStringConvertible
         {
             /// Bilinear interpolation: each missing color is the equal-weight
             /// average of its nearest same-color neighbors.

@@ -86,4 +86,14 @@ struct Test_Processors_Debayer
             try debayer.process( buffer: &buffer )
         }
     }
+
+    @Test
+    func equatable() async throws
+    {
+        #expect( Processors.Debayer.Pattern.rggb == .rggb )
+        #expect( Processors.Debayer.Pattern.rggb != .bggr )
+
+        #expect( Processors.Debayer.Mode.bilinear == .bilinear )
+        #expect( Processors.Debayer.Mode.bilinear != .vng )
+    }
 }

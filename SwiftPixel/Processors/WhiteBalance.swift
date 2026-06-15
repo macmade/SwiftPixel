@@ -35,7 +35,7 @@ public extension Processors
     struct WhiteBalance: PixelProcessor
     {
         /// How the per-channel gains are determined.
-        public enum Mode: Sendable, CustomStringConvertible
+        public enum Mode: Sendable, Equatable, CustomStringConvertible
         {
             /// Computes gains automatically using the gray-world assumption (each
             /// channel is scaled so its average matches the overall gray average).

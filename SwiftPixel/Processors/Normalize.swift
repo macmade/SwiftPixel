@@ -35,7 +35,7 @@ public extension Processors
     struct Normalize: PixelProcessor
     {
         /// The strategy used to choose the input range that maps to `[0, 1]`.
-        public enum Mode: Sendable, CustomStringConvertible
+        public enum Mode: Sendable, Equatable, CustomStringConvertible
         {
             /// Maps the buffer's minimum and maximum sample values to `0` and `1`.
             case minMax

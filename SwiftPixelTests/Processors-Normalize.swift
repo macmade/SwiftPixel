@@ -160,4 +160,14 @@ struct Test_Processors_Normalize
         #expect( buffer.isNormalized == true )
         #expect( buffer.pixels.allSatisfy { $0 >= 0.0 && $0 <= 1.0 } )
     }
+
+    @Test
+    func equatable() async throws
+    {
+        #expect( Processors.Normalize.Mode.minMax == .minMax )
+        #expect( Processors.Normalize.Mode.minMax != .percentile( 0.0, 100.0 ) )
+
+        #expect( Processors.Normalize.Mode.percentile( 5.0, 95.0 ) == .percentile( 5.0, 95.0 ) )
+        #expect( Processors.Normalize.Mode.percentile( 5.0, 95.0 ) != .percentile( 1.0, 99.0 ) )
+    }
 }

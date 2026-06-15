@@ -112,4 +112,15 @@ struct Test_Processors_Stretch
             try Processors.Stretch( algorithm: .log( 1.0 ) ).process( buffer: &buffer )
         }
     }
+
+    @Test
+    func equatable() async throws
+    {
+        #expect( Processors.Stretch.Algorithm.log( 1.0 ) == .log( 1.0 ) )
+        #expect( Processors.Stretch.Algorithm.log( 1.0 ) != .log( 2.0 ) )
+        #expect( Processors.Stretch.Algorithm.log( 1.0 ) != .arcsinh( 1.0 ) )
+
+        #expect( Processors.Stretch.Algorithm.sigmoid( 1.0, 2.0 ) == .sigmoid( 1.0, 2.0 ) )
+        #expect( Processors.Stretch.Algorithm.sigmoid( 1.0, 2.0 ) != .sigmoid( 1.0, 3.0 ) )
+    }
 }

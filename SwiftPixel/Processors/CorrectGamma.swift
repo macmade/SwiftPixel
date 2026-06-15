@@ -64,9 +64,10 @@ public extension Processors
                 throw RuntimeError( message: "Gamma must be greater than zero: \( self.gamma )" )
             }
 
-            var count        = Int32( buffer.pixels.count )
+            let chunkSize    = 4096
+            let total        = buffer.pixels.count
             let inverseGamma = 1.0 / self.gamma
-            let exponents    = [ Double ]( repeating: inverseGamma, count: buffer.pixels.count )
+            let exponents    = [ Double ]( repeating: inverseGamma, count: Swift.min( chunkSize, total ) )
 
             try buffer.withUnsafeMutablePixels
             {
@@ -76,7 +77,16 @@ public extension Processors
                     throw RuntimeError( message: "Failed to access data buffer" )
                 }
 
-                vvpow( baseAddress, exponents, baseAddress, &count )
+                var offset = 0
+
+                while offset < total
+                {
+                    var n = Int32( Swift.min( chunkSize, total - offset ) )
+
+                    vvpow( baseAddress + offset, exponents, baseAddress + offset, &n )
+
+                    offset += Int( n )
+                }
             }
         }
     }

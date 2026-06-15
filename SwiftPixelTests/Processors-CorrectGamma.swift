@@ -50,6 +50,22 @@ struct Test_Processors_CorrectGamma
     }
 
     @Test
+    func transformAcrossChunkBoundary() async throws
+    {
+        // Larger than the internal exponent-scratch chunk so multiple chunks
+        // (including a partial last one) are exercised.
+        let count  = 10_000
+        let input  = ( 0 ..< count ).map { Double( $0 ) / Double( count - 1 ) }
+        var buffer = try PixelBuffer( width: count, height: 1, channels: 1, pixels: input, isNormalized: true )
+
+        try Processors.CorrectGamma( gamma: 2.0 ).process( buffer: &buffer )
+
+        let expected = input.map { pow( $0, 0.5 ) }
+
+        #expect( zip( buffer.pixels, expected ).allSatisfy { abs( $0 - $1 ) < 1e-12 } )
+    }
+
+    @Test
     func zeroGammaThrows() async throws
     {
         var buffer = try PixelBuffer(

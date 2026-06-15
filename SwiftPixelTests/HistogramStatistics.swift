@@ -49,6 +49,18 @@ struct Test_HistogramStatistics
     }
 
     @Test
+    func equatableAndHashable() async throws
+    {
+        let a = HistogramStatistics( data: ( 0 ..< 256 ).map { $0 } )
+        let b = HistogramStatistics( data: ( 0 ..< 256 ).map { $0 } )
+        let c = HistogramStatistics( data: [ Int ]( repeating: 0, count: 256 ) )
+
+        #expect( a == b )
+        #expect( a != c )
+        #expect( Set( [ a, b, c ] ).count == 2 )
+    }
+
+    @Test
     func empty() async throws
     {
         let stats = HistogramStatistics( data: [ Int ]( repeating: 0, count: 256 ) )

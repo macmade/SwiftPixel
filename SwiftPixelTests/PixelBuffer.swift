@@ -92,6 +92,26 @@ struct Test_PixelBuffer
     }
 
     @Test
+    func equatable() throws
+    {
+        let a = try PixelBuffer( width: 2, height: 1, channels: 1, pixels: [ 1.0, 2.0 ], isNormalized: false )
+        let b = try PixelBuffer( width: 2, height: 1, channels: 1, pixels: [ 1.0, 2.0 ], isNormalized: false )
+        let c = try PixelBuffer( width: 2, height: 1, channels: 1, pixels: [ 1.0, 3.0 ], isNormalized: false )
+
+        #expect( a == b )
+        #expect( a != c )
+    }
+
+    @Test
+    func sendableHandoff() async throws
+    {
+        let buffer = try PixelBuffer( width: 2, height: 1, channels: 1, pixels: [ 1.0, 2.0 ], isNormalized: true )
+        let sum    = await Task { buffer.pixels.reduce( 0.0, + ) }.value
+
+        #expect( sum == 3.0 )
+    }
+
+    @Test
     func withUnsafeMutablePixelsPreservesFlag() throws
     {
         var buffer = try PixelBuffer( width: 2, height: 1, channels: 1, pixels: [ 1.0, 2.0 ], isNormalized: true )

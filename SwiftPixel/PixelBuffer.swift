@@ -36,7 +36,7 @@ import SwiftUtilities
 /// `isNormalized` indicates whether the samples lie in the `[0, 1]` range.
 /// Several processors (and `convertTo8Bits()` / `createCGImage()`) require a
 /// normalized buffer.
-public struct PixelBuffer: CustomStringConvertible
+public struct PixelBuffer: CustomStringConvertible, Equatable, Sendable
 {
     /// The image width in pixels.
     public let width: Int

@@ -29,7 +29,7 @@ import Foundation
 /// All index-valued statistics (`median`, `min`, `max`, percentiles) are bin
 /// indices, i.e. intensity values in `0...255`. For empty input (no samples),
 /// every field is `0`.
-public struct HistogramStatistics
+public struct HistogramStatistics: Equatable, Hashable
 {
     /// The total number of samples across all bins.
     public let count: Int

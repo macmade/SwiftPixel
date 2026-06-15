@@ -69,17 +69,17 @@ public extension Processors
                 throw RuntimeError( message: "Input buffer must not be normalized" )
             }
 
-            let count          = buffer.pixels.count
-            let rgb            = UnsafeMutableSendable( [ Double ]( repeating: 0.0, count: count * 3 ) )
-            let sendableBuffer = UnsafeMutableSendable( buffer )
+            let count       = buffer.pixels.count
+            let inputPixels = buffer.pixels
+            var rgb         = [ Double ]( repeating: 0.0, count: count * 3 )
 
-            rgb.value.withUnsafeMutableBufferPointer
+            rgb.withUnsafeMutableBufferPointer
             {
                 let sendableRGBBuffer = UnsafeMutableSendable( $0 )
 
                 PixelUtilities.parallelOrSerial( iterations: count )
                 {
-                    let value = sendableBuffer.value.pixels[ $0 ]
+                    let value = inputPixels[ $0 ]
                     let base  = $0 * 3
 
                     sendableRGBBuffer.value[ base + 0 ] = value
@@ -88,7 +88,7 @@ public extension Processors
                 }
             }
 
-            buffer = try PixelBuffer( width: buffer.width, height: buffer.height, channels: 3, pixels: rgb.value, isNormalized: buffer.isNormalized )
+            buffer = try PixelBuffer( width: buffer.width, height: buffer.height, channels: 3, pixels: rgb, isNormalized: buffer.isNormalized )
         }
     }
 }

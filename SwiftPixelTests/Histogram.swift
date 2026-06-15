@@ -29,6 +29,17 @@ import Testing
 struct Test_Histogram
 {
     @Test
+    func equatable() async throws
+    {
+        let a = Histogram( bytes: [ 10, 20, 30 ], channels: 3, mode: .rgb )
+        let b = Histogram( bytes: [ 10, 20, 30 ], channels: 3, mode: .rgb )
+        let c = Histogram( bytes: [ 10, 20, 40 ], channels: 3, mode: .rgb )
+
+        #expect( a == b )
+        #expect( a != c )
+    }
+
+    @Test
     func rgb() async throws
     {
         let bytes = [

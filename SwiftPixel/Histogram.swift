@@ -25,10 +25,10 @@
 import Foundation
 
 /// 256-bin intensity histograms computed from interleaved 8-bit pixel data.
-public struct Histogram
+public struct Histogram: Equatable
 {
     /// Which histogram(s) to compute.
-    public enum Mode
+    public enum Mode: Equatable
     {
         /// Three separate histograms, one per color channel.
         case rgb

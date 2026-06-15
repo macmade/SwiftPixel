@@ -71,15 +71,15 @@ public struct PixelPipeline: Sendable
         /// Creates a pipeline configuration.
         ///
         /// - Parameters:
-        ///   - scale:           Optional affine scaling of the raw samples.
-        ///   - debayer:         Optional Bayer pattern and demosaicing mode; `nil` expands mono to RGB.
-        ///   - normalize:       Optional normalization mode.
-        ///   - stretch:         Optional tone-stretch algorithm.
-        ///   - correctGamma:    Optional gamma exponent.
-        ///   - whiteBalance:    Optional white-balance mode.
+        ///   - scale:           Optional affine scaling of the raw samples. Defaults to `nil`.
+        ///   - debayer:         Optional Bayer pattern and demosaicing mode; `nil` expands mono to RGB. Defaults to `nil`.
+        ///   - normalize:       Optional normalization mode. Defaults to `nil`.
+        ///   - stretch:         Optional tone-stretch algorithm. Defaults to `nil`.
+        ///   - correctGamma:    Optional gamma exponent. Defaults to `nil`.
+        ///   - whiteBalance:    Optional white-balance mode. Defaults to `nil`.
         ///   - benchmark:       Whether to emit per-stage timings. Defaults to `false`.
         ///   - benchmarkOutput: Optional sink for timing output. Defaults to `nil` (prints).
-        public init( scale: ( scale: Double, offset: Double )?, debayer: ( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )?, normalize: Processors.Normalize.Mode?, stretch: Processors.Stretch.Algorithm?, correctGamma: Double?, whiteBalance: Processors.WhiteBalance.Mode?, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
+        public init( scale: ( scale: Double, offset: Double )? = nil, debayer: ( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )? = nil, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.Algorithm? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
         {
             self.scale           = scale
             self.debayer         = debayer

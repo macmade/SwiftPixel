@@ -96,4 +96,25 @@ struct Test_PixelPipeline_Config
             #expect( Bool( false ) )
         }
     }
+
+    @Test
+    func initOnlySpecifiedStage() async throws
+    {
+        let config = PixelPipeline.Config( stretch: .log( 100 ) )
+
+        #expect( config.scale        == nil )
+        #expect( config.debayer      == nil )
+        #expect( config.normalize    == nil )
+        #expect( config.correctGamma == nil )
+        #expect( config.whiteBalance == nil )
+
+        if case .log( let value ) = config.stretch
+        {
+            #expect( value == 100 )
+        }
+        else
+        {
+            #expect( Bool( false ) )
+        }
+    }
 }

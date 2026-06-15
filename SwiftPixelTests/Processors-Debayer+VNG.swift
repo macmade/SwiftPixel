@@ -29,6 +29,36 @@ import Testing
 struct Test_Processors_Debayer_VNG
 {
     @Test
+    func vngRGGB_4x4_GoldenOutput() async throws
+    {
+        let pixels = ( 0 ..< 16 ).map { Double( $0 + 1 ) }
+        var buffer = try PixelBuffer( width: 4, height: 4, channels: 1, pixels: pixels, isNormalized: false )
+
+        try Processors.Debayer( mode: .vng, pattern: .rggb ).process( buffer: &buffer )
+
+        #expect( buffer.pixels ==
+            [
+                 1.0,                1.3333333333333333, 1.5833333333333333,
+                 1.8333333333333335, 2.0,                2.6666666666666665,
+                 3.0,                3.0,                3.458333333333333,
+                 4.0,                4.0,                4.25,
+                 4.583333333333333,  5.0,                5.666666666666666,
+                 4.125,              4.666666666666667,  6.0,
+                 6.333333333333333,  7.0,                7.916666666666666,
+                 7.166666666666666,  7.5,                8.0,
+                 9.0,                9.5,                9.833333333333334,
+                 9.083333333333332, 10.0,               10.666666666666666,
+                11.0,               12.333333333333334, 12.875,
+                11.333333333333332, 12.0,               12.416666666666668,
+                12.75,              13.0,               13.0,
+                13.541666666666666, 14.0,               14.0,
+                14.333333333333332, 15.0,               15.166666666666668,
+                15.416666666666666, 15.666666666666666, 16.0,
+            ]
+        )
+    }
+
+    @Test
     func gradientsFlatRegionAreZero() async throws
     {
         let pixels = [ Double ]( repeating: 100.0, count: 5 * 5 )

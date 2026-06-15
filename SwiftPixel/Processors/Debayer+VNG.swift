@@ -159,11 +159,8 @@ extension Processors.Debayer
 
             case .green:
 
-                let redOffsets  = Self.orthogonalOffsets.filter { self.colorAt( x: x + $0.dx, y: y + $0.dy, pattern: pattern ) == .red }
-                let blueOffsets = Self.orthogonalOffsets.filter { self.colorAt( x: x + $0.dx, y: y + $0.dy, pattern: pattern ) == .blue }
-
-                let r = g + self.chromaDifference( pixels: pixels, green: green, offsets: redOffsets,  x: x, y: y, width: width, height: height )
-                let b = g + self.chromaDifference( pixels: pixels, green: green, offsets: blueOffsets, x: x, y: y, width: width, height: height )
+                let r = g + self.chromaDifference( for: .red,  pixels: pixels, green: green, pattern: pattern, x: x, y: y, width: width, height: height )
+                let b = g + self.chromaDifference( for: .blue, pixels: pixels, green: green, pattern: pattern, x: x, y: y, width: width, height: height )
 
                 return ( r: r, g: g, b: b )
         }
@@ -190,13 +187,53 @@ extension Processors.Debayer
             return 0
         }
 
-        let differences = offsets.map
+        var sum = 0.0
+
+        for offset in offsets
         {
-            self.sample( pixels: pixels, x: x + $0.dx, y: y + $0.dy, width: width, height: height )
-          - self.sample( pixels: green,  x: x + $0.dx, y: y + $0.dy, width: width, height: height )
+            sum += self.sample( pixels: pixels, x: x + offset.dx, y: y + offset.dy, width: width, height: height )
+                 - self.sample( pixels: green,  x: x + offset.dx, y: y + offset.dy, width: width, height: height )
         }
 
-        return differences.reduce( 0.0, + ) / Double( differences.count )
+        return sum / Double( offsets.count )
+    }
+
+    /// Averages the color difference `sample − green` over the orthogonal
+    /// neighbours whose Bayer site is `color`, using edge-clamped reads. This is
+    /// the green-site equivalent of `chromaDifference` without materializing a
+    /// filtered offset array per pixel.
+    ///
+    /// - Parameters:
+    ///   - color:   The neighbour color to average over (`.red` or `.blue`).
+    ///   - pixels:  The single-channel mosaic samples, row-major.
+    ///   - green:   The reconstructed green plane.
+    ///   - pattern: The Bayer arrangement.
+    ///   - x:       The column of the green site.
+    ///   - y:       The row of the green site.
+    ///   - width:   The image width in pixels.
+    ///   - height:  The image height in pixels.
+    ///
+    /// - Returns: The mean neighbour color difference, or `0` if no orthogonal
+    ///            neighbour has the requested color.
+    private static func chromaDifference( for color: ColorType, pixels: [ Double ], green: [ Double ], pattern: Pattern, x: Int, y: Int, width: Int, height: Int ) -> Double
+    {
+        var sum   = 0.0
+        var count = 0
+
+        for offset in Self.orthogonalOffsets
+        {
+            guard self.colorAt( x: x + offset.dx, y: y + offset.dy, pattern: pattern ) == color
+            else
+            {
+                continue
+            }
+
+            sum += self.sample( pixels: pixels, x: x + offset.dx, y: y + offset.dy, width: width, height: height )
+                 - self.sample( pixels: green,  x: x + offset.dx, y: y + offset.dy, width: width, height: height )
+            count += 1
+        }
+
+        return count == 0 ? 0 : sum / Double( count )
     }
 
     /// The eight neighbour directions used for VNG gradient analysis, ordered
@@ -227,14 +264,38 @@ extension Processors.Debayer
     /// - Returns: Eight gradient magnitudes, aligned with `gradientDirections`.
     internal static func gradients( pixels: [ Double ], x: Int, y: Int, width: Int, height: Int ) -> [ Double ]
     {
+        var result = [ Double ]( repeating: 0.0, count: self.gradientDirections.count )
+
+        result.withUnsafeMutableBufferPointer
+        {
+            self.fillGradients( pixels: pixels, x: x, y: y, width: width, height: height, into: $0 )
+        }
+
+        return result
+    }
+
+    /// Computes the eight directional gradients at site `(x, y)` into `buffer`,
+    /// avoiding a per-call heap allocation in the green-plane hot loop.
+    ///
+    /// - Parameters:
+    ///   - pixels: The single-channel mosaic samples, row-major.
+    ///   - x:      The column of the site.
+    ///   - y:      The row of the site.
+    ///   - width:  The image width in pixels.
+    ///   - height: The image height in pixels.
+    ///   - buffer: A destination of at least `gradientDirections.count` elements,
+    ///             filled in `gradientDirections` order.
+    private static func fillGradients( pixels: [ Double ], x: Int, y: Int, width: Int, height: Int, into buffer: UnsafeMutableBufferPointer< Double > )
+    {
         let center = self.sample( pixels: pixels, x: x, y: y, width: width, height: height )
 
-        return self.gradientDirections.map
+        for index in self.gradientDirections.indices
         {
-            let one = self.sample( pixels: pixels, x: x + $0.dx,     y: y + $0.dy,     width: width, height: height )
-            let two = self.sample( pixels: pixels, x: x + 2 * $0.dx, y: y + 2 * $0.dy, width: width, height: height )
+            let direction = self.gradientDirections[ index ]
+            let one       = self.sample( pixels: pixels, x: x + direction.dx,     y: y + direction.dy,     width: width, height: height )
+            let two       = self.sample( pixels: pixels, x: x + 2 * direction.dx, y: y + 2 * direction.dy, width: width, height: height )
 
-            return abs( center - one ) + abs( center - two )
+            buffer[ index ] = abs( center - one ) + abs( center - two )
         }
     }
 
@@ -258,23 +319,41 @@ extension Processors.Debayer
     /// - Returns: The interpolated green value at `(x, y)`.
     internal static func interpolateGreen( pixels: [ Double ], x: Int, y: Int, width: Int, height: Int ) -> Double
     {
-        let good = self.goodGradients( self.gradients( pixels: pixels, x: x, y: y, width: width, height: height ) )
+        // The orthogonal directions (N, E, S, W) are the even indices of
+        // gradientDirections.
+        let orthogonal = stride( from: 0, to: self.gradientDirections.count, by: 2 )
 
-        // Indices of the orthogonal directions (N, E, S, W) in gradientDirections.
-        let orthogonal = [ 0, 2, 4, 6 ]
-        var retained   = orthogonal.filter { good[ $0 ] }
-
-        if retained.isEmpty
+        return withUnsafeTemporaryAllocation( of: Double.self, capacity: self.gradientDirections.count )
         {
-            retained = orthogonal
-        }
+            gradients in
 
-        let values = retained.map
-        {
-            self.sample( pixels: pixels, x: x + self.gradientDirections[ $0 ].dx, y: y + self.gradientDirections[ $0 ].dy, width: width, height: height )
-        }
+            self.fillGradients( pixels: pixels, x: x, y: y, width: width, height: height, into: gradients )
 
-        return values.reduce( 0.0, + ) / Double( values.count )
+            let threshold = self.gradientThreshold( UnsafeBufferPointer( gradients ) )
+            var sum       = 0.0
+            var count     = 0
+
+            for index in orthogonal where gradients[ index ] <= threshold
+            {
+                let direction = self.gradientDirections[ index ]
+
+                sum   += self.sample( pixels: pixels, x: x + direction.dx, y: y + direction.dy, width: width, height: height )
+                count += 1
+            }
+
+            if count == 0
+            {
+                for index in orthogonal
+                {
+                    let direction = self.gradientDirections[ index ]
+
+                    sum   += self.sample( pixels: pixels, x: x + direction.dx, y: y + direction.dy, width: width, height: height )
+                    count += 1
+                }
+            }
+
+            return sum / Double( count )
+        }
     }
 
     /// Reads sample `(x, y)`, clamping coordinates to the image edge.
@@ -307,6 +386,21 @@ extension Processors.Debayer
     ///
     /// - Returns: The threshold value, or `0` for an empty input.
     internal static func gradientThreshold( _ gradients: [ Double ], k1: Double = 1.5, k2: Double = 0.5 ) -> Double
+    {
+        return gradients.withUnsafeBufferPointer { self.gradientThreshold( $0, k1: k1, k2: k2 ) }
+    }
+
+    /// Computes the VNG gradient threshold over a buffer of gradients, avoiding
+    /// an intermediate array in the green-plane hot loop. See
+    /// `gradientThreshold(_:k1:k2:)`.
+    ///
+    /// - Parameters:
+    ///   - gradients: The directional gradients.
+    ///   - k1:        The weight on the minimum gradient.
+    ///   - k2:        The weight on the gradient range.
+    ///
+    /// - Returns: The threshold value, or `0` for an empty input.
+    private static func gradientThreshold( _ gradients: UnsafeBufferPointer< Double >, k1: Double = 1.5, k2: Double = 0.5 ) -> Double
     {
         guard let minimum = gradients.min(), let maximum = gradients.max()
         else

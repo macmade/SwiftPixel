@@ -44,8 +44,9 @@ public struct PixelPipeline: Sendable
         /// Affine scaling applied to the raw samples (`scale`, `offset`).
         public let scale: ( scale: Double, offset: Double )?
 
-        /// The Bayer pattern to demosaic; when `nil`, mono is expanded to RGB.
-        public let bayerPattern: Processors.Debayer.Pattern?
+        /// The Bayer pattern to demosaic and the demosaicing mode to use; when
+        /// `nil`, mono is expanded to RGB.
+        public let debayer: ( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )?
 
         /// The normalization mode. May be inserted automatically (as `.minMax`)
         /// when a normalization-dependent stage is requested without one.
@@ -71,17 +72,17 @@ public struct PixelPipeline: Sendable
         ///
         /// - Parameters:
         ///   - scale:           Optional affine scaling of the raw samples.
-        ///   - bayerPattern:    Optional Bayer pattern to demosaic; `nil` expands mono to RGB.
+        ///   - debayer:         Optional Bayer pattern and demosaicing mode; `nil` expands mono to RGB.
         ///   - normalize:       Optional normalization mode.
         ///   - stretch:         Optional tone-stretch algorithm.
         ///   - correctGamma:    Optional gamma exponent.
         ///   - whiteBalance:    Optional white-balance mode.
         ///   - benchmark:       Whether to emit per-stage timings. Defaults to `false`.
         ///   - benchmarkOutput: Optional sink for timing output. Defaults to `nil` (prints).
-        public init( scale: ( scale: Double, offset: Double )?, bayerPattern: Processors.Debayer.Pattern?, normalize: Processors.Normalize.Mode?, stretch: Processors.Stretch.Algorithm?, correctGamma: Double?, whiteBalance: Processors.WhiteBalance.Mode?, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
+        public init( scale: ( scale: Double, offset: Double )?, debayer: ( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )?, normalize: Processors.Normalize.Mode?, stretch: Processors.Stretch.Algorithm?, correctGamma: Double?, whiteBalance: Processors.WhiteBalance.Mode?, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
         {
             self.scale           = scale
-            self.bayerPattern    = bayerPattern
+            self.debayer         = debayer
             self.normalize       = normalize
             self.stretch         = stretch
             self.correctGamma    = correctGamma
@@ -179,9 +180,9 @@ public struct PixelPipeline: Sendable
             processors.append( Processors.Scale( scale: scale.scale, offset: scale.offset ) )
         }
 
-        if let pattern = self.config.bayerPattern
+        if let debayer = self.config.debayer
         {
-            processors.append( Processors.Debayer( mode: .bilinear, pattern: pattern ) )
+            processors.append( Processors.Debayer( mode: debayer.mode, pattern: debayer.pattern ) )
         }
         else
         {

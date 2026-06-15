@@ -54,17 +54,17 @@ private final class OutputCollector: @unchecked Sendable
 struct Test_PixelPipeline
 {
     private static func config(
-        scale:           ( scale: Double, offset: Double )?      = nil,
-        bayerPattern:    Processors.Debayer.Pattern?             = nil,
-        normalize:       Processors.Normalize.Mode?              = nil,
-        stretch:         Processors.Stretch.Algorithm?           = nil,
-        correctGamma:    Double?                                 = nil,
-        whiteBalance:    Processors.WhiteBalance.Mode?           = nil,
-        benchmark:       Bool                                    = false,
-        benchmarkOutput: ( @Sendable ( String ) -> Void )?       = nil
+        scale:           ( scale: Double, offset: Double )?                                           = nil,
+        debayer:         ( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )?       = nil,
+        normalize:       Processors.Normalize.Mode?                                                    = nil,
+        stretch:         Processors.Stretch.Algorithm?                                                 = nil,
+        correctGamma:    Double?                                                                       = nil,
+        whiteBalance:    Processors.WhiteBalance.Mode?                                                 = nil,
+        benchmark:       Bool                                                                          = false,
+        benchmarkOutput: ( @Sendable ( String ) -> Void )?                                             = nil
     ) -> PixelPipeline.Config
     {
-        PixelPipeline.Config( scale: scale, bayerPattern: bayerPattern, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, benchmark: benchmark, benchmarkOutput: benchmarkOutput )
+        PixelPipeline.Config( scale: scale, debayer: debayer, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, benchmark: benchmark, benchmarkOutput: benchmarkOutput )
     }
 
     @Test
@@ -86,7 +86,7 @@ struct Test_PixelPipeline
     @Test
     func runRGBViaDebayer() async throws
     {
-        let pipeline = PixelPipeline( config: Self.config( bayerPattern: .rggb, normalize: .minMax ) )
+        let pipeline = PixelPipeline( config: Self.config( debayer: ( .rggb, .bilinear ), normalize: .minMax ) )
         let result   = try pipeline.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
 
         #expect( result.channels     == 3 )
@@ -96,6 +96,24 @@ struct Test_PixelPipeline
         let bytes = try result.convertTo8Bits()
 
         #expect( bytes.count == 12 )
+    }
+
+    @Test
+    func debayerModeSelectsBilinear() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( debayer: ( .rggb, .bilinear ) ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        #expect( names.contains { $0.hasPrefix( "Debayer" ) && $0.contains( "Bilinear" ) } )
+    }
+
+    @Test
+    func debayerModeSelectsVNG() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( debayer: ( .rggb, .vng ) ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        #expect( names.contains { $0.hasPrefix( "Debayer" ) && $0.contains( "VNG" ) } )
     }
 
     @Test
@@ -114,7 +132,7 @@ struct Test_PixelPipeline
         let pipeline = PixelPipeline(
             config: Self.config(
                 scale:        ( scale: 2.0, offset: 1.0 ),
-                bayerPattern: .rggb,
+                debayer:      ( .rggb, .bilinear ),
                 normalize:    .minMax,
                 stretch:      .log( 1.0 ),
                 correctGamma: 2.0,

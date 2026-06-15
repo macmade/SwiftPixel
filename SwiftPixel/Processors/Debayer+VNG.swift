@@ -23,9 +23,182 @@
  ******************************************************************************/
 
 import Foundation
+import SwiftUtilities
 
 extension Processors.Debayer
 {
+    /// The four orthogonal neighbour offsets (left, right, up, down).
+    private static let orthogonalOffsets: [ ( dx: Int, dy: Int ) ] = [ ( -1, 0 ), ( 1, 0 ), ( 0, -1 ), ( 0, 1 ) ]
+
+    /// The four diagonal neighbour offsets.
+    private static let diagonalOffsets: [ ( dx: Int, dy: Int ) ] = [ ( -1, -1 ), ( 1, -1 ), ( -1, 1 ), ( 1, 1 ) ]
+
+    /// Reconstructs a 3-channel RGB image from a Bayer mosaic using Variable
+    /// Number of Gradients (VNG) demosaicing.
+    ///
+    /// The green channel is reconstructed first — directly at green sites and
+    /// via `interpolateGreen` (gradient-weighted) at red/blue sites — then red
+    /// and blue follow as a color difference against that green plane. The
+    /// present color at each site is preserved exactly. Both passes run in
+    /// parallel over rows; out-of-bounds neighbors are clamped to the edge.
+    ///
+    /// - Parameters:
+    ///   - pixels:  The single-channel mosaic samples, row-major.
+    ///   - pattern: The Bayer arrangement of `pixels`.
+    ///   - width:   The image width in pixels.
+    ///   - height:  The image height in pixels.
+    ///
+    /// - Returns: `width × height × 3` interleaved RGB samples.
+    ///
+    /// - Throws: A `RuntimeError` if the output buffer cannot be accessed.
+    internal static func vng( pixels: [ Double ], pattern: Pattern, width: Int, height: Int ) throws -> [ Double ]
+    {
+        let colorMap = self.colorMap( width: width, height: height, pattern: pattern )
+        let green    = self.greenPlane( pixels: pixels, colorMap: colorMap, width: width, height: height )
+        var output   = [ Double ]( repeating: 0.0, count: width * height * 3 )
+
+        try output.withUnsafeMutableBufferPointer
+        {
+            guard let baseAddress = $0.baseAddress
+            else
+            {
+                throw RuntimeError( message: "Failed to access output data buffer" )
+            }
+
+            let output = UnsafeMutableSendable( baseAddress )
+
+            DispatchQueue.concurrentPerform( iterations: height )
+            {
+                y in ( 0 ..< width ).forEach
+                {
+                    x in
+
+                    let i   = self.index( x: x, y: y, width: width )
+                    let rgb = self.interpolateColor( pixels: pixels, green: green, colorMap: colorMap, pattern: pattern, x: x, y: y, width: width, height: height )
+
+                    output.value[ i * 3 + 0 ] = rgb.r
+                    output.value[ i * 3 + 1 ] = rgb.g
+                    output.value[ i * 3 + 2 ] = rgb.b
+                }
+            }
+        }
+
+        return output
+    }
+
+    /// Reconstructs the full green plane: green sites keep their value, red/blue
+    /// sites use the gradient-weighted `interpolateGreen`.
+    ///
+    /// - Parameters:
+    ///   - pixels:   The single-channel mosaic samples, row-major.
+    ///   - colorMap: The per-site color map.
+    ///   - width:    The image width in pixels.
+    ///   - height:   The image height in pixels.
+    ///
+    /// - Returns: A row-major green value per site.
+    private static func greenPlane( pixels: [ Double ], colorMap: [ ColorType ], width: Int, height: Int ) -> [ Double ]
+    {
+        var green = [ Double ]( repeating: 0.0, count: width * height )
+
+        green.withUnsafeMutableBufferPointer
+        {
+            let buffer = UnsafeMutableSendable( $0 )
+
+            DispatchQueue.concurrentPerform( iterations: height )
+            {
+                y in ( 0 ..< width ).forEach
+                {
+                    x in
+
+                    let i = self.index( x: x, y: y, width: width )
+
+                    buffer.value[ i ] = colorMap[ i ] == .green ? pixels[ i ] : self.interpolateGreen( pixels: pixels, x: x, y: y, width: width, height: height )
+                }
+            }
+        }
+
+        return green
+    }
+
+    /// Computes the red, green and blue values at site `(x, y)`.
+    ///
+    /// Green comes from the reconstructed plane. Red and blue are a color
+    /// difference (chroma) against green, averaged over the same-color
+    /// neighbours: diagonal neighbours at a red/blue site, and the orthogonal
+    /// neighbours of the matching color at a green site.
+    ///
+    /// - Parameters:
+    ///   - pixels:   The single-channel mosaic samples, row-major.
+    ///   - green:    The reconstructed green plane.
+    ///   - colorMap: The per-site color map.
+    ///   - pattern:  The Bayer arrangement.
+    ///   - x:        The column of the site.
+    ///   - y:        The row of the site.
+    ///   - width:    The image width in pixels.
+    ///   - height:   The image height in pixels.
+    ///
+    /// - Returns: The interpolated `(r, g, b)` at the site.
+    private static func interpolateColor( pixels: [ Double ], green: [ Double ], colorMap: [ ColorType ], pattern: Pattern, x: Int, y: Int, width: Int, height: Int ) -> ( r: Double, g: Double, b: Double )
+    {
+        let i = self.index( x: x, y: y, width: width )
+        let g = green[ i ]
+
+        switch colorMap[ i ]
+        {
+            case .red:
+
+                let b = g + self.chromaDifference( pixels: pixels, green: green, offsets: Self.diagonalOffsets, x: x, y: y, width: width, height: height )
+
+                return ( r: pixels[ i ], g: g, b: b )
+
+            case .blue:
+
+                let r = g + self.chromaDifference( pixels: pixels, green: green, offsets: Self.diagonalOffsets, x: x, y: y, width: width, height: height )
+
+                return ( r: r, g: g, b: pixels[ i ] )
+
+            case .green:
+
+                let redOffsets  = Self.orthogonalOffsets.filter { self.colorAt( x: x + $0.dx, y: y + $0.dy, pattern: pattern ) == .red }
+                let blueOffsets = Self.orthogonalOffsets.filter { self.colorAt( x: x + $0.dx, y: y + $0.dy, pattern: pattern ) == .blue }
+
+                let r = g + self.chromaDifference( pixels: pixels, green: green, offsets: redOffsets,  x: x, y: y, width: width, height: height )
+                let b = g + self.chromaDifference( pixels: pixels, green: green, offsets: blueOffsets, x: x, y: y, width: width, height: height )
+
+                return ( r: r, g: g, b: b )
+        }
+    }
+
+    /// Averages the color difference `sample − green` over the given neighbour
+    /// offsets, using edge-clamped reads.
+    ///
+    /// - Parameters:
+    ///   - pixels:  The single-channel mosaic samples, row-major.
+    ///   - green:   The reconstructed green plane.
+    ///   - offsets: The neighbour offsets to average over.
+    ///   - x:       The column of the site.
+    ///   - y:       The row of the site.
+    ///   - width:   The image width in pixels.
+    ///   - height:  The image height in pixels.
+    ///
+    /// - Returns: The mean neighbour color difference, or `0` if `offsets` is empty.
+    private static func chromaDifference( pixels: [ Double ], green: [ Double ], offsets: [ ( dx: Int, dy: Int ) ], x: Int, y: Int, width: Int, height: Int ) -> Double
+    {
+        guard offsets.isEmpty == false
+        else
+        {
+            return 0
+        }
+
+        let differences = offsets.map
+        {
+            self.sample( pixels: pixels, x: x + $0.dx, y: y + $0.dy, width: width, height: height )
+          - self.sample( pixels: green,  x: x + $0.dx, y: y + $0.dy, width: width, height: height )
+        }
+
+        return differences.reduce( 0.0, + ) / Double( differences.count )
+    }
+
     /// The eight neighbour directions used for VNG gradient analysis, ordered
     /// clockwise from north: N, NE, E, SE, S, SW, W, NW.
     ///

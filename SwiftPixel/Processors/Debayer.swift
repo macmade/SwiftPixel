@@ -72,12 +72,18 @@ public extension Processors
             /// average of its nearest same-color neighbors.
             case bilinear
 
+            /// Variable Number of Gradients: the green channel is interpolated
+            /// along low-variation directions selected per pixel, and red/blue
+            /// follow as a color difference against the reconstructed green.
+            case vng
+
             /// A human-readable name for the algorithm.
             public var description: String
             {
                 switch self
                 {
                     case .bilinear: return "Bilinear"
+                    case .vng:      return "VNG"
                 }
             }
         }
@@ -121,14 +127,15 @@ public extension Processors
                 throw RuntimeError( message: "Input buffer must not be normalized" )
             }
 
+            let pixels: [ Double ]
+
             switch self.mode
             {
-                case .bilinear:
-
-                    let pixels = try Self.bilinear( pixels: buffer.pixels, pattern: self.pattern, width: buffer.width, height: buffer.height )
-
-                    buffer = try PixelBuffer( width: buffer.width, height: buffer.height, channels: 3, pixels: pixels, isNormalized: buffer.isNormalized )
+                case .bilinear: pixels = try Self.bilinear( pixels: buffer.pixels, pattern: self.pattern, width: buffer.width, height: buffer.height )
+                case .vng:      pixels = try Self.vng(      pixels: buffer.pixels, pattern: self.pattern, width: buffer.width, height: buffer.height )
             }
+
+            buffer = try PixelBuffer( width: buffer.width, height: buffer.height, channels: 3, pixels: pixels, isNormalized: buffer.isNormalized )
         }
 
         /// The color a given mosaic site samples.

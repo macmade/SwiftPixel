@@ -82,4 +82,92 @@ struct Test_Processors_Debayer_VNG
         // VNG drops the across-edge neighbour, so its green is closer to the truth.
         #expect( abs( vngGreen - trueGreen ) < abs( bilinearGreen - trueGreen ) )
     }
+
+    @Test
+    func vngBGGR_2x2() async throws
+    {
+        var buffer = try PixelBuffer( width: 2, height: 2, channels: 1, pixels: [ 10, 20, 30, 40 ], isNormalized: false )
+
+        try Processors.Debayer( mode: .vng, pattern: .bggr ).process( buffer: &buffer )
+
+        try #require( buffer.channels     == 3 )
+        try #require( buffer.pixels.count == 12 )
+
+        #expect( buffer.pixels.allSatisfy { $0.isFinite } )
+
+        // Present colour at each BGGR site is taken directly from the mosaic.
+        #expect( buffer.pixels[  2 ] == 10 ) // (0,0) blue
+        #expect( buffer.pixels[  4 ] == 20 ) // (1,0) green
+        #expect( buffer.pixels[  7 ] == 30 ) // (0,1) green
+        #expect( buffer.pixels[  9 ] == 40 ) // (1,1) red
+    }
+
+    @Test
+    func vngRGGB_2x2() async throws
+    {
+        var buffer = try PixelBuffer( width: 2, height: 2, channels: 1, pixels: [ 10, 20, 30, 40 ], isNormalized: false )
+
+        try Processors.Debayer( mode: .vng, pattern: .rggb ).process( buffer: &buffer )
+
+        try #require( buffer.channels     == 3 )
+        try #require( buffer.pixels.count == 12 )
+
+        #expect( buffer.pixels.allSatisfy { $0.isFinite } )
+
+        // Present colour at each RGGB site is taken directly from the mosaic.
+        #expect( buffer.pixels[  0 ] == 10 ) // (0,0) red
+        #expect( buffer.pixels[  4 ] == 20 ) // (1,0) green
+        #expect( buffer.pixels[  7 ] == 30 ) // (0,1) green
+        #expect( buffer.pixels[ 11 ] == 40 ) // (1,1) blue
+    }
+
+    @Test
+    func vngAndBilinearBothSelectable() async throws
+    {
+        let pixels = ( 0 ..< 16 ).map { Double( $0 + 1 ) }
+
+        for mode in [ Processors.Debayer.Mode.bilinear, .vng ]
+        {
+            var buffer = try PixelBuffer( width: 4, height: 4, channels: 1, pixels: pixels, isNormalized: false )
+
+            try Processors.Debayer( mode: mode, pattern: .rggb ).process( buffer: &buffer )
+
+            #expect( buffer.channels     == 3 )
+            #expect( buffer.pixels.count == 48 )
+            #expect( buffer.pixels.allSatisfy { $0.isFinite } )
+        }
+    }
+
+    @Test
+    func vngEdgeErrorNotWorseThanBilinear() async throws
+    {
+        // 6x6 luminance edge (every channel equal): columns 0-2 = 10, 3-5 = 90.
+        // The true image is flat (v, v, v) per side, so reconstruction error
+        // measures edge blurring.
+        let width  = 6
+        let height = 6
+        let row    = [ 10.0, 10.0, 10.0, 90.0, 90.0, 90.0 ]
+        let mosaic = ( 0 ..< height ).flatMap { _ in row }
+
+        func error( mode: Processors.Debayer.Mode ) throws -> Double
+        {
+            var buffer = try PixelBuffer( width: width, height: height, channels: 1, pixels: mosaic, isNormalized: false )
+
+            try Processors.Debayer( mode: mode, pattern: .rggb ).process( buffer: &buffer )
+
+            return ( 0 ..< width * height ).reduce( 0.0 )
+            {
+                let truth = row[ $1 % width ]
+
+                return $0 + abs( buffer.pixels[ $1 * 3 + 0 ] - truth )
+                          + abs( buffer.pixels[ $1 * 3 + 1 ] - truth )
+                          + abs( buffer.pixels[ $1 * 3 + 2 ] - truth )
+            }
+        }
+
+        let vngError      = try error( mode: .vng )
+        let bilinearError = try error( mode: .bilinear )
+
+        #expect( vngError <= bilinearError )
+    }
 }

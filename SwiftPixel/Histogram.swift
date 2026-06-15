@@ -95,13 +95,20 @@ public struct Histogram
                     b = value
                 }
 
-                red[   r ] += 1
-                green[ g ] += 1
-                blue[  b ] += 1
+                switch mode
+                {
+                    case .rgb:
 
-                let y = ( 2126 * r + 7152 * g + 722 * b ) / 10000
+                        red[   r ] += 1
+                        green[ g ] += 1
+                        blue[  b ] += 1
 
-                luminance[ y ] += 1
+                    case .luminance:
+
+                        let y = ( 2126 * r + 7152 * g + 722 * b ) / 10000
+
+                        luminance[ y ] += 1
+                }
             }
         }
 

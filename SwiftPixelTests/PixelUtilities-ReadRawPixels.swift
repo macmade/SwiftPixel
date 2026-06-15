@@ -219,4 +219,27 @@ struct Test_PixelUtilities_ReadRawPixels
             _ = try PixelUtilities.readRawPixels( data: Data(), width: Int.max, height: 2, bitsPerPixel: .uint8 )
         }
     }
+
+    @Test
+    func parallelOrSerialCoversAllIndices() async throws
+    {
+        // 8 takes the serial branch, 10_000 the concurrent branch; both must
+        // visit every index exactly once with the same result.
+        for count in [ 8, 10_000 ]
+        {
+            var output = [ Int ]( repeating: -1, count: count )
+
+            output.withUnsafeMutableBufferPointer
+            {
+                let buffer = UnsafeMutableSendable( $0 )
+
+                PixelUtilities.parallelOrSerial( iterations: count )
+                {
+                    buffer.value[ $0 ] = $0 * 2
+                }
+            }
+
+            #expect( output == ( 0 ..< count ).map { $0 * 2 } )
+        }
+    }
 }

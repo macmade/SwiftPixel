@@ -67,7 +67,7 @@ extension Processors.Debayer
 
             let output = UnsafeMutableSendable( baseAddress )
 
-            DispatchQueue.concurrentPerform( iterations: height )
+            PixelUtilities.parallelOrSerial( iterations: height, threshold: 64 )
             {
                 y in ( 0 ..< width ).forEach
                 {
@@ -104,7 +104,7 @@ extension Processors.Debayer
         {
             let buffer = UnsafeMutableSendable( $0 )
 
-            DispatchQueue.concurrentPerform( iterations: height )
+            PixelUtilities.parallelOrSerial( iterations: height, threshold: 64 )
             {
                 y in ( 0 ..< width ).forEach
                 {

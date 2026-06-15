@@ -58,6 +58,32 @@ public enum PixelUtilities
         return total
     }
 
+    /// Runs `body` for each index in `0 ..< iterations`, serially below
+    /// `threshold` and via `DispatchQueue.concurrentPerform` at or above it.
+    ///
+    /// Small passes skip the fan-out/join overhead of `concurrentPerform`; the
+    /// result is identical regardless of the path taken, so `body` must remain
+    /// safe to run concurrently (each index writing its own output).
+    ///
+    /// - Parameters:
+    ///   - iterations: The number of indices to process.
+    ///   - threshold:  The iteration count at or above which to parallelize.
+    ///   - body:       The work to run for each index.
+    internal static func parallelOrSerial( iterations: Int, threshold: Int = 4096, _ body: @Sendable ( Int ) -> Void )
+    {
+        if iterations < threshold
+        {
+            for index in 0 ..< iterations
+            {
+                body( index )
+            }
+        }
+        else
+        {
+            DispatchQueue.concurrentPerform( iterations: iterations, execute: body )
+        }
+    }
+
     /// Decodes raw, single-channel image data into an array of `Double` samples.
     ///
     /// The bytes are interpreted according to the FITS `BITPIX` convention
@@ -110,35 +136,35 @@ public enum PixelUtilities
                 {
                     case .uint8:
 
-                        DispatchQueue.concurrentPerform( iterations: count )
+                        Self.parallelOrSerial( iterations: count )
                         {
                             resultBuffer.value[ $0 ] = Double( base.value.loadUnaligned( fromByteOffset: $0, as: UInt8.self ) )
                         }
 
                     case .int16:
 
-                        DispatchQueue.concurrentPerform( iterations: count )
+                        Self.parallelOrSerial( iterations: count )
                         {
                             resultBuffer.value[ $0 ] = Double( Int16( bigEndian: base.value.loadUnaligned( fromByteOffset: $0 * 2, as: Int16.self ) ) )
                         }
 
                     case .int32:
 
-                        DispatchQueue.concurrentPerform( iterations: count )
+                        Self.parallelOrSerial( iterations: count )
                         {
                             resultBuffer.value[ $0 ] = Double( Int32( bigEndian: base.value.loadUnaligned( fromByteOffset: $0 * 4, as: Int32.self ) ) )
                         }
 
                     case .float32:
 
-                        DispatchQueue.concurrentPerform( iterations: count )
+                        Self.parallelOrSerial( iterations: count )
                         {
                             resultBuffer.value[ $0 ] = Double( Float32( bitPattern: UInt32( bigEndian: base.value.loadUnaligned( fromByteOffset: $0 * 4, as: UInt32.self ) ) ) )
                         }
 
                     case .float64:
 
-                        DispatchQueue.concurrentPerform( iterations: count )
+                        Self.parallelOrSerial( iterations: count )
                         {
                             resultBuffer.value[ $0 ] = Double( bitPattern: UInt64( bigEndian: base.value.loadUnaligned( fromByteOffset: $0 * 8, as: UInt64.self ) ) )
                         }

@@ -77,7 +77,7 @@ public extension Processors
             {
                 let sendableRGBBuffer = UnsafeMutableSendable( $0 )
 
-                DispatchQueue.concurrentPerform( iterations: count )
+                PixelUtilities.parallelOrSerial( iterations: count )
                 {
                     let value = sendableBuffer.value.pixels[ $0 ]
                     let base  = $0 * 3

@@ -29,6 +29,26 @@ import Testing
 struct Test_HistogramStatistics
 {
     @Test
+    func standardDeviationClampsNegativeVarianceToZero() async throws
+    {
+        // sumSq/total - mean*mean is slightly negative here (floating-point
+        // cancellation); without the clamp, sqrt would yield NaN.
+        let result = HistogramStatistics.standardDeviation( sumSq: 1.0, total: 1.0, mean: 1.000_000_000_1 )
+
+        #expect( result.isFinite )
+        #expect( result == 0.0 )
+    }
+
+    @Test
+    func standardDeviationComputesPositiveValue() async throws
+    {
+        // Two equally weighted bins at 0 and 2: variance = 2.0 - 1.0 = 1.0.
+        let result = HistogramStatistics.standardDeviation( sumSq: 4.0, total: 2.0, mean: 1.0 )
+
+        #expect( result == 1.0 )
+    }
+
+    @Test
     func empty() async throws
     {
         let stats = HistogramStatistics( data: [ Int ]( repeating: 0, count: 256 ) )

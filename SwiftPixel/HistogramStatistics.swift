@@ -119,7 +119,7 @@ public struct HistogramStatistics
         }
 
         let mean        = sum / Double( total )
-        let stdDev      = sqrt( ( sumSq / Double( total ) ) - ( mean * mean ) )
+        let stdDev      = Self.standardDeviation( sumSq: sumSq, total: Double( total ), mean: mean )
         let percentiles = Self.percentiles( data: data, total: total, p1: 0.01, p2: 0.99 )
 
         // minVal/maxVal are always set once total > 0 (there is at least one
@@ -133,6 +133,26 @@ public struct HistogramStatistics
         self.max          = maxVal ?? 0
         self.percentile1  = percentiles.p1
         self.percentile99 = percentiles.p2
+    }
+
+    /// Returns the standard deviation from the running sums, clamping the
+    /// variance at zero before the square root.
+    ///
+    /// The sum-of-squares variance `(sumSq / total) − mean²` can land slightly
+    /// below zero through floating-point cancellation when the distribution has
+    /// almost no spread; clamping keeps `sqrt` from producing `NaN`.
+    ///
+    /// - Parameters:
+    ///   - sumSq: The frequency-weighted sum of squared bin indices.
+    ///   - total: The total count.
+    ///   - mean:  The distribution mean.
+    ///
+    /// - Returns: The standard deviation, always finite and `>= 0`.
+    internal static func standardDeviation( sumSq: Double, total: Double, mean: Double ) -> Double
+    {
+        let variance = ( sumSq / total ) - ( mean * mean )
+
+        return sqrt( Swift.max( 0.0, variance ) )
     }
 
     /// Returns the bin indices at two cumulative-fraction thresholds.

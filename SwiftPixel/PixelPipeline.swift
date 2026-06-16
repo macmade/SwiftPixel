@@ -30,7 +30,7 @@ import SwiftUtilities
 ///
 /// The stage order is fixed and enforces each processor's preconditions: scale,
 /// then demosaic to RGB, then normalize, then the normalization-dependent stages
-/// (stretch, gamma, white balance). A default normalization is inserted
+/// (stretch, gamma, white balance, invert). A default normalization is inserted
 /// automatically when a normalization-dependent stage is requested without one.
 public struct PixelPipeline: Sendable
 {
@@ -61,6 +61,10 @@ public struct PixelPipeline: Sendable
         /// The white-balance mode. Requires normalization.
         public let whiteBalance: Processors.WhiteBalance.Mode?
 
+        /// Whether to invert the image (photographic negative). Requires
+        /// normalization.
+        public let invert: Bool
+
         /// Whether to emit per-stage timing measurements. Off by default.
         public let benchmark: Bool
 
@@ -77,9 +81,10 @@ public struct PixelPipeline: Sendable
         ///   - stretch:         Optional tone-stretch algorithm. Defaults to `nil`.
         ///   - correctGamma:    Optional gamma exponent. Defaults to `nil`.
         ///   - whiteBalance:    Optional white-balance mode. Defaults to `nil`.
+        ///   - invert:          Whether to invert the image. Defaults to `false`.
         ///   - benchmark:       Whether to emit per-stage timings. Defaults to `false`.
         ///   - benchmarkOutput: Optional sink for timing output. Defaults to `nil` (prints).
-        public init( scale: ( scale: Double, offset: Double )? = nil, debayer: ( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )? = nil, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.Algorithm? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
+        public init( scale: ( scale: Double, offset: Double )? = nil, debayer: ( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )? = nil, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.Algorithm? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
         {
             self.scale           = scale
             self.debayer         = debayer
@@ -87,6 +92,7 @@ public struct PixelPipeline: Sendable
             self.stretch         = stretch
             self.correctGamma    = correctGamma
             self.whiteBalance    = whiteBalance
+            self.invert          = invert
             self.benchmark       = benchmark
             self.benchmarkOutput = benchmarkOutput
         }
@@ -163,12 +169,13 @@ public struct PixelPipeline: Sendable
     ///
     /// The order is fixed and enforces the processors' preconditions: raw
     /// scaling, then demosaicing to RGB, then normalization, then the stages
-    /// that require a normalized buffer (stretch, gamma, white balance).
+    /// that require a normalized buffer (stretch, gamma, white balance, invert).
     ///
-    /// Stretch, gamma correction and white balance all require a normalized
-    /// buffer. If any of them is requested without an explicit normalization
-    /// mode, a default min/max Normalize is inserted automatically so the
-    /// configuration cannot produce a "buffer needs to be normalized" failure.
+    /// Stretch, gamma correction, white balance and invert all require a
+    /// normalized buffer. If any of them is requested without an explicit
+    /// normalization mode, a default min/max Normalize is inserted automatically
+    /// so the configuration cannot produce a "buffer needs to be normalized"
+    /// failure.
     ///
     /// - Returns: The processors to apply, in execution order.
     func processors() -> [ PixelProcessor ]
@@ -189,7 +196,7 @@ public struct PixelPipeline: Sendable
             processors.append( Processors.MonoToRGB() )
         }
 
-        let requiresNormalization = self.config.stretch != nil || self.config.correctGamma != nil || self.config.whiteBalance != nil
+        let requiresNormalization = self.config.stretch != nil || self.config.correctGamma != nil || self.config.whiteBalance != nil || self.config.invert
         let normalizeMode: Processors.Normalize.Mode?
 
         if let configured = self.config.normalize
@@ -223,6 +230,11 @@ public struct PixelPipeline: Sendable
         if let whiteBalance = self.config.whiteBalance
         {
             processors.append( Processors.WhiteBalance( mode: whiteBalance ) )
+        }
+
+        if self.config.invert
+        {
+            processors.append( Processors.Invert() )
         }
 
         return processors

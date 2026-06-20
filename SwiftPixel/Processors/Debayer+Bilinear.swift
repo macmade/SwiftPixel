@@ -108,11 +108,11 @@ extension Processors.Debayer
 
                                 let horizontal = (
                                     self.safeRead( x: x - 1, y: y, width: width, height: height, data: input.value )
-                                  + self.safeRead( x: x + 1, y: y, width: width, height: height, data: input.value )
+                                        + self.safeRead( x: x + 1, y: y, width: width, height: height, data: input.value )
                                 ) * 0.5
                                 let vertical = (
                                     self.safeRead( x: x, y: y - 1, width: width, height: height, data: input.value )
-                                  + self.safeRead( x: x, y: y + 1, width: width, height: height, data: input.value )
+                                        + self.safeRead( x: x, y: y + 1, width: width, height: height, data: input.value )
                                 ) * 0.5
 
                                 g = val

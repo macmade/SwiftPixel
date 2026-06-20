@@ -192,7 +192,7 @@ extension Processors.Debayer
         for offset in offsets
         {
             sum += self.sample( pixels: pixels, x: x + offset.dx, y: y + offset.dy, width: width, height: height )
-                 - self.sample( pixels: green,  x: x + offset.dx, y: y + offset.dy, width: width, height: height )
+                - self.sample( pixels: green,  x: x + offset.dx, y: y + offset.dy, width: width, height: height )
         }
 
         return sum / Double( offsets.count )
@@ -229,7 +229,7 @@ extension Processors.Debayer
             }
 
             sum += self.sample( pixels: pixels, x: x + offset.dx, y: y + offset.dy, width: width, height: height )
-                 - self.sample( pixels: green,  x: x + offset.dx, y: y + offset.dy, width: width, height: height )
+                - self.sample( pixels: green,  x: x + offset.dx, y: y + offset.dy, width: width, height: height )
             count += 1
         }
 
@@ -242,10 +242,10 @@ extension Processors.Debayer
     /// Arrays returned by `gradients(pixels:x:y:width:height:)` and
     /// `goodGradients(_:k1:k2:)` are aligned with this order.
     internal static let gradientDirections: [ ( dx: Int, dy: Int ) ] =
-    [
-        (  0, -1 ), (  1, -1 ), (  1, 0 ), (  1, 1 ),
-        (  0,  1 ), ( -1,  1 ), ( -1, 0 ), ( -1, -1 ),
-    ]
+        [
+            (  0, -1 ), (  1, -1 ), (  1, 0 ), (  1, 1 ),
+            (  0,  1 ), ( -1,  1 ), ( -1, 0 ), ( -1, -1 ),
+        ]
 
     /// Computes the eight directional gradients at site `(x, y)` over the
     /// mosaic.

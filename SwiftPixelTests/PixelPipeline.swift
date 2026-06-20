@@ -26,7 +26,8 @@ import Foundation
 @testable import SwiftPixel
 import Testing
 
-private final class OutputCollector: @unchecked Sendable
+private final class OutputCollector: @unchecked
+Sendable
 {
     private let lock    = NSLock()
     private var storage = [ String ]()

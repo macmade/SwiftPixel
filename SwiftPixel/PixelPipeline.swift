@@ -66,6 +66,11 @@ public struct PixelPipeline: Sendable
         /// normalization.
         public let brightnessContrast: ( brightness: Double, contrast: Double )?
 
+        /// The levels remap to apply, or `nil` to leave the tones untouched.
+        /// Requires normalization; applied right after brightness/contrast, as
+        /// another parametric tone adjustment ahead of the non-linear stretch.
+        public let levels: Processors.Levels.Channels?
+
         /// The colour-saturation factor, or `nil` to leave saturation untouched.
         /// Requires normalization; applied after white balance.
         public let saturation: Double?
@@ -97,11 +102,12 @@ public struct PixelPipeline: Sendable
         ///   - whiteBalance:       Optional white-balance mode. Defaults to `nil`.
         ///   - invert:             Whether to invert the image. Defaults to `false`.
         ///   - brightnessContrast: Optional brightness offset and contrast factor. Defaults to `nil`.
+        ///   - levels:             Optional levels remap. Defaults to `nil`.
         ///   - saturation:         Optional colour-saturation factor. Defaults to `nil`.
         ///   - orient:             Optional net orientation to apply last. Defaults to `nil`.
         ///   - benchmark:          Whether to emit per-stage timings. Defaults to `false`.
         ///   - benchmarkOutput:    Optional sink for timing output. Defaults to `nil` (prints).
-        public init( scale: ( scale: Double, offset: Double )? = nil, debayer: ( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )? = nil, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.Algorithm? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, brightnessContrast: ( brightness: Double, contrast: Double )? = nil, saturation: Double? = nil, orient: Processors.Orient.Orientation? = nil, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
+        public init( scale: ( scale: Double, offset: Double )? = nil, debayer: ( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )? = nil, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.Algorithm? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, brightnessContrast: ( brightness: Double, contrast: Double )? = nil, levels: Processors.Levels.Channels? = nil, saturation: Double? = nil, orient: Processors.Orient.Orientation? = nil, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
         {
             self.scale              = scale
             self.debayer            = debayer
@@ -111,6 +117,7 @@ public struct PixelPipeline: Sendable
             self.whiteBalance       = whiteBalance
             self.invert             = invert
             self.brightnessContrast = brightnessContrast
+            self.levels             = levels
             self.saturation         = saturation
             self.orient             = orient
             self.benchmark          = benchmark
@@ -229,6 +236,19 @@ public struct PixelPipeline: Sendable
             brightnessContrast = nil
         }
 
+        // An identity levels remap is a no-op and is dropped here, so it neither
+        // runs nor forces a normalization.
+        let levels: Processors.Levels.Channels?
+
+        if let configured = self.config.levels, configured.isIdentity == false
+        {
+            levels = configured
+        }
+        else
+        {
+            levels = nil
+        }
+
         // A neutral saturation (factor 1) is a no-op and is dropped here.
         let saturation: Double?
 
@@ -241,7 +261,7 @@ public struct PixelPipeline: Sendable
             saturation = nil
         }
 
-        let requiresNormalization = self.config.stretch != nil || self.config.correctGamma != nil || self.config.whiteBalance != nil || self.config.invert || brightnessContrast != nil || saturation != nil
+        let requiresNormalization = self.config.stretch != nil || self.config.correctGamma != nil || self.config.whiteBalance != nil || self.config.invert || brightnessContrast != nil || levels != nil || saturation != nil
         let normalizeMode: Processors.Normalize.Mode?
 
         if let configured = self.config.normalize
@@ -267,6 +287,13 @@ public struct PixelPipeline: Sendable
         if let brightnessContrast
         {
             processors.append( Processors.BrightnessContrast( brightness: brightnessContrast.brightness, contrast: brightnessContrast.contrast ) )
+        }
+
+        // Levels is a parametric tone remap on the normalized data, applied with
+        // the other linear adjustments before the non-linear tone stages.
+        if let levels
+        {
+            processors.append( Processors.Levels( channels: levels ) )
         }
 
         if let stretch = self.config.stretch

@@ -61,11 +61,12 @@ struct Test_PixelPipeline
         stretch:         Processors.Stretch.Algorithm?                                                 = nil,
         correctGamma:    Double?                                                                       = nil,
         whiteBalance:    Processors.WhiteBalance.Mode?                                                 = nil,
+        orient:          Processors.Orient.Orientation?                                                = nil,
         benchmark:       Bool                                                                          = false,
         benchmarkOutput: ( @Sendable ( String ) -> Void )?                                             = nil
     ) -> PixelPipeline.Config
     {
-        PixelPipeline.Config( scale: scale, debayer: debayer, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, benchmark: benchmark, benchmarkOutput: benchmarkOutput )
+        PixelPipeline.Config( scale: scale, debayer: debayer, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, orient: orient, benchmark: benchmark, benchmarkOutput: benchmarkOutput )
     }
 
     @Test
@@ -175,6 +176,58 @@ struct Test_PixelPipeline
 
         #expect( names.contains { $0.hasPrefix( "Normalize" ) } == false )
         #expect( names == [ "Scale (2.00 1.00)", "Mono to RGB" ] )
+    }
+
+    @Test
+    func orientAppendedLastWhenNonIdentity() async throws
+    {
+        let pipeline = PixelPipeline(
+            config: Self.config(
+                scale:        ( scale: 2.0, offset: 1.0 ),
+                debayer:      ( .rggb, .bilinear ),
+                normalize:    .minMax,
+                stretch:      .log( 1.0 ),
+                correctGamma: 2.0,
+                whiteBalance: .auto,
+                orient:       .init( rotation: .clockwise90, mirroredHorizontally: false )
+            )
+        )
+
+        let names = pipeline.processors().map { $0.name }
+
+        // Orientation is a pure geometry permutation, so it runs last — after
+        // every value stage.
+        #expect( names.last?.hasPrefix( "Orient" ) == true )
+    }
+
+    @Test
+    func identityOrientIsNotAppended() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, orient: .identity ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        #expect( names.contains { $0.hasPrefix( "Orient" ) } == false )
+    }
+
+    @Test
+    func nilOrientIsNotAppended() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        #expect( names.contains { $0.hasPrefix( "Orient" ) } == false )
+    }
+
+    @Test
+    func orientRunSwapsDimensions() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, orient: .init( rotation: .clockwise90, mirroredHorizontally: false ) ) )
+
+        // A 2x1 source rotated 90° becomes 1x2.
+        let result = try pipeline.run( pixels: [ 10, 20 ], width: 2, height: 1, bitsPerPixel: .uint8 )
+
+        #expect( result.width  == 1 )
+        #expect( result.height == 2 )
     }
 
     @Test

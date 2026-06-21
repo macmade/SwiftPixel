@@ -65,6 +65,11 @@ public struct PixelPipeline: Sendable
         /// normalization.
         public let invert: Bool
 
+        /// The net orientation (rotation + optional mirror) to apply, or `nil`
+        /// to leave the image as captured. Applied last, as a pure geometry
+        /// permutation.
+        public let orient: Processors.Orient.Orientation?
+
         /// Whether to emit per-stage timing measurements. Off by default.
         public let benchmark: Bool
 
@@ -82,9 +87,10 @@ public struct PixelPipeline: Sendable
         ///   - correctGamma:    Optional gamma exponent. Defaults to `nil`.
         ///   - whiteBalance:    Optional white-balance mode. Defaults to `nil`.
         ///   - invert:          Whether to invert the image. Defaults to `false`.
+        ///   - orient:          Optional net orientation to apply last. Defaults to `nil`.
         ///   - benchmark:       Whether to emit per-stage timings. Defaults to `false`.
         ///   - benchmarkOutput: Optional sink for timing output. Defaults to `nil` (prints).
-        public init( scale: ( scale: Double, offset: Double )? = nil, debayer: ( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )? = nil, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.Algorithm? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
+        public init( scale: ( scale: Double, offset: Double )? = nil, debayer: ( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )? = nil, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.Algorithm? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, orient: Processors.Orient.Orientation? = nil, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
         {
             self.scale           = scale
             self.debayer         = debayer
@@ -93,6 +99,7 @@ public struct PixelPipeline: Sendable
             self.correctGamma    = correctGamma
             self.whiteBalance    = whiteBalance
             self.invert          = invert
+            self.orient          = orient
             self.benchmark       = benchmark
             self.benchmarkOutput = benchmarkOutput
         }
@@ -235,6 +242,13 @@ public struct PixelPipeline: Sendable
         if self.config.invert
         {
             processors.append( Processors.Invert() )
+        }
+
+        // Orientation is a pure geometry permutation independent of the value
+        // stages, so it runs last. An identity orientation is skipped.
+        if let orient = self.config.orient, orient.isIdentity == false
+        {
+            processors.append( Processors.Orient( orientation: orient ) )
         }
 
         return processors

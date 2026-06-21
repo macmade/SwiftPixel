@@ -35,7 +35,9 @@
 		0AB10000000000000000C002 /* Processors-Debayer+Bilinear.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000C001 /* Processors-Debayer+Bilinear.swift */; };
 		0AB10000000000000000D002 /* Processors-Debayer+VNG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000D001 /* Processors-Debayer+VNG.swift */; };
 		0AB10000000000000000E002 /* Invert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E001 /* Invert.swift */; };
+		0AB10000000000000000E102 /* Orient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E101 /* Orient.swift */; };
 		0AB10000000000000000A002 /* Processors-Invert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A001 /* Processors-Invert.swift */; };
+		0AB10000000000000000A102 /* Processors-Orient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A101 /* Processors-Orient.swift */; };
 		05398D422DF03984005904EC /* Processors-MonoToRGB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05398D412DF0397C005904EC /* Processors-MonoToRGB.swift */; };
 		05398D6C2DF0A040005904EC /* PixelUtilities-PercentileBounds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05398D6B2DF0A03F005904EC /* PixelUtilities-PercentileBounds.swift */; };
 		05398D7D2DF0B9F7005904EC /* Processors-Normalize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05398D782DF0B9F2005904EC /* Processors-Normalize.swift */; };
@@ -106,7 +108,9 @@
 		0AB10000000000000000C001 /* Processors-Debayer+Bilinear.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Debayer+Bilinear.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000D001 /* Processors-Debayer+VNG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Debayer+VNG.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000E001 /* Invert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Invert.swift; sourceTree = "<group>"; };
+		0AB10000000000000000E101 /* Orient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Orient.swift; sourceTree = "<group>"; };
 		0AB10000000000000000A001 /* Processors-Invert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Invert.swift"; sourceTree = "<group>"; };
+		0AB10000000000000000A101 /* Processors-Orient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Orient.swift"; sourceTree = "<group>"; };
 		05398D412DF0397C005904EC /* Processors-MonoToRGB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-MonoToRGB.swift"; sourceTree = "<group>"; };
 		05398D6B2DF0A03F005904EC /* PixelUtilities-PercentileBounds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PixelUtilities-PercentileBounds.swift"; sourceTree = "<group>"; };
 		05398D782DF0B9F2005904EC /* Processors-Normalize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Normalize.swift"; sourceTree = "<group>"; };
@@ -199,6 +203,7 @@
 				0AB10000000000000000B001 /* Debayer+Bilinear.swift */,
 				0AB10000000000000000F001 /* Debayer+VNG.swift */,
 				0AB10000000000000000E001 /* Invert.swift */,
+				0AB10000000000000000E101 /* Orient.swift */,
 				050F37FC2DEE0BBE00E84F97 /* MonoToRGB.swift */,
 				050F37FD2DEE0BBE00E84F97 /* Normalize.swift */,
 				050F37FE2DEE0BBE00E84F97 /* Scale.swift */,
@@ -265,6 +270,7 @@
 				0AB10000000000000000C001 /* Processors-Debayer+Bilinear.swift */,
 				0AB10000000000000000D001 /* Processors-Debayer+VNG.swift */,
 				0AB10000000000000000A001 /* Processors-Invert.swift */,
+				0AB10000000000000000A101 /* Processors-Orient.swift */,
 				05398D412DF0397C005904EC /* Processors-MonoToRGB.swift */,
 				05398D782DF0B9F2005904EC /* Processors-Normalize.swift */,
 				05398CF52DEEE0A2005904EC /* Processors-Scale.swift */,
@@ -579,6 +585,7 @@
 				050F38102DEE0CD900E84F97 /* PixelUtilities.swift in Sources */,
 				050F380E2DEE0BBE00E84F97 /* MonoToRGB.swift in Sources */,
 				0AB10000000000000000E002 /* Invert.swift in Sources */,
+				0AB10000000000000000E102 /* Orient.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -604,6 +611,7 @@
 				0AB10000000000000000D002 /* Processors-Debayer+VNG.swift in Sources */,
 				05D710BD2DF1D84800CE32E3 /* Processors-CorrectGamma.swift in Sources */,
 				0AB10000000000000000A002 /* Processors-Invert.swift in Sources */,
+				0AB10000000000000000A102 /* Processors-Orient.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

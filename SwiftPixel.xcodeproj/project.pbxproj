@@ -37,9 +37,11 @@
 		0AB10000000000000000E002 /* Invert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E001 /* Invert.swift */; };
 		0AB10000000000000000E102 /* Orient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E101 /* Orient.swift */; };
 		0AB10000000000000000E202 /* BrightnessContrast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E201 /* BrightnessContrast.swift */; };
+		0AB10000000000000000E302 /* Saturation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E301 /* Saturation.swift */; };
 		0AB10000000000000000A002 /* Processors-Invert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A001 /* Processors-Invert.swift */; };
 		0AB10000000000000000A102 /* Processors-Orient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A101 /* Processors-Orient.swift */; };
 		0AB10000000000000000A202 /* Processors-BrightnessContrast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A201 /* Processors-BrightnessContrast.swift */; };
+		0AB10000000000000000A302 /* Processors-Saturation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A301 /* Processors-Saturation.swift */; };
 		05398D422DF03984005904EC /* Processors-MonoToRGB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05398D412DF0397C005904EC /* Processors-MonoToRGB.swift */; };
 		05398D6C2DF0A040005904EC /* PixelUtilities-PercentileBounds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05398D6B2DF0A03F005904EC /* PixelUtilities-PercentileBounds.swift */; };
 		05398D7D2DF0B9F7005904EC /* Processors-Normalize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05398D782DF0B9F2005904EC /* Processors-Normalize.swift */; };
@@ -112,9 +114,11 @@
 		0AB10000000000000000E001 /* Invert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Invert.swift; sourceTree = "<group>"; };
 		0AB10000000000000000E101 /* Orient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Orient.swift; sourceTree = "<group>"; };
 		0AB10000000000000000E201 /* BrightnessContrast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessContrast.swift; sourceTree = "<group>"; };
+		0AB10000000000000000E301 /* Saturation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Saturation.swift; sourceTree = "<group>"; };
 		0AB10000000000000000A001 /* Processors-Invert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Invert.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000A101 /* Processors-Orient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Orient.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000A201 /* Processors-BrightnessContrast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-BrightnessContrast.swift"; sourceTree = "<group>"; };
+		0AB10000000000000000A301 /* Processors-Saturation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Saturation.swift"; sourceTree = "<group>"; };
 		05398D412DF0397C005904EC /* Processors-MonoToRGB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-MonoToRGB.swift"; sourceTree = "<group>"; };
 		05398D6B2DF0A03F005904EC /* PixelUtilities-PercentileBounds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PixelUtilities-PercentileBounds.swift"; sourceTree = "<group>"; };
 		05398D782DF0B9F2005904EC /* Processors-Normalize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Normalize.swift"; sourceTree = "<group>"; };
@@ -209,6 +213,7 @@
 				0AB10000000000000000E001 /* Invert.swift */,
 				0AB10000000000000000E101 /* Orient.swift */,
 				0AB10000000000000000E201 /* BrightnessContrast.swift */,
+				0AB10000000000000000E301 /* Saturation.swift */,
 				050F37FC2DEE0BBE00E84F97 /* MonoToRGB.swift */,
 				050F37FD2DEE0BBE00E84F97 /* Normalize.swift */,
 				050F37FE2DEE0BBE00E84F97 /* Scale.swift */,
@@ -277,6 +282,7 @@
 				0AB10000000000000000A001 /* Processors-Invert.swift */,
 				0AB10000000000000000A101 /* Processors-Orient.swift */,
 				0AB10000000000000000A201 /* Processors-BrightnessContrast.swift */,
+				0AB10000000000000000A301 /* Processors-Saturation.swift */,
 				05398D412DF0397C005904EC /* Processors-MonoToRGB.swift */,
 				05398D782DF0B9F2005904EC /* Processors-Normalize.swift */,
 				05398CF52DEEE0A2005904EC /* Processors-Scale.swift */,
@@ -593,6 +599,7 @@
 				0AB10000000000000000E002 /* Invert.swift in Sources */,
 				0AB10000000000000000E102 /* Orient.swift in Sources */,
 				0AB10000000000000000E202 /* BrightnessContrast.swift in Sources */,
+				0AB10000000000000000E302 /* Saturation.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -620,6 +627,7 @@
 				0AB10000000000000000A002 /* Processors-Invert.swift in Sources */,
 				0AB10000000000000000A102 /* Processors-Orient.swift in Sources */,
 				0AB10000000000000000A202 /* Processors-BrightnessContrast.swift in Sources */,
+				0AB10000000000000000A302 /* Processors-Saturation.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

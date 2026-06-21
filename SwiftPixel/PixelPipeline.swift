@@ -66,6 +66,10 @@ public struct PixelPipeline: Sendable
         /// normalization.
         public let brightnessContrast: ( brightness: Double, contrast: Double )?
 
+        /// The colour-saturation factor, or `nil` to leave saturation untouched.
+        /// Requires normalization; applied after white balance.
+        public let saturation: Double?
+
         /// Whether to invert the image (photographic negative). Requires
         /// normalization.
         public let invert: Bool
@@ -93,10 +97,11 @@ public struct PixelPipeline: Sendable
         ///   - whiteBalance:       Optional white-balance mode. Defaults to `nil`.
         ///   - invert:             Whether to invert the image. Defaults to `false`.
         ///   - brightnessContrast: Optional brightness offset and contrast factor. Defaults to `nil`.
+        ///   - saturation:         Optional colour-saturation factor. Defaults to `nil`.
         ///   - orient:             Optional net orientation to apply last. Defaults to `nil`.
         ///   - benchmark:          Whether to emit per-stage timings. Defaults to `false`.
         ///   - benchmarkOutput:    Optional sink for timing output. Defaults to `nil` (prints).
-        public init( scale: ( scale: Double, offset: Double )? = nil, debayer: ( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )? = nil, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.Algorithm? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, brightnessContrast: ( brightness: Double, contrast: Double )? = nil, orient: Processors.Orient.Orientation? = nil, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
+        public init( scale: ( scale: Double, offset: Double )? = nil, debayer: ( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )? = nil, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.Algorithm? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, brightnessContrast: ( brightness: Double, contrast: Double )? = nil, saturation: Double? = nil, orient: Processors.Orient.Orientation? = nil, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
         {
             self.scale              = scale
             self.debayer            = debayer
@@ -106,6 +111,7 @@ public struct PixelPipeline: Sendable
             self.whiteBalance       = whiteBalance
             self.invert             = invert
             self.brightnessContrast = brightnessContrast
+            self.saturation         = saturation
             self.orient             = orient
             self.benchmark          = benchmark
             self.benchmarkOutput    = benchmarkOutput
@@ -223,7 +229,19 @@ public struct PixelPipeline: Sendable
             brightnessContrast = nil
         }
 
-        let requiresNormalization = self.config.stretch != nil || self.config.correctGamma != nil || self.config.whiteBalance != nil || self.config.invert || brightnessContrast != nil
+        // A neutral saturation (factor 1) is a no-op and is dropped here.
+        let saturation: Double?
+
+        if let configured = self.config.saturation, configured != 1.0
+        {
+            saturation = configured
+        }
+        else
+        {
+            saturation = nil
+        }
+
+        let requiresNormalization = self.config.stretch != nil || self.config.correctGamma != nil || self.config.whiteBalance != nil || self.config.invert || brightnessContrast != nil || saturation != nil
         let normalizeMode: Processors.Normalize.Mode?
 
         if let configured = self.config.normalize
@@ -264,6 +282,12 @@ public struct PixelPipeline: Sendable
         if let whiteBalance = self.config.whiteBalance
         {
             processors.append( Processors.WhiteBalance( mode: whiteBalance ) )
+        }
+
+        // Saturation is a colour adjustment, applied after white balance.
+        if let saturation
+        {
+            processors.append( Processors.Saturation( saturation: saturation ) )
         }
 
         if self.config.invert

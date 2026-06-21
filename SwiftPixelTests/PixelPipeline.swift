@@ -61,13 +61,15 @@ struct Test_PixelPipeline
         stretch:         Processors.Stretch.Algorithm?                                                 = nil,
         correctGamma:    Double?                                                                       = nil,
         whiteBalance:       Processors.WhiteBalance.Mode?                                              = nil,
+        invert:             Bool                                                                       = false,
         brightnessContrast: ( brightness: Double, contrast: Double )?                                  = nil,
+        saturation:         Double?                                                                    = nil,
         orient:             Processors.Orient.Orientation?                                             = nil,
         benchmark:          Bool                                                                       = false,
         benchmarkOutput:    ( @Sendable ( String ) -> Void )?                                          = nil
     ) -> PixelPipeline.Config
     {
-        PixelPipeline.Config( scale: scale, debayer: debayer, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, brightnessContrast: brightnessContrast, orient: orient, benchmark: benchmark, benchmarkOutput: benchmarkOutput )
+        PixelPipeline.Config( scale: scale, debayer: debayer, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, invert: invert, brightnessContrast: brightnessContrast, saturation: saturation, orient: orient, benchmark: benchmark, benchmarkOutput: benchmarkOutput )
     }
 
     @Test
@@ -206,6 +208,39 @@ struct Test_PixelPipeline
     func autoInsertsNormalizeForBrightnessContrast() async throws
     {
         let pipeline = PixelPipeline( config: Self.config( brightnessContrast: ( brightness: 0.2, contrast: 1.5 ) ) )
+        let result   = try pipeline.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
+
+        #expect( result.isNormalized == true )
+        #expect( result.pixels.allSatisfy { $0 >= 0.0 && $0 <= 1.0 } )
+    }
+
+    @Test
+    func saturationAppendedAfterWhiteBalanceBeforeInvert() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, whiteBalance: .auto, invert: true, saturation: 1.5 ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        let whiteBalanceIndex = try #require( names.firstIndex { $0.hasPrefix( "White Balance" ) } )
+        let saturationIndex   = try #require( names.firstIndex { $0.hasPrefix( "Saturation" ) } )
+        let invertIndex       = try #require( names.firstIndex { $0.hasPrefix( "Invert" ) } )
+
+        #expect( whiteBalanceIndex < saturationIndex )
+        #expect( saturationIndex < invertIndex )
+    }
+
+    @Test
+    func neutralSaturationNotAppended() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, saturation: 1.0 ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        #expect( names.contains { $0.hasPrefix( "Saturation" ) } == false )
+    }
+
+    @Test
+    func autoInsertsNormalizeForSaturation() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( saturation: 1.5 ) )
         let result   = try pipeline.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
 
         #expect( result.isNormalized == true )

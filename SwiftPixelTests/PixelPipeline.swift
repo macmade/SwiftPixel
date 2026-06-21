@@ -60,13 +60,14 @@ struct Test_PixelPipeline
         normalize:       Processors.Normalize.Mode?                                                    = nil,
         stretch:         Processors.Stretch.Algorithm?                                                 = nil,
         correctGamma:    Double?                                                                       = nil,
-        whiteBalance:    Processors.WhiteBalance.Mode?                                                 = nil,
-        orient:          Processors.Orient.Orientation?                                                = nil,
-        benchmark:       Bool                                                                          = false,
-        benchmarkOutput: ( @Sendable ( String ) -> Void )?                                             = nil
+        whiteBalance:       Processors.WhiteBalance.Mode?                                              = nil,
+        brightnessContrast: ( brightness: Double, contrast: Double )?                                  = nil,
+        orient:             Processors.Orient.Orientation?                                             = nil,
+        benchmark:          Bool                                                                       = false,
+        benchmarkOutput:    ( @Sendable ( String ) -> Void )?                                          = nil
     ) -> PixelPipeline.Config
     {
-        PixelPipeline.Config( scale: scale, debayer: debayer, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, orient: orient, benchmark: benchmark, benchmarkOutput: benchmarkOutput )
+        PixelPipeline.Config( scale: scale, debayer: debayer, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, brightnessContrast: brightnessContrast, orient: orient, benchmark: benchmark, benchmarkOutput: benchmarkOutput )
     }
 
     @Test
@@ -176,6 +177,39 @@ struct Test_PixelPipeline
 
         #expect( names.contains { $0.hasPrefix( "Normalize" ) } == false )
         #expect( names == [ "Scale (2.00 1.00)", "Mono to RGB" ] )
+    }
+
+    @Test
+    func brightnessContrastAppendedAfterNormalizeBeforeStretch() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, stretch: .log( 1.0 ), brightnessContrast: ( brightness: 0.2, contrast: 1.5 ) ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        let normalizeIndex = try #require( names.firstIndex { $0.hasPrefix( "Normalize" ) } )
+        let brightIndex    = try #require( names.firstIndex { $0.hasPrefix( "Brightness/Contrast" ) } )
+        let stretchIndex   = try #require( names.firstIndex { $0.hasPrefix( "Stretch" ) } )
+
+        #expect( normalizeIndex < brightIndex )
+        #expect( brightIndex < stretchIndex )
+    }
+
+    @Test
+    func neutralBrightnessContrastNotAppended() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, brightnessContrast: ( brightness: 0.0, contrast: 1.0 ) ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        #expect( names.contains { $0.hasPrefix( "Brightness/Contrast" ) } == false )
+    }
+
+    @Test
+    func autoInsertsNormalizeForBrightnessContrast() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( brightnessContrast: ( brightness: 0.2, contrast: 1.5 ) ) )
+        let result   = try pipeline.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
+
+        #expect( result.isNormalized == true )
+        #expect( result.pixels.allSatisfy { $0 >= 0.0 && $0 <= 1.0 } )
     }
 
     @Test

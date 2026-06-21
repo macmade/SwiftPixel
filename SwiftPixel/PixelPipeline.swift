@@ -61,6 +61,11 @@ public struct PixelPipeline: Sendable
         /// The white-balance mode. Requires normalization.
         public let whiteBalance: Processors.WhiteBalance.Mode?
 
+        /// The brightness offset and contrast factor, or `nil` to leave both at
+        /// their neutral values. Requires normalization; applied right after
+        /// normalization.
+        public let brightnessContrast: ( brightness: Double, contrast: Double )?
+
         /// Whether to invert the image (photographic negative). Requires
         /// normalization.
         public let invert: Bool
@@ -85,23 +90,25 @@ public struct PixelPipeline: Sendable
         ///   - normalize:       Optional normalization mode. Defaults to `nil`.
         ///   - stretch:         Optional tone-stretch algorithm. Defaults to `nil`.
         ///   - correctGamma:    Optional gamma exponent. Defaults to `nil`.
-        ///   - whiteBalance:    Optional white-balance mode. Defaults to `nil`.
-        ///   - invert:          Whether to invert the image. Defaults to `false`.
-        ///   - orient:          Optional net orientation to apply last. Defaults to `nil`.
-        ///   - benchmark:       Whether to emit per-stage timings. Defaults to `false`.
-        ///   - benchmarkOutput: Optional sink for timing output. Defaults to `nil` (prints).
-        public init( scale: ( scale: Double, offset: Double )? = nil, debayer: ( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )? = nil, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.Algorithm? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, orient: Processors.Orient.Orientation? = nil, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
+        ///   - whiteBalance:       Optional white-balance mode. Defaults to `nil`.
+        ///   - invert:             Whether to invert the image. Defaults to `false`.
+        ///   - brightnessContrast: Optional brightness offset and contrast factor. Defaults to `nil`.
+        ///   - orient:             Optional net orientation to apply last. Defaults to `nil`.
+        ///   - benchmark:          Whether to emit per-stage timings. Defaults to `false`.
+        ///   - benchmarkOutput:    Optional sink for timing output. Defaults to `nil` (prints).
+        public init( scale: ( scale: Double, offset: Double )? = nil, debayer: ( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )? = nil, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.Algorithm? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, brightnessContrast: ( brightness: Double, contrast: Double )? = nil, orient: Processors.Orient.Orientation? = nil, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
         {
-            self.scale           = scale
-            self.debayer         = debayer
-            self.normalize       = normalize
-            self.stretch         = stretch
-            self.correctGamma    = correctGamma
-            self.whiteBalance    = whiteBalance
-            self.invert          = invert
-            self.orient          = orient
-            self.benchmark       = benchmark
-            self.benchmarkOutput = benchmarkOutput
+            self.scale              = scale
+            self.debayer            = debayer
+            self.normalize          = normalize
+            self.stretch            = stretch
+            self.correctGamma       = correctGamma
+            self.whiteBalance       = whiteBalance
+            self.invert             = invert
+            self.brightnessContrast = brightnessContrast
+            self.orient             = orient
+            self.benchmark          = benchmark
+            self.benchmarkOutput    = benchmarkOutput
         }
     }
 
@@ -203,7 +210,20 @@ public struct PixelPipeline: Sendable
             processors.append( Processors.MonoToRGB() )
         }
 
-        let requiresNormalization = self.config.stretch != nil || self.config.correctGamma != nil || self.config.whiteBalance != nil || self.config.invert
+        // A neutral brightness/contrast (no offset, unit factor) is a no-op and
+        // is dropped here, so it neither runs nor forces a normalization.
+        let brightnessContrast: ( brightness: Double, contrast: Double )?
+
+        if let configured = self.config.brightnessContrast, configured.brightness != 0.0 || configured.contrast != 1.0
+        {
+            brightnessContrast = configured
+        }
+        else
+        {
+            brightnessContrast = nil
+        }
+
+        let requiresNormalization = self.config.stretch != nil || self.config.correctGamma != nil || self.config.whiteBalance != nil || self.config.invert || brightnessContrast != nil
         let normalizeMode: Processors.Normalize.Mode?
 
         if let configured = self.config.normalize
@@ -222,6 +242,13 @@ public struct PixelPipeline: Sendable
         if let normalizeMode
         {
             processors.append( Processors.Normalize( mode: normalizeMode ) )
+        }
+
+        // Brightness/contrast is a linear adjustment on the normalized data,
+        // applied before the non-linear tone stages.
+        if let brightnessContrast
+        {
+            processors.append( Processors.BrightnessContrast( brightness: brightnessContrast.brightness, contrast: brightnessContrast.contrast ) )
         }
 
         if let stretch = self.config.stretch

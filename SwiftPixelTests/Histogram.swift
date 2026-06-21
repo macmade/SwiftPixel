@@ -180,6 +180,53 @@ struct Test_Histogram
     }
 
     @Test
+    func mono() async throws
+    {
+        let bytes = [ UInt8( 10 ), UInt8( 20 ), UInt8( 30 ) ]
+
+        let histogram = Histogram( bytes: bytes, channels: 1, mode: .mono )
+
+        try #require( histogram.data.count == 1 )
+
+        #expect( histogram.data[ 0 ][ 10 ] == 1 )
+        #expect( histogram.data[ 0 ][ 20 ] == 1 )
+        #expect( histogram.data[ 0 ][ 30 ] == 1 )
+    }
+
+    @Test
+    func monoFromMultiChannelReadsFirstChannel() async throws
+    {
+        let bytes = [
+            UInt8( 10 ), UInt8( 20 ), UInt8( 30 ),
+            UInt8( 40 ), UInt8( 50 ), UInt8( 60 ),
+        ]
+
+        let histogram = Histogram( bytes: bytes, channels: 3, mode: .mono )
+
+        try #require( histogram.data.count == 1 )
+
+        // Only the first sample of each pixel (channel 0) is counted.
+        #expect( histogram.data[ 0 ][ 10 ] == 1 )
+        #expect( histogram.data[ 0 ][ 40 ] == 1 )
+
+        // The green and blue samples are ignored.
+        #expect( histogram.data[ 0 ][ 20 ] == 0 )
+        #expect( histogram.data[ 0 ][ 30 ] == 0 )
+        #expect( histogram.data[ 0 ][ 50 ] == 0 )
+        #expect( histogram.data[ 0 ][ 60 ] == 0 )
+    }
+
+    @Test
+    func emptyMono() async throws
+    {
+        let histogram = Histogram( bytes: [], channels: 1, mode: .mono )
+
+        try #require( histogram.data.count == 1 )
+
+        #expect( histogram.data[ 0 ].allSatisfy { $0 == 0 } )
+    }
+
+    @Test
     func rgba() async throws
     {
         let bytes = [

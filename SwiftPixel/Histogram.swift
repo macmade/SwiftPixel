@@ -35,6 +35,10 @@ public struct Histogram: Equatable
 
         /// A single luminance histogram (Rec. 709 weighted).
         case luminance
+
+        /// A single-channel histogram of the first sample of each pixel, for
+        /// genuinely monochrome (1-channel) data.
+        case mono
     }
 
     /// The source bytes the histogram was built from.
@@ -47,7 +51,8 @@ public struct Histogram: Equatable
     public let mode: Mode
 
     /// The computed bins: three arrays (R, G, B) in `.rgb` mode, or one
-    /// (luminance) in `.luminance` mode; each array has 256 entries.
+    /// (luminance in `.luminance` mode, the first channel in `.mono` mode); each
+    /// array has 256 entries.
     public let data: [ [ Int ] ]
 
     /// Builds per-channel (or luminance) histograms from interleaved 8-bit pixel
@@ -59,7 +64,8 @@ public struct Histogram: Equatable
     ///               read stride: 1 (grayscale, replicated into R/G/B), 3 (RGB),
     ///               or 4 (RGBA, the alpha sample is ignored). Trailing bytes
     ///               that don't form a complete pixel are skipped.
-    ///   - mode:     Whether to compute per-channel or luminance histograms.
+    ///   - mode:     Whether to compute per-channel, luminance or single-channel
+    ///               (mono) histograms.
     public init( bytes: [ UInt8 ], channels: Int, mode: Mode )
     {
         self.bytes    = bytes
@@ -71,6 +77,7 @@ public struct Histogram: Equatable
         var green     = [ Int ]( repeating: 0, count: bins )
         var blue      = [ Int ]( repeating: 0, count: bins )
         var luminance = [ Int ]( repeating: 0, count: bins )
+        var mono      = [ Int ]( repeating: 0, count: bins )
 
         if channels >= 1
         {
@@ -108,10 +115,19 @@ public struct Histogram: Equatable
                         let y = ( 2126 * r + 7152 * g + 722 * b ) / 10000
 
                         luminance[ y ] += 1
+
+                    case .mono:
+
+                        mono[ r ] += 1
                 }
             }
         }
 
-        self.data = mode == .rgb ? [ red, green, blue ] : [ luminance ]
+        switch mode
+        {
+            case .rgb:       self.data = [ red, green, blue ]
+            case .luminance: self.data = [ luminance ]
+            case .mono:      self.data = [ mono ]
+        }
     }
 }

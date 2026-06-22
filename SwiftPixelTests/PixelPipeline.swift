@@ -64,13 +64,14 @@ struct Test_PixelPipeline
         invert:             Bool                                                                       = false,
         brightnessContrast: ( brightness: Double, contrast: Double )?                                  = nil,
         levels:             Processors.Levels.Channels?                                                = nil,
+        curves:             Processors.Curves.Channels?                                                = nil,
         saturation:         Double?                                                                    = nil,
         orient:             Processors.Orient.Orientation?                                             = nil,
         benchmark:          Bool                                                                       = false,
         benchmarkOutput:    ( @Sendable ( String ) -> Void )?                                          = nil
     ) -> PixelPipeline.Config
     {
-        PixelPipeline.Config( scale: scale, debayer: debayer, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, invert: invert, brightnessContrast: brightnessContrast, levels: levels, saturation: saturation, orient: orient, benchmark: benchmark, benchmarkOutput: benchmarkOutput )
+        PixelPipeline.Config( scale: scale, debayer: debayer, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, invert: invert, brightnessContrast: brightnessContrast, levels: levels, curves: curves, saturation: saturation, orient: orient, benchmark: benchmark, benchmarkOutput: benchmarkOutput )
     }
 
     @Test
@@ -242,6 +243,43 @@ struct Test_PixelPipeline
     func autoInsertsNormalizeForLevels() async throws
     {
         let pipeline = PixelPipeline( config: Self.config( levels: .uniform( Processors.Levels.Parameters( inputBlack: 0.1, inputWhite: 0.9 ) ) ) )
+        let result   = try pipeline.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
+
+        #expect( result.isNormalized == true )
+        #expect( result.pixels.allSatisfy { $0 >= 0.0 && $0 <= 1.0 } )
+    }
+
+    @Test
+    func curvesAppendedAfterLevelsBeforeStretch() async throws
+    {
+        let levels = Processors.Levels.Channels.uniform( Processors.Levels.Parameters( inputBlack: 0.1, inputWhite: 0.9 ) )
+        let curves = Processors.Curves.Channels.uniform( Processors.Curves.Curve( points: [ .init( x: 0, y: 0 ), .init( x: 0.5, y: 0.7 ), .init( x: 1, y: 1 ) ] ) )
+
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, stretch: .log( 1.0 ), levels: levels, curves: curves ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        let levelsIndex  = try #require( names.firstIndex { $0.hasPrefix( "Levels" ) } )
+        let curvesIndex  = try #require( names.firstIndex { $0.hasPrefix( "Curves" ) } )
+        let stretchIndex = try #require( names.firstIndex { $0.hasPrefix( "Stretch" ) } )
+
+        #expect( levelsIndex < curvesIndex )
+        #expect( curvesIndex < stretchIndex )
+    }
+
+    @Test
+    func identityCurvesNotAppended() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, curves: .uniform( .identity ) ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        #expect( names.contains { $0.hasPrefix( "Curves" ) } == false )
+    }
+
+    @Test
+    func autoInsertsNormalizeForCurves() async throws
+    {
+        let curves   = Processors.Curves.Channels.uniform( Processors.Curves.Curve( points: [ .init( x: 0, y: 0 ), .init( x: 0.5, y: 0.7 ), .init( x: 1, y: 1 ) ] ) )
+        let pipeline = PixelPipeline( config: Self.config( curves: curves ) )
         let result   = try pipeline.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
 
         #expect( result.isNormalized == true )

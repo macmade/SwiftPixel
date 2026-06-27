@@ -32,6 +32,12 @@ to a `CGImage`.
 - **`Histogram` / `HistogramStatistics`** — per-channel, luminance or mono
   histograms from 8-bit data, plus statistics (mean, median, standard
   deviation, min/max, 1st/99th percentiles).
+- **`GaussianKernel` / `Convolution`** — a truncated, normalized 2D Gaussian
+  kernel with a zero-sum (high-pass) variant, and an Accelerate-backed (`vDSP`)
+  2D convolution over `Double` sample grids. Edge handling extends the image by
+  replicating border pixels, and a `zeroSumResponse` helper gives the
+  matched-filter response (a Gaussian blur minus a box-mean blur) that peaks on
+  blob-like features and vanishes on smooth content.
 - **Built-in processors** (the `Processors` namespace, all conforming to
   `PixelProcessor`):
   - `Scale` — affine scaling of raw samples.

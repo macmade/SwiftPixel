@@ -1,0 +1,99 @@
+/*******************************************************************************
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2026, Jean-David Gadina - www.xs-labs.com
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the Software), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ ******************************************************************************/
+
+import Foundation
+@testable import SwiftPixel
+import Testing
+
+/// Tests for ``GaussianKernel``.
+struct Test_GaussianKernel
+{
+    /// The normalized kernel's weights sum to one.
+    @Test
+    func normalizedWeightsSumToOne() throws
+    {
+        let kernel = GaussianKernel( sigma: 2 )
+        let sum    = kernel.values.reduce( 0, + )
+
+        #expect( abs( sum - 1 ) < 1e-9 )
+    }
+
+    /// The zero-sum variant's weights sum to (approximately) zero, so it produces
+    /// no response to a constant region.
+    @Test
+    func zeroSumWeightsSumToZero() throws
+    {
+        let kernel = GaussianKernel( sigma: 2 )
+        let sum    = kernel.zeroSumValues.reduce( 0, + )
+
+        #expect( abs( sum ) < 1e-12 )
+    }
+
+    /// The kernel has an odd, square footprint sized from its radius.
+    @Test
+    func footprintIsSquareAndOddFromRadius() throws
+    {
+        let kernel = GaussianKernel( sigma: 1.5 )
+
+        #expect( kernel.size == ( 2 * kernel.radius ) + 1 )
+        #expect( kernel.values.count == kernel.size * kernel.size )
+        #expect( kernel.zeroSumValues.count == kernel.size * kernel.size )
+    }
+
+    /// The kernel is symmetric about both axes.
+    @Test
+    func kernelIsSymmetric() throws
+    {
+        let kernel = GaussianKernel( sigma: 2 )
+        let size   = kernel.size
+
+        ( 0 ..< size ).forEach
+        {
+            y in
+
+            ( 0 ..< size ).forEach
+            {
+                x in
+
+                let value     = kernel.values[ ( y * size ) + x ]
+                let mirroredX = kernel.values[ ( y * size ) + ( size - 1 - x ) ]
+                let mirroredY = kernel.values[ ( ( size - 1 - y ) * size ) + x ]
+
+                #expect( abs( value - mirroredX ) < 1e-12 )
+                #expect( abs( value - mirroredY ) < 1e-12 )
+            }
+        }
+    }
+
+    /// The kernel's central weight is its maximum.
+    @Test
+    func centerIsTheMaximumWeight() throws
+    {
+        let kernel = GaussianKernel( sigma: 2 )
+        let center = kernel.values[ ( kernel.radius * kernel.size ) + kernel.radius ]
+        let max    = kernel.values.max() ?? 0
+
+        #expect( center == max )
+    }
+}

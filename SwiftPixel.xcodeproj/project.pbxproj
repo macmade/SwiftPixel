@@ -61,6 +61,7 @@
 		FE00000000000000000000B4 /* Convolution.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000A4 /* Convolution.swift */; };
 		FE00000000000000000000E2 /* GaussianFit.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000E1 /* GaussianFit.swift */; };
 		FE00000000000000000000E4 /* GaussianFit.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000E3 /* GaussianFit.swift */; };
+		FE00000000000000000000C4 /* PixelUtilities-Median.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000C3 /* PixelUtilities-Median.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -201,6 +202,7 @@
 		FE00000000000000000000A4 /* Convolution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Convolution.swift; sourceTree = "<group>"; };
 		FE00000000000000000000E1 /* GaussianFit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GaussianFit.swift; sourceTree = "<group>"; };
 		FE00000000000000000000E3 /* GaussianFit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GaussianFit.swift; sourceTree = "<group>"; };
+		FE00000000000000000000C3 /* PixelUtilities-Median.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PixelUtilities-Median.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -293,6 +295,7 @@
 				FE00000000000000000000A4 /* Convolution.swift */,
 				FE00000000000000000000E3 /* GaussianFit.swift */,
 				FE00000000000000000000A3 /* GaussianKernel.swift */,
+				FE00000000000000000000C3 /* PixelUtilities-Median.swift */,
 				0524AD6A2DF339D500180358 /* Histogram.swift */,
 				0524AD772DF33DDA00180358 /* HistogramStatistics.swift */,
 				050F38232DEE1AF900E84F97 /* PixelBuffer.swift */,
@@ -646,6 +649,7 @@
 				FE00000000000000000000B3 /* GaussianKernel.swift in Sources */,
 				FE00000000000000000000B4 /* Convolution.swift in Sources */,
 				FE00000000000000000000E4 /* GaussianFit.swift in Sources */,
+				FE00000000000000000000C4 /* PixelUtilities-Median.swift in Sources */,
 				050F38242DEE1AFD00E84F97 /* PixelBuffer.swift in Sources */,
 				05D710BF2DF1D84D00CE32E3 /* Processors-WhiteBalance.swift in Sources */,
 				05398CF62DEEE0AA005904EC /* Processors-Scale.swift in Sources */,

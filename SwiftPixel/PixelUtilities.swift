@@ -216,4 +216,81 @@ public enum PixelUtilities
 
         return ( lower: lowerValue, upper: upperValue )
     }
+
+    /// The median of a set of values: the middle value for an odd count, the
+    /// average of the two middle values for an even count, or `nil` when empty.
+    ///
+    /// Generic over `BinaryFloatingPoint` (and not integers) because the
+    /// even-count case averages the two middle values, which integer division
+    /// would truncate. A concrete, Accelerate-backed overload exists for
+    /// `[Double]`.
+    ///
+    /// - Parameter values: The values to summarize.
+    /// - Returns: The median, or `nil` for an empty input.
+    public static func median< T: BinaryFloatingPoint >( _ values: [ T ] ) -> T?
+    {
+        guard values.isEmpty == false
+        else
+        {
+            return nil
+        }
+
+        let sorted = values.sorted()
+        let middle = sorted.count / 2
+
+        if sorted.count.isMultiple( of: 2 )
+        {
+            return ( sorted[ middle - 1 ] + sorted[ middle ] ) / 2
+        }
+
+        return sorted[ middle ]
+    }
+
+    /// The median of a set of `Double` values — an Accelerate-backed fast path.
+    ///
+    /// The median is the 50th percentile, so this reuses
+    /// ``percentileBounds(in:lower:upper:)`` (a single `vDSP` sort +
+    /// interpolation) rather than carrying its own. Its interpolation matches the
+    /// generic ``median(_:)``: the exact middle value for an odd count, the
+    /// average of the two middle values for an even count.
+    ///
+    /// - Parameter values: The values to summarize.
+    /// - Returns: The median, or `nil` for an empty input.
+    public static func median( _ values: [ Double ] ) -> Double?
+    {
+        guard values.isEmpty == false
+        else
+        {
+            return nil
+        }
+
+        return self.percentileBounds( in: values, lower: 50, upper: 50 ).lower
+    }
+
+    /// The median absolute deviation of a set of values about a center — a robust
+    /// measure of spread.
+    ///
+    /// - Parameters:
+    ///   - values: The values to summarize.
+    ///   - center: The center to measure deviations from (typically the median).
+    /// - Returns: The median of the absolute deviations, or `nil` for an empty
+    ///   input.
+    public static func medianAbsoluteDeviation< T: BinaryFloatingPoint >( _ values: [ T ], around center: T ) -> T?
+    {
+        self.median( values.map { abs( $0 - center ) } )
+    }
+
+    /// The median absolute deviation of a set of `Double` values about a center —
+    /// the Accelerate-backed counterpart to the generic
+    /// ``medianAbsoluteDeviation(_:around:)``.
+    ///
+    /// - Parameters:
+    ///   - values: The values to summarize.
+    ///   - center: The center to measure deviations from (typically the median).
+    /// - Returns: The median of the absolute deviations, or `nil` for an empty
+    ///   input.
+    public static func medianAbsoluteDeviation( _ values: [ Double ], around center: Double ) -> Double?
+    {
+        self.median( values.map { abs( $0 - center ) } )
+    }
 }

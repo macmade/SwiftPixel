@@ -48,6 +48,17 @@ public extension Processors
             String( format: "Scale (%.02f %.02f)", self.scale, self.offset )
         }
 
+        /// Creates a scale stage.
+        ///
+        /// - Parameters:
+        ///   - scale:  The multiplicative factor applied to each sample.
+        ///   - offset: The additive offset applied after scaling.
+        public init( scale: Double, offset: Double )
+        {
+            self.scale  = scale
+            self.offset = offset
+        }
+
         /// Multiplies every sample by `scale` and adds `offset`, in place.
         ///
         /// - Parameter buffer: The buffer to transform.

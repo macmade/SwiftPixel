@@ -39,6 +39,10 @@ public extension Processors
             "Mono to RGB"
         }
 
+        /// Creates a mono-to-RGB stage.
+        public init()
+        {}
+
         /// Replicates each gray sample into R, G and B, producing a 3-channel
         /// buffer.
         ///

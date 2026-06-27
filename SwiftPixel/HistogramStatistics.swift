@@ -148,7 +148,7 @@ public struct HistogramStatistics: Equatable, Hashable
     ///   - mean:  The distribution mean.
     ///
     /// - Returns: The standard deviation, always finite and `>= 0`.
-    internal static func standardDeviation( sumSq: Double, total: Double, mean: Double ) -> Double
+    public static func standardDeviation( sumSq: Double, total: Double, mean: Double ) -> Double
     {
         let variance = ( sumSq / total ) - ( mean * mean )
 

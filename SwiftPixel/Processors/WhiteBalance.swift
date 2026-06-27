@@ -64,6 +64,14 @@ public extension Processors
             "White Balance (\( self.mode ))"
         }
 
+        /// Creates a white-balance stage.
+        ///
+        /// - Parameter mode: How the per-channel gains are determined.
+        public init( mode: Mode )
+        {
+            self.mode = mode
+        }
+
         /// Applies white-balance gains to `buffer`, in place.
         ///
         /// - Parameter buffer: A normalized, 3-channel buffer.

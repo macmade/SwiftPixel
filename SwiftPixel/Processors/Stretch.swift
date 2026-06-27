@@ -75,6 +75,14 @@ public extension Processors
             "Stretch (\( self.algorithm ))"
         }
 
+        /// Creates a stretch stage.
+        ///
+        /// - Parameter algorithm: The stretch curve and its tuning constant(s).
+        public init( algorithm: Algorithm )
+        {
+            self.algorithm = algorithm
+        }
+
         /// Applies the configured stretch to `buffer`, in place.
         ///
         /// - Parameter buffer: The normalized buffer to transform.

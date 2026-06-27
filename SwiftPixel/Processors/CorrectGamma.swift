@@ -44,6 +44,15 @@ public extension Processors
             String( format: "Gamma Correction (%.02f)", self.gamma )
         }
 
+        /// Creates a gamma-correction stage.
+        ///
+        /// - Parameter gamma: The gamma exponent. Must be `> 0`; each sample is
+        ///                    raised to its reciprocal (`pow(sample, 1 / gamma)`).
+        public init( gamma: Double )
+        {
+            self.gamma = gamma
+        }
+
         /// Raises every sample to `1 / gamma`, in place.
         ///
         /// - Parameter buffer: The normalized buffer to transform.

@@ -66,6 +66,15 @@ public extension Processors
             "Normalize (\( self.mode ))"
         }
 
+        /// Creates a normalization stage.
+        ///
+        /// - Parameter mode: The strategy used to choose the input range that
+        ///                   maps to `[0, 1]`.
+        public init( mode: Mode )
+        {
+            self.mode = mode
+        }
+
         /// Rescales `buffer` into `[0, 1]` and marks it normalized.
         ///
         /// An empty buffer is simply marked normalized; a constant buffer (no

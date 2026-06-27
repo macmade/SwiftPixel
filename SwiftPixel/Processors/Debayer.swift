@@ -100,6 +100,17 @@ public extension Processors
             "Debayer (\( self.mode ) \( self.pattern ))"
         }
 
+        /// Creates a demosaicing stage.
+        ///
+        /// - Parameters:
+        ///   - mode:    The demosaicing algorithm.
+        ///   - pattern: The Bayer color-filter arrangement of the input mosaic.
+        public init( mode: Mode, pattern: Pattern )
+        {
+            self.mode    = mode
+            self.pattern = pattern
+        }
+
         /// Demosaics `buffer` from a Bayer mosaic into 3-channel RGB, in place.
         ///
         /// - Parameter buffer: A non-normalized, 1-channel mosaic buffer.

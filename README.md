@@ -38,6 +38,11 @@ to a `CGImage`.
   replicating border pixels, and a `zeroSumResponse` helper gives the
   matched-filter response (a Gaussian blur minus a box-mean blur) that peaks on
   blob-like features and vanishes on smooth content.
+- **`GaussianFit`** — a least-squares fit of a 2D elliptical Gaussian (amplitude,
+  centre, the two axis widths, orientation and background) to `(x, y, value)`
+  samples, by Levenberg–Marquardt. Recovers an accurate sub-pixel centre and
+  shape for a blob-like feature, and reports `nil` for a non-physical or
+  no-better-than-flat fit.
 - **Built-in processors** (the `Processors` namespace, all conforming to
   `PixelProcessor`):
   - `Scale` — affine scaling of raw samples.

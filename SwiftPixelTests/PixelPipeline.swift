@@ -136,26 +136,47 @@ struct Test_PixelPipeline
     @Test
     func stageOrder() async throws
     {
+        let levels = Processors.Levels.Channels.uniform( Processors.Levels.Parameters( inputBlack: 0.1, inputWhite: 0.9 ) )
+        let curves = Processors.Curves.Channels.uniform( Processors.Curves.Curve( points: [ .init( x: 0, y: 0 ), .init( x: 0.5, y: 0.7 ), .init( x: 1, y: 1 ) ] ) )
+
         let pipeline = PixelPipeline(
             config: Self.config(
-                scale:        ( scale: 2.0, offset: 1.0 ),
-                debayer:      ( .rggb, .bilinear ),
-                normalize:    .minMax,
-                stretch:      .log( 1.0 ),
-                correctGamma: 2.0,
-                whiteBalance: .auto
+                scale:              ( scale: 2.0, offset: 1.0 ),
+                debayer:            ( .rggb, .bilinear ),
+                normalize:          .minMax,
+                stretch:            .log( 1.0 ),
+                correctGamma:       2.0,
+                whiteBalance:       .auto,
+                invert:             true,
+                brightnessContrast: ( brightness: 0.2, contrast: 1.5 ),
+                levels:             levels,
+                curves:             curves,
+                saturation:         1.5,
+                orient:             .init( rotation: .clockwise90, mirroredHorizontally: false )
             )
         )
 
         let names = pipeline.processors().map { $0.name }
 
-        #expect( names.count == 6 )
-        #expect( names[ 0 ].hasPrefix( "Scale" ) )
-        #expect( names[ 1 ].hasPrefix( "Debayer" ) )
-        #expect( names[ 2 ].hasPrefix( "Normalize" ) )
-        #expect( names[ 3 ].hasPrefix( "Stretch" ) )
-        #expect( names[ 4 ].hasPrefix( "Gamma Correction" ) )
-        #expect( names[ 5 ].hasPrefix( "White Balance" ) )
+        // The fixed order: raw scaling and demosaicing, then normalization, then
+        // the linear-domain adjustments applied before the non-linear stretch
+        // (white balance as colour calibration, then brightness/contrast), then
+        // the stretch, then the display-referred stages applied on the stretched
+        // image (gamma, levels, curves, saturation, invert), with orientation —
+        // a pure geometry permutation — last.
+        #expect( names.count == 12 )
+        #expect( names[  0 ].hasPrefix( "Scale" ) )
+        #expect( names[  1 ].hasPrefix( "Debayer" ) )
+        #expect( names[  2 ].hasPrefix( "Normalize" ) )
+        #expect( names[  3 ].hasPrefix( "White Balance" ) )
+        #expect( names[  4 ].hasPrefix( "Brightness/Contrast" ) )
+        #expect( names[  5 ].hasPrefix( "Stretch" ) )
+        #expect( names[  6 ].hasPrefix( "Gamma Correction" ) )
+        #expect( names[  7 ].hasPrefix( "Levels" ) )
+        #expect( names[  8 ].hasPrefix( "Curves" ) )
+        #expect( names[  9 ].hasPrefix( "Saturation" ) )
+        #expect( names[ 10 ].hasPrefix( "Invert" ) )
+        #expect( names[ 11 ].hasPrefix( "Orient" ) )
     }
 
     @Test
@@ -217,17 +238,19 @@ struct Test_PixelPipeline
     }
 
     @Test
-    func levelsAppendedAfterBrightnessContrastBeforeStretch() async throws
+    func levelsAppliedAfterStretch() async throws
     {
         let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, stretch: .log( 1.0 ), brightnessContrast: ( brightness: 0.2, contrast: 1.5 ), levels: .uniform( Processors.Levels.Parameters( inputBlack: 0.1, inputWhite: 0.9 ) ) ) )
         let names    = pipeline.processors().map { $0.name }
 
         let brightIndex  = try #require( names.firstIndex { $0.hasPrefix( "Brightness/Contrast" ) } )
-        let levelsIndex  = try #require( names.firstIndex { $0.hasPrefix( "Levels" ) } )
         let stretchIndex = try #require( names.firstIndex { $0.hasPrefix( "Stretch" ) } )
+        let levelsIndex  = try #require( names.firstIndex { $0.hasPrefix( "Levels" ) } )
 
-        #expect( brightIndex < levelsIndex )
-        #expect( levelsIndex < stretchIndex )
+        // Brightness/contrast is a linear adjustment applied before the stretch;
+        // levels is a display-referred tone remap applied after it.
+        #expect( brightIndex  < stretchIndex )
+        #expect( stretchIndex < levelsIndex )
     }
 
     @Test
@@ -250,7 +273,7 @@ struct Test_PixelPipeline
     }
 
     @Test
-    func curvesAppendedAfterLevelsBeforeStretch() async throws
+    func curvesAppliedAfterLevelsAndStretch() async throws
     {
         let levels = Processors.Levels.Channels.uniform( Processors.Levels.Parameters( inputBlack: 0.1, inputWhite: 0.9 ) )
         let curves = Processors.Curves.Channels.uniform( Processors.Curves.Curve( points: [ .init( x: 0, y: 0 ), .init( x: 0.5, y: 0.7 ), .init( x: 1, y: 1 ) ] ) )
@@ -258,12 +281,14 @@ struct Test_PixelPipeline
         let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, stretch: .log( 1.0 ), levels: levels, curves: curves ) )
         let names    = pipeline.processors().map { $0.name }
 
+        let stretchIndex = try #require( names.firstIndex { $0.hasPrefix( "Stretch" ) } )
         let levelsIndex  = try #require( names.firstIndex { $0.hasPrefix( "Levels" ) } )
         let curvesIndex  = try #require( names.firstIndex { $0.hasPrefix( "Curves" ) } )
-        let stretchIndex = try #require( names.firstIndex { $0.hasPrefix( "Stretch" ) } )
 
-        #expect( levelsIndex < curvesIndex )
-        #expect( curvesIndex < stretchIndex )
+        // Levels and curves are display-referred tone remaps applied after the
+        // stretch, in that order.
+        #expect( stretchIndex < levelsIndex )
+        #expect( levelsIndex  < curvesIndex )
     }
 
     @Test
@@ -287,17 +312,22 @@ struct Test_PixelPipeline
     }
 
     @Test
-    func saturationAppendedAfterWhiteBalanceBeforeInvert() async throws
+    func saturationAppliedAfterStretchBeforeInvert() async throws
     {
-        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, whiteBalance: .auto, invert: true, saturation: 1.5 ) )
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, stretch: .log( 1.0 ), whiteBalance: .auto, invert: true, saturation: 1.5 ) )
         let names    = pipeline.processors().map { $0.name }
 
         let whiteBalanceIndex = try #require( names.firstIndex { $0.hasPrefix( "White Balance" ) } )
+        let stretchIndex      = try #require( names.firstIndex { $0.hasPrefix( "Stretch" ) } )
         let saturationIndex   = try #require( names.firstIndex { $0.hasPrefix( "Saturation" ) } )
         let invertIndex       = try #require( names.firstIndex { $0.hasPrefix( "Invert" ) } )
 
-        #expect( whiteBalanceIndex < saturationIndex )
-        #expect( saturationIndex < invertIndex )
+        // White balance is a linear calibration applied before the stretch;
+        // saturation is a display-referred colour adjustment applied after it,
+        // ahead of the final invert.
+        #expect( whiteBalanceIndex < stretchIndex )
+        #expect( stretchIndex      < saturationIndex )
+        #expect( saturationIndex   < invertIndex )
     }
 
     @Test

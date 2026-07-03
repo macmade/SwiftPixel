@@ -29,9 +29,13 @@ import SwiftUtilities
 /// an ordered chain of processors.
 ///
 /// The stage order is fixed and enforces each processor's preconditions: scale,
-/// then demosaic to RGB, then normalize, then the normalization-dependent stages
-/// (stretch, gamma, white balance, invert). A default normalization is inserted
-/// automatically when a normalization-dependent stage is requested without one.
+/// then demosaic to RGB, then normalize, then the normalization-dependent
+/// stages. Those run in two groups around the non-linear stretch: the linear
+/// pre-stretch adjustments (white balance as a colour calibration, then
+/// brightness/contrast), then the stretch, then the display-referred stages on
+/// the stretched image (gamma, levels, curves, saturation, invert), with
+/// orientation last. A default normalization is inserted automatically when a
+/// normalization-dependent stage is requested without one.
 public struct PixelPipeline: Sendable
 {
     /// Declarative description of which stages to run and how.
@@ -58,26 +62,28 @@ public struct PixelPipeline: Sendable
         /// The gamma exponent for gamma correction. Requires normalization.
         public let correctGamma: Double?
 
-        /// The white-balance mode. Requires normalization.
+        /// The white-balance mode. Requires normalization; applied before the
+        /// stretch, as a linear per-channel colour calibration.
         public let whiteBalance: Processors.WhiteBalance.Mode?
 
         /// The brightness offset and contrast factor, or `nil` to leave both at
-        /// their neutral values. Requires normalization; applied right after
-        /// normalization.
+        /// their neutral values. Requires normalization; a linear adjustment
+        /// applied before the stretch, after white balance.
         public let brightnessContrast: ( brightness: Double, contrast: Double )?
 
         /// The levels remap to apply, or `nil` to leave the tones untouched.
-        /// Requires normalization; applied right after brightness/contrast, as
-        /// another parametric tone adjustment ahead of the non-linear stretch.
+        /// Requires normalization; a parametric tone remap applied after the
+        /// stretch, on the display-referred image.
         public let levels: Processors.Levels.Channels?
 
         /// The tone curve to apply, or `nil` to leave the tones untouched.
-        /// Requires normalization; applied right after levels, as another tone
-        /// remap ahead of the non-linear stretch.
+        /// Requires normalization; applied right after levels, on the
+        /// display-referred image.
         public let curves: Processors.Curves.Channels?
 
         /// The colour-saturation factor, or `nil` to leave saturation untouched.
-        /// Requires normalization; applied after white balance.
+        /// Requires normalization; a colour adjustment applied after the tone
+        /// stages, on the display-referred image.
         public let saturation: Double?
 
         /// Whether to invert the image (photographic negative). Requires
@@ -203,13 +209,17 @@ public struct PixelPipeline: Sendable
     ///
     /// The order is fixed and enforces the processors' preconditions: raw
     /// scaling, then demosaicing to RGB, then normalization, then the stages
-    /// that require a normalized buffer (stretch, gamma, white balance, invert).
+    /// that require a normalized buffer. Those normalization-dependent stages
+    /// run in two groups around the non-linear stretch: the linear pre-stretch
+    /// adjustments (white balance, then brightness/contrast), then the stretch,
+    /// then the display-referred stages on the stretched image (gamma, levels,
+    /// curves, saturation, invert). Orientation, a pure geometry permutation,
+    /// runs last.
     ///
-    /// Stretch, gamma correction, white balance and invert all require a
-    /// normalized buffer. If any of them is requested without an explicit
-    /// normalization mode, a default min/max Normalize is inserted automatically
-    /// so the configuration cannot produce a "buffer needs to be normalized"
-    /// failure.
+    /// All of these stages require a normalized buffer. If any is requested
+    /// without an explicit normalization mode, a default min/max Normalize is
+    /// inserted automatically so the configuration cannot produce a "buffer
+    /// needs to be normalized" failure.
     ///
     /// - Returns: The processors to apply, in execution order.
     func processors() -> [ PixelProcessor ]
@@ -302,24 +312,19 @@ public struct PixelPipeline: Sendable
             processors.append( Processors.Normalize( mode: normalizeMode ) )
         }
 
+        // White balance is a linear, per-channel colour calibration on the
+        // normalized data, applied before the non-linear stretch so the gains
+        // act on the linear signal.
+        if let whiteBalance = self.config.whiteBalance
+        {
+            processors.append( Processors.WhiteBalance( mode: whiteBalance ) )
+        }
+
         // Brightness/contrast is a linear adjustment on the normalized data,
-        // applied before the non-linear tone stages.
+        // applied before the non-linear stretch.
         if let brightnessContrast
         {
             processors.append( Processors.BrightnessContrast( brightness: brightnessContrast.brightness, contrast: brightnessContrast.contrast ) )
-        }
-
-        // Levels is a parametric tone remap on the normalized data, applied with
-        // the other linear adjustments before the non-linear tone stages.
-        if let levels
-        {
-            processors.append( Processors.Levels( channels: levels ) )
-        }
-
-        // Curves is another tone remap, applied right after levels.
-        if let curves
-        {
-            processors.append( Processors.Curves( channels: curves ) )
         }
 
         if let stretch = self.config.stretch
@@ -332,12 +337,21 @@ public struct PixelPipeline: Sendable
             processors.append( Processors.CorrectGamma( gamma: correctGamma ) )
         }
 
-        if let whiteBalance = self.config.whiteBalance
+        // Levels is a parametric tone remap applied after the stretch, on the
+        // display-referred (stretched) image.
+        if let levels
         {
-            processors.append( Processors.WhiteBalance( mode: whiteBalance ) )
+            processors.append( Processors.Levels( channels: levels ) )
         }
 
-        // Saturation is a colour adjustment, applied after white balance.
+        // Curves is another tone remap, applied right after levels.
+        if let curves
+        {
+            processors.append( Processors.Curves( channels: curves ) )
+        }
+
+        // Saturation is a colour adjustment on the display-referred image,
+        // applied after the tone stages.
         if let saturation
         {
             processors.append( Processors.Saturation( saturation: saturation ) )

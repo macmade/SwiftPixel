@@ -43,10 +43,10 @@
 		0AB10000000000000000A102 /* Processors-Orient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A101 /* Processors-Orient.swift */; };
 		0AB10000000000000000A202 /* Processors-BrightnessContrast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A201 /* Processors-BrightnessContrast.swift */; };
 		0AB10000000000000000A302 /* Processors-Saturation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A301 /* Processors-Saturation.swift */; };
-		0AB10000000000000000A602 /* Processors-Hue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A601 /* Processors-Hue.swift */; };
-		0AB10000000000000000A702 /* Processors-ColorBalance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A701 /* Processors-ColorBalance.swift */; };
 		0AB10000000000000000A402 /* Processors-Levels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A401 /* Processors-Levels.swift */; };
 		0AB10000000000000000A502 /* Processors-Curves.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A501 /* Processors-Curves.swift */; };
+		0AB10000000000000000A602 /* Processors-Hue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A601 /* Processors-Hue.swift */; };
+		0AB10000000000000000A702 /* Processors-ColorBalance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A701 /* Processors-ColorBalance.swift */; };
 		0AB10000000000000000B002 /* Debayer+Bilinear.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000B001 /* Debayer+Bilinear.swift */; };
 		0AB10000000000000000C002 /* Processors-Debayer+Bilinear.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000C001 /* Processors-Debayer+Bilinear.swift */; };
 		0AB10000000000000000D002 /* Processors-Debayer+VNG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000D001 /* Processors-Debayer+VNG.swift */; };
@@ -54,18 +54,18 @@
 		0AB10000000000000000E102 /* Orient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E101 /* Orient.swift */; };
 		0AB10000000000000000E202 /* BrightnessContrast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E201 /* BrightnessContrast.swift */; };
 		0AB10000000000000000E302 /* Saturation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E301 /* Saturation.swift */; };
-		0AB10000000000000000E602 /* Hue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E601 /* Hue.swift */; };
-		0AB10000000000000000E702 /* ColorBalance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E701 /* ColorBalance.swift */; };
 		0AB10000000000000000E402 /* Levels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E401 /* Levels.swift */; };
 		0AB10000000000000000E502 /* Curves.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E501 /* Curves.swift */; };
+		0AB10000000000000000E602 /* Hue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E601 /* Hue.swift */; };
+		0AB10000000000000000E702 /* ColorBalance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E701 /* ColorBalance.swift */; };
 		0AB10000000000000000F002 /* Debayer+VNG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000F001 /* Debayer+VNG.swift */; };
 		FE00000000000000000000B1 /* GaussianKernel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000A1 /* GaussianKernel.swift */; };
 		FE00000000000000000000B2 /* Convolution.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000A2 /* Convolution.swift */; };
 		FE00000000000000000000B3 /* GaussianKernel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000A3 /* GaussianKernel.swift */; };
 		FE00000000000000000000B4 /* Convolution.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000A4 /* Convolution.swift */; };
+		FE00000000000000000000C4 /* PixelUtilities-Median.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000C3 /* PixelUtilities-Median.swift */; };
 		FE00000000000000000000E2 /* GaussianFit.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000E1 /* GaussianFit.swift */; };
 		FE00000000000000000000E4 /* GaussianFit.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000E3 /* GaussianFit.swift */; };
-		FE00000000000000000000C4 /* PixelUtilities-Median.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000C3 /* PixelUtilities-Median.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -188,10 +188,10 @@
 		0AB10000000000000000A101 /* Processors-Orient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Orient.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000A201 /* Processors-BrightnessContrast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-BrightnessContrast.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000A301 /* Processors-Saturation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Saturation.swift"; sourceTree = "<group>"; };
-		0AB10000000000000000A601 /* Processors-Hue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Hue.swift"; sourceTree = "<group>"; };
-		0AB10000000000000000A701 /* Processors-ColorBalance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-ColorBalance.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000A401 /* Processors-Levels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Levels.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000A501 /* Processors-Curves.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Curves.swift"; sourceTree = "<group>"; };
+		0AB10000000000000000A601 /* Processors-Hue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Hue.swift"; sourceTree = "<group>"; };
+		0AB10000000000000000A701 /* Processors-ColorBalance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-ColorBalance.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000B001 /* Debayer+Bilinear.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Debayer+Bilinear.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000C001 /* Processors-Debayer+Bilinear.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Debayer+Bilinear.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000D001 /* Processors-Debayer+VNG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Debayer+VNG.swift"; sourceTree = "<group>"; };
@@ -199,18 +199,18 @@
 		0AB10000000000000000E101 /* Orient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Orient.swift; sourceTree = "<group>"; };
 		0AB10000000000000000E201 /* BrightnessContrast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessContrast.swift; sourceTree = "<group>"; };
 		0AB10000000000000000E301 /* Saturation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Saturation.swift; sourceTree = "<group>"; };
-		0AB10000000000000000E601 /* Hue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hue.swift; sourceTree = "<group>"; };
-		0AB10000000000000000E701 /* ColorBalance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorBalance.swift; sourceTree = "<group>"; };
 		0AB10000000000000000E401 /* Levels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Levels.swift; sourceTree = "<group>"; };
 		0AB10000000000000000E501 /* Curves.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Curves.swift; sourceTree = "<group>"; };
+		0AB10000000000000000E601 /* Hue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hue.swift; sourceTree = "<group>"; };
+		0AB10000000000000000E701 /* ColorBalance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorBalance.swift; sourceTree = "<group>"; };
 		0AB10000000000000000F001 /* Debayer+VNG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Debayer+VNG.swift"; sourceTree = "<group>"; };
 		FE00000000000000000000A1 /* GaussianKernel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GaussianKernel.swift; sourceTree = "<group>"; };
 		FE00000000000000000000A2 /* Convolution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Convolution.swift; sourceTree = "<group>"; };
 		FE00000000000000000000A3 /* GaussianKernel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GaussianKernel.swift; sourceTree = "<group>"; };
 		FE00000000000000000000A4 /* Convolution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Convolution.swift; sourceTree = "<group>"; };
+		FE00000000000000000000C3 /* PixelUtilities-Median.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PixelUtilities-Median.swift"; sourceTree = "<group>"; };
 		FE00000000000000000000E1 /* GaussianFit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GaussianFit.swift; sourceTree = "<group>"; };
 		FE00000000000000000000E3 /* GaussianFit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GaussianFit.swift; sourceTree = "<group>"; };
-		FE00000000000000000000C3 /* PixelUtilities-Median.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PixelUtilities-Median.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -557,7 +557,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1630;
-				LastUpgradeCheck = 2630;
+				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					05C527812DD8E36300843626 = {
 						CreatedOnToolsVersion = 16.3;

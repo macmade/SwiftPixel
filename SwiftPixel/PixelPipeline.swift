@@ -33,7 +33,7 @@ import SwiftUtilities
 /// stages. Those run in two groups around the non-linear stretch: the linear
 /// pre-stretch adjustments (white balance as a colour calibration, then
 /// brightness/contrast), then the stretch, then the display-referred stages on
-/// the stretched image (gamma, levels, curves, saturation, invert), with
+/// the stretched image (gamma, levels, curves, hue, saturation, invert), with
 /// orientation last. A default normalization is inserted automatically when a
 /// normalization-dependent stage is requested without one.
 public struct PixelPipeline: Sendable
@@ -81,6 +81,11 @@ public struct PixelPipeline: Sendable
         /// display-referred image.
         public let curves: Processors.Curves.Channels?
 
+        /// The hue-rotation angle in degrees, or `nil` to leave the hue
+        /// untouched. Requires normalization; a display-referred colour
+        /// adjustment applied just before saturation.
+        public let hue: Double?
+
         /// The colour-saturation factor, or `nil` to leave saturation untouched.
         /// Requires normalization; a colour adjustment applied after the tone
         /// stages, on the display-referred image.
@@ -115,11 +120,12 @@ public struct PixelPipeline: Sendable
         ///   - brightnessContrast: Optional brightness offset and contrast factor. Defaults to `nil`.
         ///   - levels:             Optional levels remap. Defaults to `nil`.
         ///   - curves:             Optional tone curve. Defaults to `nil`.
+        ///   - hue:                Optional hue-rotation angle in degrees. Defaults to `nil`.
         ///   - saturation:         Optional colour-saturation factor. Defaults to `nil`.
         ///   - orient:             Optional net orientation to apply last. Defaults to `nil`.
         ///   - benchmark:          Whether to emit per-stage timings. Defaults to `false`.
         ///   - benchmarkOutput:    Optional sink for timing output. Defaults to `nil` (prints).
-        public init( scale: ( scale: Double, offset: Double )? = nil, debayer: ( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )? = nil, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.Algorithm? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, brightnessContrast: ( brightness: Double, contrast: Double )? = nil, levels: Processors.Levels.Channels? = nil, curves: Processors.Curves.Channels? = nil, saturation: Double? = nil, orient: Processors.Orient.Orientation? = nil, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
+        public init( scale: ( scale: Double, offset: Double )? = nil, debayer: ( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )? = nil, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.Algorithm? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, brightnessContrast: ( brightness: Double, contrast: Double )? = nil, levels: Processors.Levels.Channels? = nil, curves: Processors.Curves.Channels? = nil, hue: Double? = nil, saturation: Double? = nil, orient: Processors.Orient.Orientation? = nil, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
         {
             self.scale              = scale
             self.debayer            = debayer
@@ -131,6 +137,7 @@ public struct PixelPipeline: Sendable
             self.brightnessContrast = brightnessContrast
             self.levels             = levels
             self.curves             = curves
+            self.hue                = hue
             self.saturation         = saturation
             self.orient             = orient
             self.benchmark          = benchmark
@@ -213,7 +220,7 @@ public struct PixelPipeline: Sendable
     /// run in two groups around the non-linear stretch: the linear pre-stretch
     /// adjustments (white balance, then brightness/contrast), then the stretch,
     /// then the display-referred stages on the stretched image (gamma, levels,
-    /// curves, saturation, invert). Orientation, a pure geometry permutation,
+    /// curves, hue, saturation, invert). Orientation, a pure geometry permutation,
     /// runs last.
     ///
     /// All of these stages require a normalized buffer. If any is requested
@@ -291,7 +298,19 @@ public struct PixelPipeline: Sendable
             saturation = nil
         }
 
-        let requiresNormalization = self.config.stretch != nil || self.config.correctGamma != nil || self.config.whiteBalance != nil || self.config.invert || brightnessContrast != nil || levels != nil || curves != nil || saturation != nil
+        // A neutral hue rotation (0°) is a no-op and is dropped here.
+        let hue: Double?
+
+        if let configured = self.config.hue, configured != 0.0
+        {
+            hue = configured
+        }
+        else
+        {
+            hue = nil
+        }
+
+        let requiresNormalization = self.config.stretch != nil || self.config.correctGamma != nil || self.config.whiteBalance != nil || self.config.invert || brightnessContrast != nil || levels != nil || curves != nil || hue != nil || saturation != nil
         let normalizeMode: Processors.Normalize.Mode?
 
         if let configured = self.config.normalize
@@ -348,6 +367,13 @@ public struct PixelPipeline: Sendable
         if let curves
         {
             processors.append( Processors.Curves( channels: curves ) )
+        }
+
+        // Hue is a colour rotation on the display-referred image, applied just
+        // before saturation.
+        if let hue
+        {
+            processors.append( Processors.Hue( angle: hue ) )
         }
 
         // Saturation is a colour adjustment on the display-referred image,

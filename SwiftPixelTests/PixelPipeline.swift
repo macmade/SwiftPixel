@@ -65,6 +65,7 @@ struct Test_PixelPipeline
         brightnessContrast: ( brightness: Double, contrast: Double )?                                  = nil,
         levels:             Processors.Levels.Channels?                                                = nil,
         curves:             Processors.Curves.Channels?                                                = nil,
+        colorBalance:       Processors.ColorBalance.Ranges?                                            = nil,
         hue:                Double?                                                                    = nil,
         saturation:         Double?                                                                    = nil,
         orient:             Processors.Orient.Orientation?                                             = nil,
@@ -72,7 +73,7 @@ struct Test_PixelPipeline
         benchmarkOutput:    ( @Sendable ( String ) -> Void )?                                          = nil
     ) -> PixelPipeline.Config
     {
-        PixelPipeline.Config( scale: scale, debayer: debayer, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, invert: invert, brightnessContrast: brightnessContrast, levels: levels, curves: curves, hue: hue, saturation: saturation, orient: orient, benchmark: benchmark, benchmarkOutput: benchmarkOutput )
+        PixelPipeline.Config( scale: scale, debayer: debayer, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, invert: invert, brightnessContrast: brightnessContrast, levels: levels, curves: curves, colorBalance: colorBalance, hue: hue, saturation: saturation, orient: orient, benchmark: benchmark, benchmarkOutput: benchmarkOutput )
     }
 
     @Test
@@ -152,6 +153,7 @@ struct Test_PixelPipeline
                 brightnessContrast: ( brightness: 0.2, contrast: 1.5 ),
                 levels:             levels,
                 curves:             curves,
+                colorBalance:       .init( midtones: .init( red: 0.1 ) ),
                 hue:                30.0,
                 saturation:         1.5,
                 orient:             .init( rotation: .clockwise90, mirroredHorizontally: false )
@@ -164,9 +166,9 @@ struct Test_PixelPipeline
         // the linear-domain adjustments applied before the non-linear stretch
         // (white balance as colour calibration, then brightness/contrast), then
         // the stretch, then the display-referred stages applied on the stretched
-        // image (gamma, levels, curves, hue, saturation, invert), with
-        // orientation — a pure geometry permutation — last.
-        #expect( names.count == 13 )
+        // image (gamma, levels, curves, colour balance, hue, saturation,
+        // invert), with orientation — a pure geometry permutation — last.
+        #expect( names.count == 14 )
         #expect( names[  0 ].hasPrefix( "Scale" ) )
         #expect( names[  1 ].hasPrefix( "Debayer" ) )
         #expect( names[  2 ].hasPrefix( "Normalize" ) )
@@ -176,10 +178,11 @@ struct Test_PixelPipeline
         #expect( names[  6 ].hasPrefix( "Gamma Correction" ) )
         #expect( names[  7 ].hasPrefix( "Levels" ) )
         #expect( names[  8 ].hasPrefix( "Curves" ) )
-        #expect( names[  9 ].hasPrefix( "Hue" ) )
-        #expect( names[ 10 ].hasPrefix( "Saturation" ) )
-        #expect( names[ 11 ].hasPrefix( "Invert" ) )
-        #expect( names[ 12 ].hasPrefix( "Orient" ) )
+        #expect( names[  9 ].hasPrefix( "Color Balance" ) )
+        #expect( names[ 10 ].hasPrefix( "Hue" ) )
+        #expect( names[ 11 ].hasPrefix( "Saturation" ) )
+        #expect( names[ 12 ].hasPrefix( "Invert" ) )
+        #expect( names[ 13 ].hasPrefix( "Orient" ) )
     }
 
     @Test
@@ -372,6 +375,42 @@ struct Test_PixelPipeline
     func autoInsertsNormalizeForHue() async throws
     {
         let pipeline = PixelPipeline( config: Self.config( hue: 30.0 ) )
+        let result   = try pipeline.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
+
+        #expect( result.isNormalized == true )
+        #expect( result.pixels.allSatisfy { $0 >= 0.0 && $0 <= 1.0 } )
+    }
+
+    @Test
+    func colorBalanceAppliedAfterCurvesBeforeHue() async throws
+    {
+        let curves   = Processors.Curves.Channels.uniform( Processors.Curves.Curve( points: [ .init( x: 0, y: 0 ), .init( x: 0.5, y: 0.7 ), .init( x: 1, y: 1 ) ] ) )
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, stretch: .log( 1.0 ), curves: curves, colorBalance: .init( midtones: .init( red: 0.1 ) ), hue: 30.0 ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        let curvesIndex       = try #require( names.firstIndex { $0.hasPrefix( "Curves" ) } )
+        let colorBalanceIndex = try #require( names.firstIndex { $0.hasPrefix( "Color Balance" ) } )
+        let hueIndex          = try #require( names.firstIndex { $0.hasPrefix( "Hue" ) } )
+
+        // Colour balance is a display-referred grade applied after the tone
+        // stages, ahead of hue and saturation.
+        #expect( curvesIndex       < colorBalanceIndex )
+        #expect( colorBalanceIndex < hueIndex )
+    }
+
+    @Test
+    func neutralColorBalanceNotAppended() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, colorBalance: .identity ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        #expect( names.contains { $0.hasPrefix( "Color Balance" ) } == false )
+    }
+
+    @Test
+    func autoInsertsNormalizeForColorBalance() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( colorBalance: .init( midtones: .init( red: 0.1 ) ) ) )
         let result   = try pipeline.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
 
         #expect( result.isNormalized == true )

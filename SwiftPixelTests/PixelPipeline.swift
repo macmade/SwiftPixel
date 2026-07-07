@@ -56,7 +56,7 @@ struct Test_PixelPipeline
 {
     private static func config(
         scale:           ( scale: Double, offset: Double )?                                           = nil,
-        debayer:         ( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )?       = nil,
+        inputFormat:     PixelPipeline.Config.InputFormat                                              = .mono,
         normalize:       Processors.Normalize.Mode?                                                    = nil,
         stretch:         Processors.Stretch.Algorithm?                                                 = nil,
         correctGamma:    Double?                                                                       = nil,
@@ -73,7 +73,7 @@ struct Test_PixelPipeline
         benchmarkOutput:    ( @Sendable ( String ) -> Void )?                                          = nil
     ) -> PixelPipeline.Config
     {
-        PixelPipeline.Config( scale: scale, debayer: debayer, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, invert: invert, brightnessContrast: brightnessContrast, levels: levels, curves: curves, colorBalance: colorBalance, hue: hue, saturation: saturation, orient: orient, benchmark: benchmark, benchmarkOutput: benchmarkOutput )
+        PixelPipeline.Config( scale: scale, inputFormat: inputFormat, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, invert: invert, brightnessContrast: brightnessContrast, levels: levels, curves: curves, colorBalance: colorBalance, hue: hue, saturation: saturation, orient: orient, benchmark: benchmark, benchmarkOutput: benchmarkOutput )
     }
 
     @Test
@@ -95,7 +95,7 @@ struct Test_PixelPipeline
     @Test
     func runRGBViaDebayer() async throws
     {
-        let pipeline = PixelPipeline( config: Self.config( debayer: ( .rggb, .bilinear ), normalize: .minMax ) )
+        let pipeline = PixelPipeline( config: Self.config( inputFormat: .cfa( pattern: .rggb, mode: .bilinear ), normalize: .minMax ) )
         let result   = try pipeline.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
 
         #expect( result.channels     == 3 )
@@ -108,9 +108,53 @@ struct Test_PixelPipeline
     }
 
     @Test
+    func inputFormatChannels() async throws
+    {
+        #expect( PixelPipeline.Config.InputFormat.mono.channels                                    == 1 )
+        #expect( PixelPipeline.Config.InputFormat.cfa( pattern: .rggb, mode: .bilinear ).channels  == 1 )
+        #expect( PixelPipeline.Config.InputFormat.rgb.channels                                     == 3 )
+    }
+
+    @Test
+    func monoInputExpandsToRGB() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( inputFormat: .mono ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        #expect( names.contains { $0.hasPrefix( "Mono to RGB" ) } )
+        #expect( names.contains { $0.hasPrefix( "Debayer" ) } == false )
+    }
+
+    @Test
+    func rgbInputSkipsChannelForming() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( inputFormat: .rgb ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        // An already-RGB frame needs neither expansion nor demosaicing.
+        #expect( names.contains { $0.hasPrefix( "Mono to RGB" ) } == false )
+        #expect( names.contains { $0.hasPrefix( "Debayer" ) }     == false )
+    }
+
+    @Test
+    func runRGBInputAcceptsThreeChannels() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( inputFormat: .rgb, normalize: .minMax ) )
+
+        // Six samples = two interleaved RGB pixels; the buffer keeps three
+        // channels rather than being formed from a single one.
+        let result = try pipeline.run( pixels: [ 10, 20, 30, 40, 50, 60 ], width: 2, height: 1, bitsPerPixel: .uint8 )
+
+        #expect( result.channels     == 3 )
+        #expect( result.pixels.count == 6 )
+        #expect( result.isNormalized == true )
+        #expect( result.pixels.allSatisfy { $0 >= 0.0 && $0 <= 1.0 } )
+    }
+
+    @Test
     func debayerModeSelectsBilinear() async throws
     {
-        let pipeline = PixelPipeline( config: Self.config( debayer: ( .rggb, .bilinear ) ) )
+        let pipeline = PixelPipeline( config: Self.config( inputFormat: .cfa( pattern: .rggb, mode: .bilinear ) ) )
         let names    = pipeline.processors().map { $0.name }
 
         #expect( names.contains { $0.hasPrefix( "Debayer" ) && $0.contains( "Bilinear" ) } )
@@ -119,7 +163,7 @@ struct Test_PixelPipeline
     @Test
     func debayerModeSelectsVNG() async throws
     {
-        let pipeline = PixelPipeline( config: Self.config( debayer: ( .rggb, .vng ) ) )
+        let pipeline = PixelPipeline( config: Self.config( inputFormat: .cfa( pattern: .rggb, mode: .vng ) ) )
         let names    = pipeline.processors().map { $0.name }
 
         #expect( names.contains { $0.hasPrefix( "Debayer" ) && $0.contains( "VNG" ) } )
@@ -144,7 +188,7 @@ struct Test_PixelPipeline
         let pipeline = PixelPipeline(
             config: Self.config(
                 scale:              ( scale: 2.0, offset: 1.0 ),
-                debayer:            ( .rggb, .bilinear ),
+                inputFormat:        .cfa( pattern: .rggb, mode: .bilinear ),
                 normalize:          .minMax,
                 stretch:            .log( 1.0 ),
                 correctGamma:       2.0,
@@ -433,7 +477,7 @@ struct Test_PixelPipeline
         let pipeline = PixelPipeline(
             config: Self.config(
                 scale:        ( scale: 2.0, offset: 1.0 ),
-                debayer:      ( .rggb, .bilinear ),
+                inputFormat:  .cfa( pattern: .rggb, mode: .bilinear ),
                 normalize:    .minMax,
                 stretch:      .log( 1.0 ),
                 correctGamma: 2.0,

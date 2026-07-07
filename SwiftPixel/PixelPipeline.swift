@@ -45,12 +45,44 @@ public struct PixelPipeline: Sendable
     /// order; see `PixelPipeline`.
     public struct Config: Sendable
     {
+        /// How the pipeline's input samples are laid out, which determines the
+        /// channel-forming stage: a single-channel monochrome frame is expanded
+        /// to RGB, a single-channel colour-filter-array frame is demosaiced, and
+        /// an already-interleaved RGB frame is passed through untouched.
+        public enum InputFormat: Sendable, Equatable
+        {
+            /// A single-channel monochrome frame, expanded to RGB.
+            case mono
+
+            /// A single-channel colour-filter-array frame, demosaiced to RGB with
+            /// the given Bayer pattern and demosaicing mode.
+            case cfa( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )
+
+            /// An already-interleaved three-channel RGB frame, passed through with
+            /// no channel-forming stage.
+            case rgb
+
+            /// The number of interleaved channels the input samples carry: one for
+            /// ``mono`` and ``cfa`` (a single mosaic/luminance channel), three for
+            /// ``rgb``.
+            public var channels: Int
+            {
+                switch self
+                {
+                    case .mono: return 1
+                    case .cfa:  return 1
+                    case .rgb:  return 3
+                }
+            }
+        }
+
         /// Affine scaling applied to the raw samples (`scale`, `offset`).
         public let scale: ( scale: Double, offset: Double )?
 
-        /// The Bayer pattern to demosaic and the demosaicing mode to use; when
-        /// `nil`, mono is expanded to RGB.
-        public let debayer: ( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )?
+        /// How the input samples are laid out, selecting the channel-forming
+        /// stage: mono is expanded to RGB, a colour-filter array is demosaiced,
+        /// and an already-interleaved RGB frame is passed through untouched.
+        public let inputFormat: InputFormat
 
         /// The normalization mode. May be inserted automatically (as `.minMax`)
         /// when a normalization-dependent stage is requested without one.
@@ -116,7 +148,7 @@ public struct PixelPipeline: Sendable
         ///
         /// - Parameters:
         ///   - scale:           Optional affine scaling of the raw samples. Defaults to `nil`.
-        ///   - debayer:         Optional Bayer pattern and demosaicing mode; `nil` expands mono to RGB. Defaults to `nil`.
+        ///   - inputFormat:     How the input samples are laid out — mono (expanded to RGB), a colour-filter array (demosaiced), or already-RGB (passed through). Defaults to `.mono`.
         ///   - normalize:       Optional normalization mode. Defaults to `nil`.
         ///   - stretch:         Optional tone-stretch algorithm. Defaults to `nil`.
         ///   - correctGamma:    Optional gamma exponent. Defaults to `nil`.
@@ -131,10 +163,10 @@ public struct PixelPipeline: Sendable
         ///   - orient:             Optional net orientation to apply last. Defaults to `nil`.
         ///   - benchmark:          Whether to emit per-stage timings. Defaults to `false`.
         ///   - benchmarkOutput:    Optional sink for timing output. Defaults to `nil` (prints).
-        public init( scale: ( scale: Double, offset: Double )? = nil, debayer: ( pattern: Processors.Debayer.Pattern, mode: Processors.Debayer.Mode )? = nil, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.Algorithm? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, brightnessContrast: ( brightness: Double, contrast: Double )? = nil, levels: Processors.Levels.Channels? = nil, curves: Processors.Curves.Channels? = nil, colorBalance: Processors.ColorBalance.Ranges? = nil, hue: Double? = nil, saturation: Double? = nil, orient: Processors.Orient.Orientation? = nil, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
+        public init( scale: ( scale: Double, offset: Double )? = nil, inputFormat: InputFormat = .mono, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.Algorithm? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, brightnessContrast: ( brightness: Double, contrast: Double )? = nil, levels: Processors.Levels.Channels? = nil, curves: Processors.Curves.Channels? = nil, colorBalance: Processors.ColorBalance.Ranges? = nil, hue: Double? = nil, saturation: Double? = nil, orient: Processors.Orient.Orientation? = nil, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
         {
             self.scale              = scale
-            self.debayer            = debayer
+            self.inputFormat        = inputFormat
             self.normalize          = normalize
             self.stretch            = stretch
             self.correctGamma       = correctGamma
@@ -181,10 +213,14 @@ public struct PixelPipeline: Sendable
         return try self.run( pixels: pixels, width: width, height: height, bitsPerPixel: bitsPerPixel )
     }
 
-    /// Runs the pipeline over already-decoded single-channel samples.
+    /// Runs the pipeline over already-decoded samples, interpreted per the
+    /// configuration's ``Config/inputFormat``: a single mono or colour-filter-array
+    /// channel, or interleaved RGB samples.
     ///
     /// - Parameters:
-    ///   - pixels:       The single-channel samples, in row-major order.
+    ///   - pixels:       The samples in row-major order — one channel for a mono or
+    ///                   CFA input, or interleaved RGB for a three-channel input.
+    ///                   Their count must equal `width * height * inputFormat.channels`.
     ///   - width:        The image width in pixels.
     ///   - height:       The image height in pixels.
     ///   - bitsPerPixel: The original sample format (informational).
@@ -195,7 +231,7 @@ public struct PixelPipeline: Sendable
     ///           fails.
     public func run( pixels: [ Double ], width: Int, height: Int, bitsPerPixel: BitsPerPixel ) throws -> PixelBuffer
     {
-        var buffer = try PixelBuffer( width: width, height: height, channels: 1, pixels: pixels, isNormalized: false )
+        var buffer = try PixelBuffer( width: width, height: height, channels: self.config.inputFormat.channels, pixels: pixels, isNormalized: false )
 
         let output: ( String ) -> Void
 
@@ -245,13 +281,22 @@ public struct PixelPipeline: Sendable
             processors.append( Processors.Scale( scale: scale.scale, offset: scale.offset ) )
         }
 
-        if let debayer = self.config.debayer
+        // The channel-forming stage brings the input to RGB according to its
+        // layout: a monochrome frame is expanded, a colour-filter array is
+        // demosaiced, and an already-RGB frame needs no forming stage.
+        switch self.config.inputFormat
         {
-            processors.append( Processors.Debayer( mode: debayer.mode, pattern: debayer.pattern ) )
-        }
-        else
-        {
-            processors.append( Processors.MonoToRGB() )
+            case .mono:
+
+                processors.append( Processors.MonoToRGB() )
+
+            case .cfa( let pattern, let mode ):
+
+                processors.append( Processors.Debayer( mode: mode, pattern: pattern ) )
+
+            case .rgb:
+
+                break
         }
 
         // A neutral brightness/contrast (no offset, unit factor) is a no-op and

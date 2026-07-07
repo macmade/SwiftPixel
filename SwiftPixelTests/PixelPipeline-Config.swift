@@ -33,7 +33,7 @@ struct Test_PixelPipeline_Config
     {
         let config = PixelPipeline.Config(
             scale:        nil,
-            debayer:      nil,
+            inputFormat:  .mono,
             normalize:    nil,
             stretch:      nil,
             correctGamma: nil,
@@ -41,7 +41,7 @@ struct Test_PixelPipeline_Config
         )
 
         #expect( config.scale        == nil )
-        #expect( config.debayer      == nil )
+        #expect( config.inputFormat  == .mono )
         #expect( config.normalize    == nil )
         #expect( config.stretch      == nil )
         #expect( config.correctGamma == nil )
@@ -53,7 +53,7 @@ struct Test_PixelPipeline_Config
     {
         let config = PixelPipeline.Config(
             scale:        ( scale: 1.5, offset: 0.2 ),
-            debayer:      ( .rggb, .vng ),
+            inputFormat:  .cfa( pattern: .rggb, mode: .vng ),
             normalize:    .percentile( 0.1, 0.9 ),
             stretch:      .log( 100 ),
             correctGamma: 2.2,
@@ -62,8 +62,7 @@ struct Test_PixelPipeline_Config
 
         #expect( config.scale?.scale   == 1.5 )
         #expect( config.scale?.offset  == 0.2 )
-        #expect( config.debayer?.pattern == .rggb )
-        #expect( config.debayer?.mode    == .vng )
+        #expect( config.inputFormat    == .cfa( pattern: .rggb, mode: .vng ) )
         #expect( config.correctGamma   == 2.2 )
 
         if case .percentile( let lower, let upper ) = config.normalize
@@ -103,7 +102,7 @@ struct Test_PixelPipeline_Config
         let config = PixelPipeline.Config( stretch: .log( 100 ) )
 
         #expect( config.scale        == nil )
-        #expect( config.debayer      == nil )
+        #expect( config.inputFormat  == .mono )
         #expect( config.normalize    == nil )
         #expect( config.correctGamma == nil )
         #expect( config.whiteBalance == nil )

@@ -255,6 +255,38 @@ public struct PixelPipeline: Sendable
         return buffer
     }
 
+    /// Runs the pipeline over separate channel planes, interleaving them first.
+    ///
+    /// A convenience over ``run(pixels:width:height:bitsPerPixel:)`` for formats
+    /// that decode their channels into separate planes (e.g. a band-sequential RGB
+    /// image): the planes are interleaved via ``PixelUtilities/interleave(planes:)``
+    /// into the layout the pipeline expects, then processed. The plane count must
+    /// match the configuration's ``Config/inputFormat`` channel count.
+    ///
+    /// - Parameters:
+    ///   - planes:       The channel planes, in channel order, all the same length.
+    ///   - width:        The image width in pixels.
+    ///   - height:       The image height in pixels.
+    ///   - bitsPerPixel: The original sample format (informational).
+    ///
+    /// - Returns: The processed buffer.
+    ///
+    /// - Throws: A `RuntimeError` if the plane count does not match the input
+    ///           format's channel count, the planes are empty or unequal in length,
+    ///           or any stage fails.
+    public func run( planes: [ [ Double ] ], width: Int, height: Int, bitsPerPixel: BitsPerPixel ) throws -> PixelBuffer
+    {
+        guard planes.count == self.config.inputFormat.channels
+        else
+        {
+            throw RuntimeError( message: "Plane count \( planes.count ) does not match the input format's channel count \( self.config.inputFormat.channels )." )
+        }
+
+        let pixels = try PixelUtilities.interleave( planes: planes )
+
+        return try self.run( pixels: pixels, width: width, height: height, bitsPerPixel: bitsPerPixel )
+    }
+
     /// Builds the ordered processor chain for the configuration.
     ///
     /// The order is fixed and enforces the processors' preconditions: raw

@@ -175,6 +175,75 @@ public enum PixelUtilities
         return result
     }
 
+    /// Interleaves separate channel planes into a single sample array.
+    ///
+    /// Each plane holds one channel's samples in row-major order (e.g. the red,
+    /// green and blue planes of a band-sequential colour image); the result packs
+    /// them per pixel — `[p0c0, p0c1, …, p1c0, p1c1, …]` — the interleaved layout
+    /// ``PixelBuffer`` and the pixel pipeline expect. Each plane is scattered with a
+    /// single strided Accelerate move (contiguous read, `channels`-strided write).
+    ///
+    /// - Parameter planes: The channel planes, all the same non-zero length.
+    /// - Returns: The interleaved samples, `planes.count × planeLength` long.
+    /// - Throws: A `RuntimeError` when there are no planes, a plane is empty, or the
+    ///           planes differ in length.
+    public static func interleave( planes: [ [ Double ] ] ) throws -> [ Double ]
+    {
+        guard let first = planes.first, first.isEmpty == false
+        else
+        {
+            throw RuntimeError( message: "Cannot interleave: at least one non-empty plane is required." )
+        }
+
+        let count    = first.count
+        let channels = planes.count
+
+        guard planes.allSatisfy( { $0.count == count } )
+        else
+        {
+            throw RuntimeError( message: "Cannot interleave planes of unequal length." )
+        }
+
+        var result = [ Double ]( repeating: 0, count: count * channels )
+
+        result.withUnsafeMutableBufferPointer
+        {
+            output in
+
+            guard let destination = output.baseAddress
+            else
+            {
+                return
+            }
+
+            // Scatter each contiguous plane into every `channels`-th output slot, so
+            // channel `c` fills indices c, c + channels, c + 2·channels, …
+            planes.enumerated().forEach
+            {
+                channel, plane in
+
+                plane.withUnsafeBufferPointer
+                {
+                    source in
+
+                    guard let base = source.baseAddress
+                    else
+                    {
+                        return
+                    }
+
+                    // Copy `count` samples as an N=1 column, M=count row "matrix" from
+                    // the contiguous plane (row stride 1) into the output starting at
+                    // `channel` with a row stride of `channels`, i.e. every channels-th
+                    // slot. `vDSP_mmovD` is the non-deprecated Accelerate strided move.
+                    vDSP_mmovD( base, destination + channel, 1, vDSP_Length( count ), 1, vDSP_Length( channels ) )
+                }
+            }
+        }
+
+        return result
+    }
+
     /// Returns the values at the given lower and upper percentiles of `array`.
     ///
     /// The array is sorted and the bounds are linearly interpolated between

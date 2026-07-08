@@ -28,6 +28,7 @@
 		05398CDF2DEECF24005904EC /* SwiftUtilities.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 05398CDB2DEECF13005904EC /* SwiftUtilities.framework */; };
 		05398CE02DEECF24005904EC /* SwiftUtilities.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 05398CDB2DEECF13005904EC /* SwiftUtilities.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		05398CE52DEED19F005904EC /* PixelUtilities-ReadRawPixels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05398CE42DEED19C005904EC /* PixelUtilities-ReadRawPixels.swift */; };
+		05398CE52DEED19F005904F1 /* PixelUtilities-Interleave.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05398CE42DEED19C005904F0 /* PixelUtilities-Interleave.swift */; };
 		05398CF62DEEE0AA005904EC /* Processors-Scale.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05398CF52DEEE0A2005904EC /* Processors-Scale.swift */; };
 		05398D3F2DF02321005904EC /* Processors-Debayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05398D3A2DF0231E005904EC /* Processors-Debayer.swift */; };
 		05398D422DF03984005904EC /* Processors-MonoToRGB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05398D412DF0397C005904EC /* Processors-MonoToRGB.swift */; };
@@ -120,6 +121,7 @@
 		0524AD772DF33DDA00180358 /* HistogramStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistogramStatistics.swift; sourceTree = "<group>"; };
 		05398CD52DEECF13005904EC /* SwiftUtilities.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = SwiftUtilities.xcodeproj; path = Submodules/SwiftUtilities/SwiftUtilities.xcodeproj; sourceTree = "<group>"; };
 		05398CE42DEED19C005904EC /* PixelUtilities-ReadRawPixels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PixelUtilities-ReadRawPixels.swift"; sourceTree = "<group>"; };
+		05398CE42DEED19C005904F0 /* PixelUtilities-Interleave.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PixelUtilities-Interleave.swift"; sourceTree = "<group>"; };
 		05398CF52DEEE0A2005904EC /* Processors-Scale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Scale.swift"; sourceTree = "<group>"; };
 		05398D3A2DF0231E005904EC /* Processors-Debayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Debayer.swift"; sourceTree = "<group>"; };
 		05398D412DF0397C005904EC /* Processors-MonoToRGB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-MonoToRGB.swift"; sourceTree = "<group>"; };
@@ -313,6 +315,7 @@
 				05D710B62DF1D5AB00CE32E3 /* PixelPipeline-Config.swift */,
 				05398D6B2DF0A03F005904EC /* PixelUtilities-PercentileBounds.swift */,
 				05398CE42DEED19C005904EC /* PixelUtilities-ReadRawPixels.swift */,
+				05398CE42DEED19C005904F0 /* PixelUtilities-Interleave.swift */,
 				05D710BC2DF1D84100CE32E3 /* Processors-CorrectGamma.swift */,
 				05398D3A2DF0231E005904EC /* Processors-Debayer.swift */,
 				0AB10000000000000000C001 /* Processors-Debayer+Bilinear.swift */,
@@ -670,6 +673,7 @@
 				0524AD7C2DF33DDB00180358 /* HistogramStatistics.swift in Sources */,
 				05398D6C2DF0A040005904EC /* PixelUtilities-PercentileBounds.swift in Sources */,
 				05398CE52DEED19F005904EC /* PixelUtilities-ReadRawPixels.swift in Sources */,
+				05398CE52DEED19F005904F1 /* PixelUtilities-Interleave.swift in Sources */,
 				0524AD6B2DF339D900180358 /* Histogram.swift in Sources */,
 				05D710C32DF1D89B00CE32E3 /* PixelPipeline.swift in Sources */,
 				050F38222DEE1A8900E84F97 /* BitsPerPixel.swift in Sources */,

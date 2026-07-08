@@ -545,4 +545,33 @@ struct Test_PixelPipeline
         #expect( collector.lines.count == 2 )
         #expect( collector.lines.allSatisfy { $0.hasPrefix( "Benchmarking - " ) } )
     }
+
+    @Test
+    func runPlanesInterleavesAndMatchesPixels() async throws
+    {
+        let config   = Self.config( inputFormat: .rgb, normalize: .minMax )
+        let pipeline = PixelPipeline( config: config )
+
+        // Two RGB pixels supplied as separate channel planes …
+        let fromPlanes = try pipeline.run( planes: [ [ 10, 40 ], [ 20, 50 ], [ 30, 60 ] ], width: 2, height: 1, bitsPerPixel: .uint8 )
+
+        // … must render identically to the equivalent interleaved samples.
+        let fromPixels = try pipeline.run( pixels: [ 10, 20, 30, 40, 50, 60 ], width: 2, height: 1, bitsPerPixel: .uint8 )
+
+        #expect( fromPlanes.channels == 3 )
+        #expect( fromPlanes.pixels   == fromPixels.pixels )
+    }
+
+    @Test
+    func runPlanesRejectsChannelCountMismatch() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( inputFormat: .rgb, normalize: .minMax ) )
+
+        // The .rgb input format expects three planes; two must be rejected rather
+        // than silently mis-shaping the buffer.
+        #expect( throws: ( any Error ).self )
+        {
+            _ = try pipeline.run( planes: [ [ 10, 40 ], [ 20, 50 ] ], width: 2, height: 1, bitsPerPixel: .uint8 )
+        }
+    }
 }

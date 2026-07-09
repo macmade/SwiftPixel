@@ -46,6 +46,14 @@ public extension Processors
             /// The associated values are percentages in `0...100` (lower, upper).
             case percentile( Double, Double )
 
+            /// Leaves the samples' values unchanged, assuming they already lie in
+            /// `[0, 1]` (clamping any that do not), and marks the buffer normalized.
+            ///
+            /// The identity mapping, for sources whose samples are already in the
+            /// display range — e.g. a photographic image scaled by its bit depth —
+            /// so they are shown exactly as authored rather than range-stretched.
+            case identity
+
             /// A human-readable description of the mode and its parameters.
             public var description: String
             {
@@ -53,6 +61,7 @@ public extension Processors
                 {
                     case .minMax:                       return "Min/Max"
                     case .percentile( let p1, let p2 ): return String( format: "Percentile - %.02f %.02f", p1, p2 )
+                    case .identity:                     return "Identity"
                 }
             }
         }
@@ -156,6 +165,22 @@ public extension Processors
                         vDSP_vclipD( base, 1, [ bounds.lower ], [ bounds.upper ], base, 1, count )
                         vDSP_vsmsaD( base, 1, [ scale ],        [ offset ],       base, 1, count )
                         vDSP_vclipD( base, 1, [ 0.0 ],          [ 1.0 ],          base, 1, count )
+                    }
+
+                case .identity:
+
+                    // The samples are assumed already in the display range; clamp
+                    // any strays into [0, 1] and mark the buffer normalized without
+                    // remapping the range.
+                    buffer.withUnsafeMutablePixels( isNormalized: true )
+                    {
+                        guard let base = $0.baseAddress
+                        else
+                        {
+                            return
+                        }
+
+                        vDSP_vclipD( base, 1, [ 0.0 ], [ 1.0 ], base, 1, count )
                     }
             }
         }

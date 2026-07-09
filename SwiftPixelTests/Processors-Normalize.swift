@@ -162,6 +162,66 @@ struct Test_Processors_Normalize
     }
 
     @Test
+    func identity() async throws
+    {
+        var buffer = try PixelBuffer(
+            width:        5,
+            height:       1,
+            channels:     1,
+            pixels:       [ 0.0, 0.25, 0.5, 0.75, 1.0 ],
+            isNormalized: false
+        )
+
+        let processor = Processors.Normalize( mode: .identity )
+
+        try processor.process( buffer: &buffer )
+
+        // Samples already in [0, 1] are left untouched; the buffer is simply
+        // marked normalized so the 8-bit conversion can proceed.
+        #expect( buffer.isNormalized == true )
+        #expect( buffer.pixels == [ 0.0, 0.25, 0.5, 0.75, 1.0 ] )
+    }
+
+    @Test
+    func identityClips() async throws
+    {
+        var buffer = try PixelBuffer(
+            width:        4,
+            height:       1,
+            channels:     1,
+            pixels:       [ -0.5, 0.25, 1.0, 1.5 ],
+            isNormalized: false
+        )
+
+        let processor = Processors.Normalize( mode: .identity )
+
+        try processor.process( buffer: &buffer )
+
+        // Out-of-range samples are clamped to [0, 1]; in-range samples are kept.
+        #expect( buffer.isNormalized == true )
+        #expect( buffer.pixels == [ 0.0, 0.25, 1.0, 1.0 ] )
+    }
+
+    @Test
+    func identityEmpty() async throws
+    {
+        var buffer = try PixelBuffer(
+            width:        0,
+            height:       0,
+            channels:     1,
+            pixels:       [],
+            isNormalized: false
+        )
+
+        let processor = Processors.Normalize( mode: .identity )
+
+        try processor.process( buffer: &buffer )
+
+        #expect( buffer.isNormalized == true )
+        #expect( buffer.pixels == [] )
+    }
+
+    @Test
     func equatable() async throws
     {
         #expect( Processors.Normalize.Mode.minMax == .minMax )
@@ -169,5 +229,16 @@ struct Test_Processors_Normalize
 
         #expect( Processors.Normalize.Mode.percentile( 5.0, 95.0 ) == .percentile( 5.0, 95.0 ) )
         #expect( Processors.Normalize.Mode.percentile( 5.0, 95.0 ) != .percentile( 1.0, 99.0 ) )
+
+        #expect( Processors.Normalize.Mode.identity == .identity )
+        #expect( Processors.Normalize.Mode.identity != .minMax )
+    }
+
+    @Test
+    func description() async throws
+    {
+        #expect( Processors.Normalize.Mode.minMax.description == "Min/Max" )
+        #expect( Processors.Normalize.Mode.identity.description == "Identity" )
+        #expect( Processors.Normalize.Mode.percentile( 5.0, 95.0 ).description == "Percentile - 5.00 95.00" )
     }
 }

@@ -103,6 +103,37 @@ struct Test_Processors_Levels
     }
 
     @Test
+    func matchesTheScalarReferenceAcrossTheRange() async throws
+    {
+        let parameters = Processors.Levels.Parameters( inputBlack: 0.1, inputWhite: 0.85, gamma: 1.8, outputBlack: 0.05, outputWhite: 0.92 )
+        let input      = stride( from: 0.0, through: 1.0, by: 1.0 / 64.0 ).map { $0 }
+        var buffer     = try PixelBuffer( width: input.count, height: 1, channels: 1, pixels: input, isNormalized: true )
+
+        try Processors.Levels( channels: .uniform( parameters ) ).process( buffer: &buffer )
+
+        let expected = input.map { parameters.map( $0 ) }
+
+        #expect( zip( buffer.pixels, expected ).allSatisfy { abs( $0 - $1 ) < 1e-12 } )
+    }
+
+    @Test
+    func matchesTheScalarReferencePerChannel() async throws
+    {
+        let red    = Processors.Levels.Parameters( inputBlack: 0.05, inputWhite: 0.9, gamma: 2.2 )
+        let green  = Processors.Levels.Parameters( gamma: 0.6, outputBlack: 0.1, outputWhite: 0.95 )
+        let blue   = Processors.Levels.Parameters( inputBlack: 0.2, inputWhite: 0.8, gamma: 1.4, outputBlack: 0.0, outputWhite: 0.8 )
+        let mono   = stride( from: 0.0, through: 1.0, by: 1.0 / 32.0 ).map { $0 }
+        let input  = mono.flatMap { [ $0, $0, $0 ] }
+        var buffer = try PixelBuffer( width: mono.count, height: 1, channels: 3, pixels: input, isNormalized: true )
+
+        try Processors.Levels( channels: .perChannel( red: red, green: green, blue: blue ) ).process( buffer: &buffer )
+
+        let expected = mono.flatMap { [ red.map( $0 ), green.map( $0 ), blue.map( $0 ) ] }
+
+        #expect( zip( buffer.pixels, expected ).allSatisfy { abs( $0 - $1 ) < 1e-12 } )
+    }
+
+    @Test
     func perChannelRequiresThreeChannels() async throws
     {
         var buffer = try self.sample()

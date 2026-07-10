@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+import Accelerate
 import Foundation
 import SwiftUtilities
 
@@ -195,12 +196,13 @@ public extension Processors
 
                     buffer.withUnsafeMutablePixels
                     {
-                        let pixels = UnsafeMutableSendable( $0 )
-
-                        PixelUtilities.parallelOrSerial( iterations: count )
+                        guard let baseAddress = $0.baseAddress
+                        else
                         {
-                            pixels.value[ $0 ] = parameters.map( pixels.value[ $0 ] )
+                            return
                         }
+
+                        Self.applyLevels( to: baseAddress, stride: 1, count: count, parameters: parameters )
                     }
 
                 case .perChannel( let red, let green, let blue ):
@@ -219,18 +221,89 @@ public extension Processors
 
                     buffer.withUnsafeMutablePixels
                     {
-                        let pixels = UnsafeMutableSendable( $0 )
-
-                        PixelUtilities.parallelOrSerial( iterations: pixelCount )
+                        guard let baseAddress = $0.baseAddress
+                        else
                         {
-                            let base = $0 * 3
-
-                            pixels.value[ base + 0 ] = red.map(   pixels.value[ base + 0 ] )
-                            pixels.value[ base + 1 ] = green.map( pixels.value[ base + 1 ] )
-                            pixels.value[ base + 2 ] = blue.map(  pixels.value[ base + 2 ] )
+                            return
                         }
+
+                        Self.applyLevels( to: baseAddress + 0, stride: 3, count: pixelCount, parameters: red )
+                        Self.applyLevels( to: baseAddress + 1, stride: 3, count: pixelCount, parameters: green )
+                        Self.applyLevels( to: baseAddress + 2, stride: 3, count: pixelCount, parameters: blue )
                     }
             }
+        }
+
+        /// Applies one channel's level mapping to a strided view of the samples, in
+        /// place, using Accelerate.
+        ///
+        /// The input window and the output range are affine clamps
+        /// (``vDSP_vsmsaD`` + ``vDSP_vclipD``); the midtone gamma is a per-element
+        /// power (`vvpows`, `c^(1/gamma)`) run on the contiguous samples — done in
+        /// place for a single-channel buffer, or through a gather/scatter scratch
+        /// for an interleaved one, since the vForce power has no strided form. A
+        /// neutral gamma skips the power step entirely.
+        ///
+        /// - Parameters:
+        ///   - base:       The address of the channel's first sample.
+        ///   - stride:     The gap, in samples, between successive samples of the
+        ///                 channel (`1` for a single-channel buffer, the channel
+        ///                 count for an interleaved one).
+        ///   - count:      The number of samples in the channel.
+        ///   - parameters: The channel's level mapping, already validated.
+        private static func applyLevels( to base: UnsafeMutablePointer< Double >, stride: Int, count: Int, parameters: Parameters )
+        {
+            guard count > 0
+            else
+            {
+                return
+            }
+
+            let vCount    = vDSP_Length( count )
+            let vStride   = vDSP_Stride( stride )
+            let inScale   = 1.0 / ( parameters.inputWhite - parameters.inputBlack )
+            let inOffset  = -parameters.inputBlack * inScale
+            let outScale  = parameters.outputWhite - parameters.outputBlack
+            let outOffset = parameters.outputBlack
+
+            // Map into the input window and clip to [0, 1].
+            vDSP_vsmsaD( base, vStride, [ inScale ], [ inOffset ], base, vStride, vCount )
+            vDSP_vclipD( base, vStride, [ 0.0 ], [ 1.0 ], base, vStride, vCount )
+
+            // Midtone gamma: raise each sample to 1 / gamma.
+            if parameters.gamma != 1
+            {
+                var exponent = 1.0 / parameters.gamma
+                var n        = Int32( count )
+
+                if stride == 1
+                {
+                    vvpows( base, &exponent, base, &n )
+                }
+                else
+                {
+                    var scratch = [ Double ]( repeating: 0, count: count )
+
+                    scratch.withUnsafeMutableBufferPointer
+                    {
+                        guard let contiguous = $0.baseAddress
+                        else
+                        {
+                            return
+                        }
+
+                        // Gather the strided channel, raise to the power, scatter
+                        // it back (multiplying by 1 is an exact strided copy).
+                        vDSP_vsmulD( base, vStride, [ 1.0 ], contiguous, 1, vCount )
+                        vvpows( contiguous, &exponent, contiguous, &n )
+                        vDSP_vsmulD( contiguous, 1, [ 1.0 ], base, vStride, vCount )
+                    }
+                }
+            }
+
+            // Map into the output range and clip to [0, 1].
+            vDSP_vsmsaD( base, vStride, [ outScale ], [ outOffset ], base, vStride, vCount )
+            vDSP_vclipD( base, vStride, [ 0.0 ], [ 1.0 ], base, vStride, vCount )
         }
     }
 }

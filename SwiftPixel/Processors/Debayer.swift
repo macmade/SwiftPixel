@@ -52,6 +52,9 @@ public extension Processors
             /// Red, Green / Green, Blue.
             case rggb
 
+            /// Green, Blue / Red, Green.
+            case gbrg
+
             /// The four-letter pattern code (e.g. `"RGGB"`).
             public var description: String
             {
@@ -61,6 +64,7 @@ public extension Processors
                     case .rgbg: return "RGBG"
                     case .grbg: return "GRBG"
                     case .rggb: return "RGGB"
+                    case .gbrg: return "GBRG"
                 }
             }
         }
@@ -264,6 +268,16 @@ public extension Processors
                         case ( true,  false ): return .green
                         case ( false, true  ): return .green
                         case ( false, false ): return .blue
+                    }
+
+                case .gbrg:
+
+                    switch ( evenRow, evenCol )
+                    {
+                        case ( true,  true  ): return .green
+                        case ( true,  false ): return .blue
+                        case ( false, true  ): return .red
+                        case ( false, false ): return .green
                     }
             }
         }

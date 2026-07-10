@@ -47,6 +47,17 @@ struct Test_Processors_Debayer
         #expect( Processors.Debayer( mode: .bilinear, pattern: .grbg ).name == "Debayer (Bilinear GRBG)" )
         #expect( Processors.Debayer( mode: .bilinear, pattern: .rgbg ).name == "Debayer (Bilinear RGBG)" )
         #expect( Processors.Debayer( mode: .bilinear, pattern: .rggb ).name == "Debayer (Bilinear RGGB)" )
+        #expect( Processors.Debayer( mode: .bilinear, pattern: .gbrg ).name == "Debayer (Bilinear GBRG)" )
+    }
+
+    @Test
+    func colorAtGBRG() async throws
+    {
+        // The GBRG 2×2 tile: Green, Blue / Red, Green.
+        #expect( Processors.Debayer.colorAt( x: 0, y: 0, width: 4, height: 4, pattern: .gbrg ) == .green )
+        #expect( Processors.Debayer.colorAt( x: 1, y: 0, width: 4, height: 4, pattern: .gbrg ) == .blue )
+        #expect( Processors.Debayer.colorAt( x: 0, y: 1, width: 4, height: 4, pattern: .gbrg ) == .red )
+        #expect( Processors.Debayer.colorAt( x: 1, y: 1, width: 4, height: 4, pattern: .gbrg ) == .green )
     }
 
     @Test

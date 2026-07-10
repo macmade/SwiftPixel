@@ -54,6 +54,14 @@ public extension Processors
             /// The associated values are the slope `n1` and the midpoint `n2`.
             case sigmoid( Double, Double )
 
+            /// Screen Transfer Function (STF): a per-channel midtones transfer
+            /// function driven by explicit ``STFParameters``.
+            ///
+            /// The parameters can be filled by auto-deriving them from an image's
+            /// statistics or by mapping a stored XISF display function; both flow
+            /// through this single, editable case.
+            case screenTransfer( STFParameters )
+
             /// A human-readable description of the algorithm and its constants.
             public var description: String
             {
@@ -62,6 +70,7 @@ public extension Processors
                     case .log( let n ):              return String( format: "Logarithmic %.02f", n )
                     case .arcsinh( let n ):          return String( format: "Hyperbolic %.02f", n )
                     case .sigmoid( let n1, let n2 ): return String( format: "Sigmoid %.02f %.02f", n1, n2 )
+                    case .screenTransfer( let p ):   return "Screen Transfer (\( p ))"
                 }
             }
         }
@@ -102,6 +111,7 @@ public extension Processors
                 case .log(     let n ):          try Self.logStretch(     buffer: &buffer, n: n )
                 case .arcsinh( let n ):          try Self.arcsinhStretch( buffer: &buffer, n: n )
                 case .sigmoid( let n1, let n2 ): try Self.sigmoidStretch( buffer: &buffer, n1: n1, n2: n2 )
+                case .screenTransfer( let p ):   try Self.screenTransferStretch( buffer: &buffer, parameters: p )
             }
         }
 
@@ -203,6 +213,145 @@ public extension Processors
                 vvexp( baseAddress, baseAddress, [ Int32( count ) ] )
                 vDSP_vsaddD( baseAddress, 1, &one, baseAddress, 1, count )
                 vvrec( baseAddress, baseAddress, [ Int32( count ) ] )
+            }
+        }
+
+        /// Applies a Screen Transfer Function (per-channel MTF) in place.
+        ///
+        /// - Parameters:
+        ///   - buffer:     The normalized buffer to transform.
+        ///   - parameters: The STF parameters, uniform or per-channel.
+        ///
+        /// - Throws: A `RuntimeError` if a channel's parameters are degenerate, or
+        ///           if per-channel parameters are used with a buffer that is not
+        ///           3-channel.
+        private static func screenTransferStretch( buffer: inout PixelBuffer, parameters: STFParameters ) throws
+        {
+            switch parameters
+            {
+                case .uniform( let channel ):
+
+                    try channel.validate()
+
+                    let count = buffer.pixels.count
+
+                    buffer.withUnsafeMutablePixels
+                    {
+                        guard let baseAddress = $0.baseAddress
+                        else
+                        {
+                            return
+                        }
+
+                        Self.applyScreenTransfer( to: baseAddress, stride: 1, count: count, channel: channel )
+                    }
+
+                case .perChannel( let red, let green, let blue ):
+
+                    try red.validate()
+                    try green.validate()
+                    try blue.validate()
+
+                    guard buffer.channels == 3
+                    else
+                    {
+                        throw RuntimeError( message: "Per-channel screen transfer requires a 3-channel buffer: \( buffer.channels )" )
+                    }
+
+                    let pixelCount = buffer.width * buffer.height
+
+                    buffer.withUnsafeMutablePixels
+                    {
+                        guard let baseAddress = $0.baseAddress
+                        else
+                        {
+                            return
+                        }
+
+                        Self.applyScreenTransfer( to: baseAddress + 0, stride: 3, count: pixelCount, channel: red )
+                        Self.applyScreenTransfer( to: baseAddress + 1, stride: 3, count: pixelCount, channel: green )
+                        Self.applyScreenTransfer( to: baseAddress + 2, stride: 3, count: pixelCount, channel: blue )
+                    }
+            }
+        }
+
+        /// Applies one channel's STF to a strided view of the samples, in place.
+        ///
+        /// For the usual midtones range `(0, 1)` this is a vectorized Accelerate
+        /// pipeline — clip into the `[shadows, highlights]` window, the midtones
+        /// transfer `((m − 1)·c) / ((2m − 1)·c − m)`, then the `[low, high]`
+        /// expansion — where the denominator is provably non-zero over the clipped
+        /// `[0, 1]` range. The degenerate midtones (`m ≤ 0` or `m ≥ 1`) are
+        /// step-shaped limits that do not vectorize cleanly, so they fall back to
+        /// the scalar ``STFParameters/Channel/map(_:)`` reference.
+        ///
+        /// - Parameters:
+        ///   - base:    The address of the channel's first sample.
+        ///   - stride:  The gap, in samples, between successive samples of the
+        ///              channel (`1` for a single-channel buffer, the channel count
+        ///              for an interleaved one).
+        ///   - count:   The number of samples in the channel.
+        ///   - channel: The channel's STF parameters, already validated.
+        private static func applyScreenTransfer( to base: UnsafeMutablePointer< Double >, stride: Int, count: Int, channel: STFParameters.Channel )
+        {
+            guard count > 0
+            else
+            {
+                return
+            }
+
+            let midtones = channel.midtones
+
+            guard midtones > 0, midtones < 1
+            else
+            {
+                let span   = ( count - 1 ) * stride + 1
+                let pixels = UnsafeMutableSendable( UnsafeMutableBufferPointer( start: base, count: span ) )
+
+                PixelUtilities.parallelOrSerial( iterations: count )
+                {
+                    let index = $0 * stride
+
+                    pixels.value[ index ] = channel.map( pixels.value[ index ] )
+                }
+
+                return
+            }
+
+            let vCount     = vDSP_Length( count )
+            let vStride    = vDSP_Stride( stride )
+            let clipScale  = 1.0 / ( channel.highlights - channel.shadows )
+            let clipOffset = -channel.shadows * clipScale
+            let numScale   = midtones - 1.0
+            let denScale   = 2.0 * midtones - 1.0
+            let denOffset  = -midtones
+            let expScale   = 1.0 / ( channel.high - channel.low )
+            let expOffset  = -channel.low * expScale
+
+            var scratch = [ Double ]( repeating: 0, count: count )
+
+            scratch.withUnsafeMutableBufferPointer
+            {
+                guard let denominator = $0.baseAddress
+                else
+                {
+                    return
+                }
+
+                // Clip into the [shadows, highlights] window, then to [0, 1].
+                vDSP_vsmsaD( base, vStride, [ clipScale ], [ clipOffset ], base, vStride, vCount )
+                vDSP_vclipD( base, vStride, [ 0.0 ], [ 1.0 ], base, vStride, vCount )
+
+                // Midtones transfer: ((m − 1)·c) / ((2m − 1)·c − m). The
+                // denominator is computed into the scratch buffer before the
+                // numerator overwrites the clipped samples in place.
+                vDSP_vsmsaD( base, vStride, [ denScale ], [ denOffset ], denominator, 1, vCount )
+                vDSP_vsmulD( base, vStride, [ numScale ], base, vStride, vCount )
+                vDSP_vdivD( denominator, 1, base, vStride, base, vStride, vCount )
+
+                // Map into the [low, high] expansion range, then to [0, 1].
+                vDSP_vsmsaD( base, vStride, [ expScale ], [ expOffset ], base, vStride, vCount )
+                vDSP_vclipD( base, vStride, [ 0.0 ], [ 1.0 ], base, vStride, vCount )
             }
         }
     }

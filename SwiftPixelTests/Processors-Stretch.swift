@@ -123,4 +123,77 @@ struct Test_Processors_Stretch
         #expect( Processors.Stretch.Algorithm.sigmoid( 1.0, 2.0 ) == .sigmoid( 1.0, 2.0 ) )
         #expect( Processors.Stretch.Algorithm.sigmoid( 1.0, 2.0 ) != .sigmoid( 1.0, 3.0 ) )
     }
+
+    @Test
+    func screenTransferEquatable() async throws
+    {
+        let a = Processors.Stretch.Algorithm.screenTransfer( .uniform( .identity ) )
+        let b = Processors.Stretch.Algorithm.screenTransfer( .uniform( .identity ) )
+        let c = Processors.Stretch.Algorithm.screenTransfer( .uniform( .init( shadows: 0.1 ) ) )
+
+        #expect( a == b )
+        #expect( a != c )
+        #expect( a != .log( 1.0 ) )
+    }
+
+    @Test
+    func screenTransferDescriptionMentionsScreenTransfer() async throws
+    {
+        let description = Processors.Stretch.Algorithm.screenTransfer( .uniform( .identity ) ).description
+
+        #expect( description.contains( "Screen Transfer" ) )
+    }
+
+    @Test
+    func screenTransferRejectsADegenerateChannel() async throws
+    {
+        var buffer  = try Self.makeBuffer( [ 0.4, 0.6 ] )
+        let channel = Processors.Stretch.STFParameters.Channel( shadows: 0.8, midtones: 0.5, highlights: 0.2, low: 0, high: 1 )
+
+        #expect( throws: RuntimeError.self )
+        {
+            try Processors.Stretch( algorithm: .screenTransfer( .uniform( channel ) ) ).process( buffer: &buffer )
+        }
+    }
+
+    @Test
+    func screenTransferRequiresANormalizedBuffer() async throws
+    {
+        var buffer = try PixelBuffer( width: 1, height: 1, channels: 1, pixels: [ 0.5 ], isNormalized: false )
+
+        #expect( throws: RuntimeError.self )
+        {
+            try Processors.Stretch( algorithm: .screenTransfer( .uniform( .identity ) ) ).process( buffer: &buffer )
+        }
+    }
+
+    @Test
+    func screenTransferHandlesAnEmptyBuffer() async throws
+    {
+        let degenerate = Processors.Stretch.STFParameters.Channel( shadows: 0, midtones: 0, highlights: 1, low: 0, high: 1 )
+        var buffer     = try PixelBuffer( width: 0, height: 0, channels: 1, pixels: [], isNormalized: true )
+
+        try Processors.Stretch( algorithm: .screenTransfer( .uniform( degenerate ) ) ).process( buffer: &buffer )
+
+        #expect( buffer.pixels.isEmpty )
+    }
+
+    @Test
+    func screenTransferMatchesTheScalarReferenceOnAPerChannelBuffer() async throws
+    {
+        let red    = Processors.Stretch.STFParameters.Channel( shadows: 0.02, midtones: 0.35, highlights: 0.98, low: 0.0, high: 1.0 )
+        let green  = Processors.Stretch.STFParameters.Channel( shadows: 0.05, midtones: 0.25, highlights: 0.95, low: 0.1, high: 0.9 )
+        let blue   = Processors.Stretch.STFParameters.Channel( shadows: 0.00, midtones: 0.60, highlights: 1.00, low: 0.0, high: 1.0 )
+        let input  = [ 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9 ]
+        var buffer = try PixelBuffer( width: 3, height: 1, channels: 3, pixels: input, isNormalized: true )
+
+        try Processors.Stretch( algorithm: .screenTransfer( .perChannel( red: red, green: green, blue: blue ) ) ).process( buffer: &buffer )
+
+        let expected = stride( from: 0, to: input.count, by: 3 ).flatMap
+        {
+            [ red.map( input[ $0 ] ), green.map( input[ $0 + 1 ] ), blue.map( input[ $0 + 2 ] ) ]
+        }
+
+        #expect( zip( buffer.pixels, expected ).allSatisfy { abs( $0 - $1 ) < 1e-12 } )
+    }
 }

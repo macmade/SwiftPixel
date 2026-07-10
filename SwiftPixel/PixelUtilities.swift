@@ -362,4 +362,52 @@ public enum PixelUtilities
     {
         self.median( values.map { abs( $0 - center ) } )
     }
+
+    /// The PixInsight-style midtones transfer function (MTF),
+    /// `mtf(m, x) = ((m − 1)·x) / ((2m − 1)·x − m)`.
+    ///
+    /// This is the non-linear curve at the heart of a Screen Transfer Function
+    /// (STF): the midtones balance `m` bends the tonal response without moving
+    /// the black and white points. Its behavior at the degenerate midtones is
+    /// well defined for interior inputs — `m = 0` lifts everything to `1`,
+    /// `m = 0.5` is the identity, and `m = 1` pushes everything to `0` — and the
+    /// input boundaries are fixed points (`x ≤ 0 → 0`, `x ≥ 1 → 1`). For `m` and
+    /// `x` both in `(0, 1)` the denominator is never zero, so no divide-by-zero
+    /// guard is required.
+    ///
+    /// - Parameters:
+    ///   - m: The midtones balance, expected in `[0, 1]`.
+    ///   - x: The input sample, expected in `[0, 1]`.
+    /// - Returns: The transferred sample in `[0, 1]`.
+    public static func mtf( _ m: Double, _ x: Double ) -> Double
+    {
+        guard x > 0
+        else
+        {
+            return 0
+        }
+
+        guard x < 1
+        else
+        {
+            return 1
+        }
+
+        if m <= 0
+        {
+            return 1
+        }
+
+        if m >= 1
+        {
+            return 0
+        }
+
+        if m == 0.5
+        {
+            return x
+        }
+
+        return ( ( m - 1.0 ) * x ) / ( ( 2.0 * m - 1.0 ) * x - m )
+    }
 }

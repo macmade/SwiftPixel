@@ -149,6 +149,48 @@ struct Test_Processors_Curves
     }
 
     @Test
+    func matchesTheScalarReferenceAcrossTheRange() async throws
+    {
+        let curve = Processors.Curves.Curve( points:
+            [
+                .init( x: 0.0, y: 0.05 ),
+                .init( x: 0.3, y: 0.60 ),
+                .init( x: 0.7, y: 0.65 ),
+                .init( x: 1.0, y: 0.98 ),
+            ]
+        )
+        let lut    = curve.lookupTable()
+        let input  = stride( from: 0.0, through: 1.0, by: 1.0 / 97.0 ).map { $0 } // off-node values
+        var buffer = try PixelBuffer( width: input.count, height: 1, channels: 1, pixels: input, isNormalized: true )
+
+        try Processors.Curves( channels: .uniform( curve ) ).process( buffer: &buffer )
+
+        let expected = input.map { Processors.Curves.sample( $0, lut: lut ) }
+
+        #expect( zip( buffer.pixels, expected ).allSatisfy { abs( $0 - $1 ) < 1e-12 } )
+    }
+
+    @Test
+    func matchesTheScalarReferencePerChannel() async throws
+    {
+        let red    = Processors.Curves.Curve( points: [ .init( x: 0.0, y: 0.0 ), .init( x: 0.4, y: 0.7 ), .init( x: 1.0, y: 1.0 ) ] )
+        let green  = Processors.Curves.Curve( points: [ .init( x: 0.0, y: 0.1 ), .init( x: 0.6, y: 0.5 ), .init( x: 1.0, y: 0.9 ) ] )
+        let blue   = Processors.Curves.Curve( points: [ .init( x: 0.0, y: 0.0 ), .init( x: 0.5, y: 0.2 ), .init( x: 1.0, y: 1.0 ) ] )
+        let mono   = stride( from: 0.0, through: 1.0, by: 1.0 / 40.0 ).map { $0 }
+        let input  = mono.flatMap { [ $0, $0, $0 ] }
+        var buffer = try PixelBuffer( width: mono.count, height: 1, channels: 3, pixels: input, isNormalized: true )
+
+        try Processors.Curves( channels: .perChannel( red: red, green: green, blue: blue ) ).process( buffer: &buffer )
+
+        let redLUT   = red.lookupTable()
+        let greenLUT = green.lookupTable()
+        let blueLUT  = blue.lookupTable()
+        let expected = mono.flatMap { [ Processors.Curves.sample( $0, lut: redLUT ), Processors.Curves.sample( $0, lut: greenLUT ), Processors.Curves.sample( $0, lut: blueLUT ) ] }
+
+        #expect( zip( buffer.pixels, expected ).allSatisfy { abs( $0 - $1 ) < 1e-12 } )
+    }
+
+    @Test
     func perChannelRequiresThreeChannels() async throws
     {
         var buffer = try self.sample()

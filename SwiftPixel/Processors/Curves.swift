@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+import Accelerate
 import Foundation
 import SwiftUtilities
 
@@ -322,12 +323,13 @@ public extension Processors
 
                     buffer.withUnsafeMutablePixels
                     {
-                        let pixels = UnsafeMutableSendable( $0 )
-
-                        PixelUtilities.parallelOrSerial( iterations: count )
+                        guard let baseAddress = $0.baseAddress
+                        else
                         {
-                            pixels.value[ $0 ] = Self.sample( pixels.value[ $0 ], lut: lut )
+                            return
                         }
+
+                        Self.applyCurve( to: baseAddress, stride: 1, count: count, lut: lut )
                     }
 
                 case .perChannel( let red, let green, let blue ):
@@ -349,22 +351,72 @@ public extension Processors
 
                     buffer.withUnsafeMutablePixels
                     {
-                        let pixels = UnsafeMutableSendable( $0 )
-
-                        PixelUtilities.parallelOrSerial( iterations: pixelCount )
+                        guard let baseAddress = $0.baseAddress
+                        else
                         {
-                            let base = $0 * 3
-
-                            pixels.value[ base + 0 ] = Self.sample( pixels.value[ base + 0 ], lut: redLUT )
-                            pixels.value[ base + 1 ] = Self.sample( pixels.value[ base + 1 ], lut: greenLUT )
-                            pixels.value[ base + 2 ] = Self.sample( pixels.value[ base + 2 ], lut: blueLUT )
+                            return
                         }
+
+                        Self.applyCurve( to: baseAddress + 0, stride: 3, count: pixelCount, lut: redLUT )
+                        Self.applyCurve( to: baseAddress + 1, stride: 3, count: pixelCount, lut: greenLUT )
+                        Self.applyCurve( to: baseAddress + 2, stride: 3, count: pixelCount, lut: blueLUT )
                     }
+            }
+        }
+
+        /// Applies a lookup table to a strided view of the samples, in place, using
+        /// Accelerate's vectorized table interpolation.
+        ///
+        /// Each sample is clipped to `[0, 1]`, scaled to the table's index domain,
+        /// then mapped through ``vDSP_vlintD``, which does the table lookup and the
+        /// linear interpolation between the two nearest nodes in one pass. The
+        /// table is padded with one sentinel entry (a copy of its last value) so the
+        /// interpolation's `A[b + 1]` read stays in bounds at the top of the range,
+        /// where the interpolation weight is zero.
+        ///
+        /// - Parameters:
+        ///   - base:   The address of the channel's first sample.
+        ///   - stride: The gap, in samples, between successive samples of the
+        ///             channel (`1` for a single-channel buffer, the channel count
+        ///             for an interleaved one).
+        ///   - count:  The number of samples in the channel.
+        ///   - lut:    The lookup table from ``Curve/lookupTable()``.
+        private static func applyCurve( to base: UnsafeMutablePointer< Double >, stride: Int, count: Int, lut: [ Double ] )
+        {
+            guard count > 0, lut.isEmpty == false
+            else
+            {
+                return
+            }
+
+            let vCount   = vDSP_Length( count )
+            let vStride  = vDSP_Stride( stride )
+            let maxIndex = Double( lut.count - 1 )
+
+            // Clip into range, then scale to the table's [0, count - 1] index domain.
+            vDSP_vclipD( base, vStride, [ 0.0 ], [ 1.0 ], base, vStride, vCount )
+            vDSP_vsmulD( base, vStride, [ maxIndex ], base, vStride, vCount )
+
+            var padded = lut
+
+            padded.append( lut[ lut.count - 1 ] )
+
+            padded.withUnsafeBufferPointer
+            {
+                guard let table = $0.baseAddress
+                else
+                {
+                    return
+                }
+
+                vDSP_vlintD( table, base, vStride, base, vStride, vCount, vDSP_Length( $0.count ) )
             }
         }
 
         /// Maps a sample through a lookup table with linear interpolation between
         /// the two nearest nodes.
+        ///
+        /// The scalar reference for the vectorized ``applyCurve(to:stride:count:lut:)``.
         ///
         /// - Parameters:
         ///   - value: The normalized sample to map.

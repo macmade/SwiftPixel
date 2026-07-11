@@ -51,7 +51,9 @@
 		0AB10000000000000000A602 /* Processors-Hue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A601 /* Processors-Hue.swift */; };
 		0AB10000000000000000A702 /* Processors-ColorBalance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A701 /* Processors-ColorBalance.swift */; };
 		0AB10000000000000000B002 /* Debayer+Bilinear.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000B001 /* Debayer+Bilinear.swift */; };
+		0AB10000000000000000B102 /* Debayer+Deinterleave.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000B101 /* Debayer+Deinterleave.swift */; };
 		0AB10000000000000000C002 /* Processors-Debayer+Bilinear.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000C001 /* Processors-Debayer+Bilinear.swift */; };
+		0AB10000000000000000C102 /* Processors-Debayer+Deinterleave.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000C101 /* Processors-Debayer+Deinterleave.swift */; };
 		0AB10000000000000000D002 /* Processors-Debayer+VNG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000D001 /* Processors-Debayer+VNG.swift */; };
 		0AB10000000000000000E002 /* Invert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E001 /* Invert.swift */; };
 		0AB10000000000000000E102 /* Orient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E101 /* Orient.swift */; };
@@ -200,7 +202,9 @@
 		0AB10000000000000000A601 /* Processors-Hue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Hue.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000A701 /* Processors-ColorBalance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-ColorBalance.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000B001 /* Debayer+Bilinear.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Debayer+Bilinear.swift"; sourceTree = "<group>"; };
+		0AB10000000000000000B101 /* Debayer+Deinterleave.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Debayer+Deinterleave.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000C001 /* Processors-Debayer+Bilinear.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Debayer+Bilinear.swift"; sourceTree = "<group>"; };
+		0AB10000000000000000C101 /* Processors-Debayer+Deinterleave.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Debayer+Deinterleave.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000D001 /* Processors-Debayer+VNG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Debayer+VNG.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000E001 /* Invert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Invert.swift; sourceTree = "<group>"; };
 		0AB10000000000000000E101 /* Orient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Orient.swift; sourceTree = "<group>"; };
@@ -247,6 +251,7 @@
 				050F37FA2DEE0BBE00E84F97 /* CorrectGamma.swift */,
 				050F37FB2DEE0BBE00E84F97 /* Debayer.swift */,
 				0AB10000000000000000B001 /* Debayer+Bilinear.swift */,
+				0AB10000000000000000B101 /* Debayer+Deinterleave.swift */,
 				0AB10000000000000000F001 /* Debayer+VNG.swift */,
 				0AB10000000000000000E001 /* Invert.swift */,
 				0AB10000000000000000E101 /* Orient.swift */,
@@ -327,6 +332,7 @@
 				05D710BC2DF1D84100CE32E3 /* Processors-CorrectGamma.swift */,
 				05398D3A2DF0231E005904EC /* Processors-Debayer.swift */,
 				0AB10000000000000000C001 /* Processors-Debayer+Bilinear.swift */,
+				0AB10000000000000000C101 /* Processors-Debayer+Deinterleave.swift */,
 				0AB10000000000000000D001 /* Processors-Debayer+VNG.swift */,
 				0AB10000000000000000A001 /* Processors-Invert.swift */,
 				0AB10000000000000000A101 /* Processors-Orient.swift */,
@@ -642,6 +648,7 @@
 				FE00000000000000000000E2 /* GaussianFit.swift in Sources */,
 				050F38032DEE0BBE00E84F97 /* Debayer.swift in Sources */,
 				0AB10000000000000000B002 /* Debayer+Bilinear.swift in Sources */,
+				0AB10000000000000000B102 /* Debayer+Deinterleave.swift in Sources */,
 				0AB10000000000000000F002 /* Debayer+VNG.swift in Sources */,
 				0524AD692DF3369D00180358 /* HistogramStatistics.swift in Sources */,
 				050F38042DEE0BBE00E84F97 /* WhiteBalance.swift in Sources */,
@@ -692,6 +699,7 @@
 				05398D7D2DF0B9F7005904EC /* Processors-Normalize.swift in Sources */,
 				05398D3F2DF02321005904EC /* Processors-Debayer.swift in Sources */,
 				0AB10000000000000000C002 /* Processors-Debayer+Bilinear.swift in Sources */,
+				0AB10000000000000000C102 /* Processors-Debayer+Deinterleave.swift in Sources */,
 				0AB10000000000000000D002 /* Processors-Debayer+VNG.swift in Sources */,
 				05D710BD2DF1D84800CE32E3 /* Processors-CorrectGamma.swift in Sources */,
 				0AB10000000000000000A002 /* Processors-Invert.swift in Sources */,

@@ -300,6 +300,59 @@ public extension Processors.Stretch
             return try Self.computed( from: normalized, shadowClipFactor: shadowClipFactor, targetBackground: targetBackground )
         }
 
+        /// Derives an unlinked, per-channel auto-STF from a single-channel Bayer
+        /// mosaic, by deinterleaving it into its three color-filter sample sets.
+        ///
+        /// This is the colour-filter-array counterpart of ``computed(from:shadowClipFactor:targetBackground:)``:
+        /// where that reduces a *co-located* 3-channel buffer, this derives each
+        /// channel's mapping straight from the mosaic's own red, green and blue
+        /// sites (see ``Processors/Debayer/deinterleave(mosaic:width:height:pattern:)``),
+        /// so each channel clips only its own darkest tail and no demosaic
+        /// interpolation blends the channels' statistics together. It always yields
+        /// a ``perChannel(red:green:blue:)`` result. A channel with no sampled sites
+        /// (a degenerate mosaic too small to contain that colour) or no spread
+        /// falls back to the identity for that channel.
+        ///
+        /// - Parameters:
+        ///   - buffer:           The normalized, single-channel mosaic buffer.
+        ///   - pattern:          The Bayer color-filter arrangement of the mosaic.
+        ///   - shadowClipFactor: How many MADs below the median to clip the
+        ///                       shadows. Defaults to `2.8`.
+        ///   - targetBackground: The value the median should map to. Defaults to
+        ///                       `0.25`.
+        /// - Returns: The derived per-channel STF parameters.
+        ///
+        /// - Throws: A `RuntimeError` if the buffer is not normalized, is empty, is
+        ///           not single-channel, or its sample count does not match its
+        ///           geometry.
+        public static func computed( fromMosaic buffer: PixelBuffer, pattern: Processors.Debayer.Pattern, shadowClipFactor: Double = 2.8, targetBackground: Double = 0.25 ) throws -> STFParameters
+        {
+            guard buffer.isNormalized
+            else
+            {
+                throw RuntimeError( message: "Buffer needs to be normalized" )
+            }
+
+            guard buffer.pixels.isEmpty == false
+            else
+            {
+                throw RuntimeError( message: "Cannot derive an STF from an empty buffer" )
+            }
+
+            guard buffer.channels == 1
+            else
+            {
+                throw RuntimeError( message: "A mosaic auto-STF requires a single-channel buffer: \( buffer.channels )" )
+            }
+
+            let samples = try Processors.Debayer.deinterleave( mosaic: buffer.pixels, width: buffer.width, height: buffer.height, pattern: pattern )
+            let red     = Self.channelOrIdentity( from: samples.red,   shadowClipFactor: shadowClipFactor, targetBackground: targetBackground )
+            let green   = Self.channelOrIdentity( from: samples.green, shadowClipFactor: shadowClipFactor, targetBackground: targetBackground )
+            let blue    = Self.channelOrIdentity( from: samples.blue,  shadowClipFactor: shadowClipFactor, targetBackground: targetBackground )
+
+            return .perChannel( red: red, green: green, blue: blue )
+        }
+
         /// Derives a single channel mapping from a channel's samples.
         ///
         /// - Parameters:
@@ -315,6 +368,30 @@ public extension Processors.Stretch
             else
             {
                 throw RuntimeError( message: "Cannot derive an STF from an empty channel" )
+            }
+
+            return Channel.computed( median: median, mad: mad, shadowClipFactor: shadowClipFactor, targetBackground: targetBackground )
+        }
+
+        /// Derives a single channel mapping from a channel's samples, degrading to
+        /// the identity rather than throwing when the channel has no samples.
+        ///
+        /// Used by the mosaic derivation, where a degenerate mosaic can leave one
+        /// colour with no sampled sites: an absent colour cannot be stretched, so it
+        /// is left unchanged instead of failing the whole derivation.
+        ///
+        /// - Parameters:
+        ///   - samples:          The channel's samples (possibly empty).
+        ///   - shadowClipFactor: How many MADs below the median to clip the shadows.
+        ///   - targetBackground: The value the median should map to.
+        /// - Returns: The derived channel mapping, or the identity for an empty
+        ///            channel.
+        private static func channelOrIdentity( from samples: [ Double ], shadowClipFactor: Double, targetBackground: Double ) -> Channel
+        {
+            guard let median = PixelUtilities.median( samples ), let mad = PixelUtilities.medianAbsoluteDeviation( samples, around: median )
+            else
+            {
+                return .identity
             }
 
             return Channel.computed( median: median, mad: mad, shadowClipFactor: shadowClipFactor, targetBackground: targetBackground )

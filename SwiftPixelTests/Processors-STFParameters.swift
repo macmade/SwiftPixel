@@ -93,7 +93,7 @@ struct Test_Processors_STFParameters
 
         let params  = try STF.computed( from: buffer, shadowClipFactor: 2.8, targetBackground: 0.25 )
 
-        try Processors.Stretch( algorithm: .screenTransfer( params ) ).process( buffer: &buffer )
+        try Processors.Stretch( parameters: params ).process( buffer: &buffer )
 
         #expect( buffer.pixels.allSatisfy { $0.isFinite && $0 >= 0.0 && $0 <= 1.0 } )
 
@@ -170,7 +170,7 @@ struct Test_Processors_STFParameters
         let input   = [ 0.0, 0.2, 0.4, 0.6, 0.8, 1.0 ]
         var buffer  = try PixelBuffer( width: input.count, height: 1, channels: 1, pixels: input, isNormalized: true )
 
-        try Processors.Stretch( algorithm: .screenTransfer( .uniform( channel ) ) ).process( buffer: &buffer )
+        try Processors.Stretch( parameters: .uniform( channel ) ).process( buffer: &buffer )
 
         #expect( zip( buffer.pixels, input ).allSatisfy { abs( $0 - channel.map( $1 ) ) < 1e-12 } )
     }
@@ -183,7 +183,7 @@ struct Test_Processors_STFParameters
 
         #expect( throws: RuntimeError.self )
         {
-            try Processors.Stretch( algorithm: .screenTransfer( params ) ).process( buffer: &buffer )
+            try Processors.Stretch( parameters: params ).process( buffer: &buffer )
         }
     }
 }

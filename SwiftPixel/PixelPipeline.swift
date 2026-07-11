@@ -88,8 +88,9 @@ public struct PixelPipeline: Sendable
         /// when a normalization-dependent stage is requested without one.
         public let normalize: Processors.Normalize.Mode?
 
-        /// The tone-stretch algorithm. Requires normalization.
-        public let stretch: Processors.Stretch.Algorithm?
+        /// The Screen Transfer parameters, or `nil` for no stretch. Requires
+        /// normalization.
+        public let stretch: Processors.Stretch.STFParameters?
 
         /// The gamma exponent for gamma correction. Requires normalization.
         public let correctGamma: Double?
@@ -150,7 +151,7 @@ public struct PixelPipeline: Sendable
         ///   - scale:           Optional affine scaling of the raw samples. Defaults to `nil`.
         ///   - inputFormat:     How the input samples are laid out — mono (expanded to RGB), a colour-filter array (demosaiced), or already-RGB (passed through). Defaults to `.mono`.
         ///   - normalize:       Optional normalization mode. Defaults to `nil`.
-        ///   - stretch:         Optional tone-stretch algorithm. Defaults to `nil`.
+        ///   - stretch:         Optional Screen Transfer parameters. Defaults to `nil`.
         ///   - correctGamma:    Optional gamma exponent. Defaults to `nil`.
         ///   - whiteBalance:       Optional white-balance mode. Defaults to `nil`.
         ///   - invert:             Whether to invert the image. Defaults to `false`.
@@ -163,7 +164,7 @@ public struct PixelPipeline: Sendable
         ///   - orient:             Optional net orientation to apply last. Defaults to `nil`.
         ///   - benchmark:          Whether to emit per-stage timings. Defaults to `false`.
         ///   - benchmarkOutput:    Optional sink for timing output. Defaults to `nil` (prints).
-        public init( scale: ( scale: Double, offset: Double )? = nil, inputFormat: InputFormat = .mono, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.Algorithm? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, brightnessContrast: ( brightness: Double, contrast: Double )? = nil, levels: Processors.Levels.Channels? = nil, curves: Processors.Curves.Channels? = nil, colorBalance: Processors.ColorBalance.Ranges? = nil, hue: Double? = nil, saturation: Double? = nil, orient: Processors.Orient.Orientation? = nil, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
+        public init( scale: ( scale: Double, offset: Double )? = nil, inputFormat: InputFormat = .mono, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.STFParameters? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, brightnessContrast: ( brightness: Double, contrast: Double )? = nil, levels: Processors.Levels.Channels? = nil, curves: Processors.Curves.Channels? = nil, colorBalance: Processors.ColorBalance.Ranges? = nil, hue: Double? = nil, saturation: Double? = nil, orient: Processors.Orient.Orientation? = nil, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
         {
             self.scale              = scale
             self.inputFormat        = inputFormat
@@ -444,7 +445,7 @@ public struct PixelPipeline: Sendable
 
         if let stretch = self.config.stretch
         {
-            processors.append( Processors.Stretch( algorithm: stretch ) )
+            processors.append( Processors.Stretch( parameters: stretch ) )
         }
 
         if let correctGamma = self.config.correctGamma

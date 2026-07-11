@@ -55,7 +55,7 @@ struct Test_PixelPipeline_Config
             scale:        ( scale: 1.5, offset: 0.2 ),
             inputFormat:  .cfa( pattern: .rggb, mode: .vng ),
             normalize:    .percentile( 0.1, 0.9 ),
-            stretch:      .log( 100 ),
+            stretch:      .uniform( .init( midtones: 0.3 ) ),
             correctGamma: 2.2,
             whiteBalance: .manual( red: 1, green: 2, blue: 3 )
         )
@@ -75,9 +75,9 @@ struct Test_PixelPipeline_Config
             #expect( Bool( false ) )
         }
 
-        if case .log( let value ) = config.stretch
+        if case .uniform( let channel ) = config.stretch
         {
-            #expect( value == 100 )
+            #expect( channel.midtones == 0.3 )
         }
         else
         {
@@ -99,7 +99,7 @@ struct Test_PixelPipeline_Config
     @Test
     func initOnlySpecifiedStage() async throws
     {
-        let config = PixelPipeline.Config( stretch: .log( 100 ) )
+        let config = PixelPipeline.Config( stretch: .uniform( .init( midtones: 0.3 ) ) )
 
         #expect( config.scale        == nil )
         #expect( config.inputFormat  == .mono )
@@ -107,9 +107,9 @@ struct Test_PixelPipeline_Config
         #expect( config.correctGamma == nil )
         #expect( config.whiteBalance == nil )
 
-        if case .log( let value ) = config.stretch
+        if case .uniform( let channel ) = config.stretch
         {
-            #expect( value == 100 )
+            #expect( channel.midtones == 0.3 )
         }
         else
         {

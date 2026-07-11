@@ -58,7 +58,7 @@ struct Test_PixelPipeline
         scale:           ( scale: Double, offset: Double )?                                           = nil,
         inputFormat:     PixelPipeline.Config.InputFormat                                              = .mono,
         normalize:       Processors.Normalize.Mode?                                                    = nil,
-        stretch:         Processors.Stretch.Algorithm?                                                 = nil,
+        stretch:         Processors.Stretch.STFParameters?                                             = nil,
         correctGamma:    Double?                                                                       = nil,
         whiteBalance:       Processors.WhiteBalance.Mode?                                              = nil,
         invert:             Bool                                                                       = false,
@@ -172,7 +172,7 @@ struct Test_PixelPipeline
     @Test
     func autoInsertsNormalizeForStretch() async throws
     {
-        let pipeline = PixelPipeline( config: Self.config( stretch: .log( 1.0 ) ) )
+        let pipeline = PixelPipeline( config: Self.config( stretch: .uniform( .init( midtones: 0.3 ) ) ) )
         let result   = try pipeline.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
 
         #expect( result.isNormalized == true )
@@ -190,7 +190,7 @@ struct Test_PixelPipeline
                 scale:              ( scale: 2.0, offset: 1.0 ),
                 inputFormat:        .cfa( pattern: .rggb, mode: .bilinear ),
                 normalize:          .minMax,
-                stretch:            .log( 1.0 ),
+                stretch:            .uniform( .init( midtones: 0.3 ) ),
                 correctGamma:       2.0,
                 whiteBalance:       .auto,
                 invert:             true,
@@ -232,7 +232,7 @@ struct Test_PixelPipeline
     @Test
     func autoInsertedNormalizePrecedesStretch() async throws
     {
-        let pipeline = PixelPipeline( config: Self.config( stretch: .log( 1.0 ) ) )
+        let pipeline = PixelPipeline( config: Self.config( stretch: .uniform( .init( midtones: 0.3 ) ) ) )
         let names    = pipeline.processors().map { $0.name }
 
         let normalizeIndex = names.firstIndex { $0.hasPrefix( "Normalize" ) }
@@ -257,7 +257,7 @@ struct Test_PixelPipeline
     @Test
     func brightnessContrastAppendedAfterNormalizeBeforeStretch() async throws
     {
-        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, stretch: .log( 1.0 ), brightnessContrast: ( brightness: 0.2, contrast: 1.5 ) ) )
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, stretch: .uniform( .init( midtones: 0.3 ) ), brightnessContrast: ( brightness: 0.2, contrast: 1.5 ) ) )
         let names    = pipeline.processors().map { $0.name }
 
         let normalizeIndex = try #require( names.firstIndex { $0.hasPrefix( "Normalize" ) } )
@@ -290,7 +290,7 @@ struct Test_PixelPipeline
     @Test
     func levelsAppliedAfterStretch() async throws
     {
-        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, stretch: .log( 1.0 ), brightnessContrast: ( brightness: 0.2, contrast: 1.5 ), levels: .uniform( Processors.Levels.Parameters( inputBlack: 0.1, inputWhite: 0.9 ) ) ) )
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, stretch: .uniform( .init( midtones: 0.3 ) ), brightnessContrast: ( brightness: 0.2, contrast: 1.5 ), levels: .uniform( Processors.Levels.Parameters( inputBlack: 0.1, inputWhite: 0.9 ) ) ) )
         let names    = pipeline.processors().map { $0.name }
 
         let brightIndex  = try #require( names.firstIndex { $0.hasPrefix( "Brightness/Contrast" ) } )
@@ -328,7 +328,7 @@ struct Test_PixelPipeline
         let levels = Processors.Levels.Channels.uniform( Processors.Levels.Parameters( inputBlack: 0.1, inputWhite: 0.9 ) )
         let curves = Processors.Curves.Channels.uniform( Processors.Curves.Curve( points: [ .init( x: 0, y: 0 ), .init( x: 0.5, y: 0.7 ), .init( x: 1, y: 1 ) ] ) )
 
-        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, stretch: .log( 1.0 ), levels: levels, curves: curves ) )
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, stretch: .uniform( .init( midtones: 0.3 ) ), levels: levels, curves: curves ) )
         let names    = pipeline.processors().map { $0.name }
 
         let stretchIndex = try #require( names.firstIndex { $0.hasPrefix( "Stretch" ) } )
@@ -364,7 +364,7 @@ struct Test_PixelPipeline
     @Test
     func saturationAppliedAfterStretchBeforeInvert() async throws
     {
-        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, stretch: .log( 1.0 ), whiteBalance: .auto, invert: true, saturation: 1.5 ) )
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, stretch: .uniform( .init( midtones: 0.3 ) ), whiteBalance: .auto, invert: true, saturation: 1.5 ) )
         let names    = pipeline.processors().map { $0.name }
 
         let whiteBalanceIndex = try #require( names.firstIndex { $0.hasPrefix( "White Balance" ) } )
@@ -393,7 +393,7 @@ struct Test_PixelPipeline
     func hueAppliedAfterCurvesBeforeSaturation() async throws
     {
         let curves   = Processors.Curves.Channels.uniform( Processors.Curves.Curve( points: [ .init( x: 0, y: 0 ), .init( x: 0.5, y: 0.7 ), .init( x: 1, y: 1 ) ] ) )
-        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, stretch: .log( 1.0 ), curves: curves, hue: 30.0, saturation: 1.5 ) )
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, stretch: .uniform( .init( midtones: 0.3 ) ), curves: curves, hue: 30.0, saturation: 1.5 ) )
         let names    = pipeline.processors().map { $0.name }
 
         let curvesIndex     = try #require( names.firstIndex { $0.hasPrefix( "Curves" ) } )
@@ -429,7 +429,7 @@ struct Test_PixelPipeline
     func colorBalanceAppliedAfterCurvesBeforeHue() async throws
     {
         let curves   = Processors.Curves.Channels.uniform( Processors.Curves.Curve( points: [ .init( x: 0, y: 0 ), .init( x: 0.5, y: 0.7 ), .init( x: 1, y: 1 ) ] ) )
-        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, stretch: .log( 1.0 ), curves: curves, colorBalance: .init( midtones: .init( red: 0.1 ) ), hue: 30.0 ) )
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, stretch: .uniform( .init( midtones: 0.3 ) ), curves: curves, colorBalance: .init( midtones: .init( red: 0.1 ) ), hue: 30.0 ) )
         let names    = pipeline.processors().map { $0.name }
 
         let curvesIndex       = try #require( names.firstIndex { $0.hasPrefix( "Curves" ) } )
@@ -479,7 +479,7 @@ struct Test_PixelPipeline
                 scale:        ( scale: 2.0, offset: 1.0 ),
                 inputFormat:  .cfa( pattern: .rggb, mode: .bilinear ),
                 normalize:    .minMax,
-                stretch:      .log( 1.0 ),
+                stretch:      .uniform( .init( midtones: 0.3 ) ),
                 correctGamma: 2.0,
                 whiteBalance: .auto,
                 orient:       .init( rotation: .clockwise90, mirroredHorizontally: false )

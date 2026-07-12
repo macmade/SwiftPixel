@@ -58,7 +58,7 @@ extension Processors.Debayer
                 throw RuntimeError( message: "Failed to access input data buffer" )
             }
 
-            let input = UnsafeSendable( baseAddress )
+            nonisolated( unsafe ) let input = baseAddress
 
             try output.withUnsafeMutableBufferPointer
             {
@@ -68,7 +68,7 @@ extension Processors.Debayer
                     throw RuntimeError( message: "Failed to access output data buffer" )
                 }
 
-                let output = UnsafeSendable( baseAddress )
+                nonisolated( unsafe ) let output = baseAddress
 
                 PixelUtilities.parallelOrSerial( iterations: height, threshold: 64 )
                 {
@@ -77,7 +77,7 @@ extension Processors.Debayer
                         x in
 
                         let i         = index( x: x, y: y, width: width )
-                        let val       = input.value[ i ]
+                        let val       = input[ i ]
                         let colorType = colorMap[ i ]
 
                         var r = 0.0
@@ -88,14 +88,14 @@ extension Processors.Debayer
                         {
                             case .red:
 
-                                let left  = self.safeRead( x: x - 1, y: y,     width: width, height: height, data: input.value )
-                                let right = self.safeRead( x: x + 1, y: y,     width: width, height: height, data: input.value )
-                                let up    = self.safeRead( x: x,     y: y - 1, width: width, height: height, data: input.value )
-                                let down  = self.safeRead( x: x,     y: y + 1, width: width, height: height, data: input.value )
-                                let ul    = self.safeRead( x: x - 1, y: y - 1, width: width, height: height, data: input.value )
-                                let ur    = self.safeRead( x: x + 1, y: y - 1, width: width, height: height, data: input.value )
-                                let ll    = self.safeRead( x: x - 1, y: y + 1, width: width, height: height, data: input.value )
-                                let lr    = self.safeRead( x: x + 1, y: y + 1, width: width, height: height, data: input.value )
+                                let left  = self.safeRead( x: x - 1, y: y,     width: width, height: height, data: input )
+                                let right = self.safeRead( x: x + 1, y: y,     width: width, height: height, data: input )
+                                let up    = self.safeRead( x: x,     y: y - 1, width: width, height: height, data: input )
+                                let down  = self.safeRead( x: x,     y: y + 1, width: width, height: height, data: input )
+                                let ul    = self.safeRead( x: x - 1, y: y - 1, width: width, height: height, data: input )
+                                let ur    = self.safeRead( x: x + 1, y: y - 1, width: width, height: height, data: input )
+                                let ll    = self.safeRead( x: x - 1, y: y + 1, width: width, height: height, data: input )
+                                let lr    = self.safeRead( x: x + 1, y: y + 1, width: width, height: height, data: input )
 
                                 r = val
                                 g = ( left + right + up + down ) * 0.25
@@ -107,12 +107,12 @@ extension Processors.Debayer
                                 let right = self.colorAt( x: x + 1, y: y, width: width, height: height, pattern: pattern )
 
                                 let horizontal = (
-                                    self.safeRead( x: x - 1, y: y, width: width, height: height, data: input.value )
-                                        + self.safeRead( x: x + 1, y: y, width: width, height: height, data: input.value )
+                                    self.safeRead( x: x - 1, y: y, width: width, height: height, data: input )
+                                        + self.safeRead( x: x + 1, y: y, width: width, height: height, data: input )
                                 ) * 0.5
                                 let vertical = (
-                                    self.safeRead( x: x, y: y - 1, width: width, height: height, data: input.value )
-                                        + self.safeRead( x: x, y: y + 1, width: width, height: height, data: input.value )
+                                    self.safeRead( x: x, y: y - 1, width: width, height: height, data: input )
+                                        + self.safeRead( x: x, y: y + 1, width: width, height: height, data: input )
                                 ) * 0.5
 
                                 g = val
@@ -130,14 +130,14 @@ extension Processors.Debayer
 
                             case .blue:
 
-                                let left  = self.safeRead( x: x - 1, y: y,     width: width, height: height, data: input.value )
-                                let right = self.safeRead( x: x + 1, y: y,     width: width, height: height, data: input.value )
-                                let up    = self.safeRead( x: x,     y: y - 1, width: width, height: height, data: input.value )
-                                let down  = self.safeRead( x: x,     y: y + 1, width: width, height: height, data: input.value )
-                                let ul    = self.safeRead( x: x - 1, y: y - 1, width: width, height: height, data: input.value )
-                                let ur    = self.safeRead( x: x + 1, y: y - 1, width: width, height: height, data: input.value )
-                                let ll    = self.safeRead( x: x - 1, y: y + 1, width: width, height: height, data: input.value )
-                                let lr    = self.safeRead( x: x + 1, y: y + 1, width: width, height: height, data: input.value )
+                                let left  = self.safeRead( x: x - 1, y: y,     width: width, height: height, data: input )
+                                let right = self.safeRead( x: x + 1, y: y,     width: width, height: height, data: input )
+                                let up    = self.safeRead( x: x,     y: y - 1, width: width, height: height, data: input )
+                                let down  = self.safeRead( x: x,     y: y + 1, width: width, height: height, data: input )
+                                let ul    = self.safeRead( x: x - 1, y: y - 1, width: width, height: height, data: input )
+                                let ur    = self.safeRead( x: x + 1, y: y - 1, width: width, height: height, data: input )
+                                let ll    = self.safeRead( x: x - 1, y: y + 1, width: width, height: height, data: input )
+                                let lr    = self.safeRead( x: x + 1, y: y + 1, width: width, height: height, data: input )
 
                                 r = ( ul + ur + ll + lr ) * 0.25
                                 g = ( left + right + up + down ) * 0.25
@@ -145,9 +145,9 @@ extension Processors.Debayer
                         }
 
                         let index                 = i * 3
-                        output.value[ index + 0 ] = r
-                        output.value[ index + 1 ] = g
-                        output.value[ index + 2 ] = b
+                        output[ index + 0 ] = r
+                        output[ index + 1 ] = g
+                        output[ index + 2 ] = b
                     }
                 }
             }

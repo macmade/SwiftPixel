@@ -65,7 +65,7 @@ extension Processors.Debayer
                 throw RuntimeError( message: "Failed to access output data buffer" )
             }
 
-            let output = UnsafeMutableSendable( baseAddress )
+            nonisolated( unsafe ) let output = baseAddress
 
             PixelUtilities.parallelOrSerial( iterations: height, threshold: 64 )
             {
@@ -76,9 +76,9 @@ extension Processors.Debayer
                     let i   = self.index( x: x, y: y, width: width )
                     let rgb = self.interpolateColor( pixels: pixels, green: green, colorMap: colorMap, pattern: pattern, x: x, y: y, width: width, height: height )
 
-                    output.value[ i * 3 + 0 ] = rgb.r
-                    output.value[ i * 3 + 1 ] = rgb.g
-                    output.value[ i * 3 + 2 ] = rgb.b
+                    output[ i * 3 + 0 ] = rgb.r
+                    output[ i * 3 + 1 ] = rgb.g
+                    output[ i * 3 + 2 ] = rgb.b
                 }
             }
         }
@@ -102,7 +102,7 @@ extension Processors.Debayer
 
         green.withUnsafeMutableBufferPointer
         {
-            let buffer = UnsafeMutableSendable( $0 )
+            nonisolated( unsafe ) let buffer = $0
 
             PixelUtilities.parallelOrSerial( iterations: height, threshold: 64 )
             {
@@ -112,7 +112,7 @@ extension Processors.Debayer
 
                     let i = self.index( x: x, y: y, width: width )
 
-                    buffer.value[ i ] = colorMap[ i ] == .green ? pixels[ i ] : self.interpolateGreen( pixels: pixels, x: x, y: y, width: width, height: height )
+                    buffer[ i ] = colorMap[ i ] == .green ? pixels[ i ] : self.interpolateGreen( pixels: pixels, x: x, y: y, width: width, height: height )
                 }
             }
         }

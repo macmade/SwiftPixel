@@ -149,13 +149,13 @@ public extension Processors
             else
             {
                 let span   = ( count - 1 ) * stride + 1
-                let pixels = UnsafeMutableSendable( UnsafeMutableBufferPointer( start: base, count: span ) )
+                nonisolated( unsafe ) let pixels = UnsafeMutableBufferPointer( start: base, count: span )
 
                 PixelUtilities.parallelOrSerial( iterations: count )
                 {
                     let index = $0 * stride
 
-                    pixels.value[ index ] = channel.map( pixels.value[ index ] )
+                    pixels[ index ] = channel.map( pixels[ index ] )
                 }
 
                 return

@@ -156,14 +156,14 @@ public extension Processors
 
             buffer.withUnsafeMutablePixels
             {
-                let pixels = UnsafeMutableSendable( $0 )
+                nonisolated( unsafe ) let pixels = $0
 
                 PixelUtilities.parallelOrSerial( iterations: pixelCount )
                 {
                     let base = $0 * 3
-                    let r    = pixels.value[ base + 0 ]
-                    let g    = pixels.value[ base + 1 ]
-                    let b    = pixels.value[ base + 2 ]
+                    let r    = pixels[ base + 0 ]
+                    let g    = pixels[ base + 1 ]
+                    let b    = pixels[ base + 2 ]
 
                     // Rec. 709 luminance, matching the Saturation stage's channel.
                     let luminance       = 0.2126 * r + 0.7152 * g + 0.0722 * b
@@ -171,9 +171,9 @@ public extension Processors
                     let highlightWeight = Self.smoothstep( 0.5, 1.0, luminance )
                     let midtoneWeight   = 1.0 - shadowWeight - highlightWeight
 
-                    pixels.value[ base + 0 ] = min( 1.0, max( 0.0, r + shadows.red   * shadowWeight + midtones.red   * midtoneWeight + highlights.red   * highlightWeight ) )
-                    pixels.value[ base + 1 ] = min( 1.0, max( 0.0, g + shadows.green * shadowWeight + midtones.green * midtoneWeight + highlights.green * highlightWeight ) )
-                    pixels.value[ base + 2 ] = min( 1.0, max( 0.0, b + shadows.blue  * shadowWeight + midtones.blue  * midtoneWeight + highlights.blue  * highlightWeight ) )
+                    pixels[ base + 0 ] = min( 1.0, max( 0.0, r + shadows.red   * shadowWeight + midtones.red   * midtoneWeight + highlights.red   * highlightWeight ) )
+                    pixels[ base + 1 ] = min( 1.0, max( 0.0, g + shadows.green * shadowWeight + midtones.green * midtoneWeight + highlights.green * highlightWeight ) )
+                    pixels[ base + 2 ] = min( 1.0, max( 0.0, b + shadows.blue  * shadowWeight + midtones.blue  * midtoneWeight + highlights.blue  * highlightWeight ) )
                 }
             }
         }

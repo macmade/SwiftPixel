@@ -82,22 +82,22 @@ public extension Processors
 
             buffer.withUnsafeMutablePixels
             {
-                let pixels = UnsafeMutableSendable( $0 )
+                nonisolated( unsafe ) let pixels = $0
 
                 PixelUtilities.parallelOrSerial( iterations: pixelCount )
                 {
                     let base = $0 * 3
-                    let r    = pixels.value[ base + 0 ]
-                    let g    = pixels.value[ base + 1 ]
-                    let b    = pixels.value[ base + 2 ]
+                    let r    = pixels[ base + 0 ]
+                    let g    = pixels[ base + 1 ]
+                    let b    = pixels[ base + 2 ]
 
                     let hsv     = Self.rgbToHSV( r: r, g: g, b: b )
                     let rotated = Self.wrap( hsv.h + degrees )
                     let rgb     = Self.hsvToRGB( h: rotated, s: hsv.s, v: hsv.v )
 
-                    pixels.value[ base + 0 ] = min( 1.0, max( 0.0, rgb.r ) )
-                    pixels.value[ base + 1 ] = min( 1.0, max( 0.0, rgb.g ) )
-                    pixels.value[ base + 2 ] = min( 1.0, max( 0.0, rgb.b ) )
+                    pixels[ base + 0 ] = min( 1.0, max( 0.0, rgb.r ) )
+                    pixels[ base + 1 ] = min( 1.0, max( 0.0, rgb.g ) )
+                    pixels[ base + 2 ] = min( 1.0, max( 0.0, rgb.b ) )
                 }
             }
         }

@@ -79,16 +79,16 @@ public extension Processors
 
             rgb.withUnsafeMutableBufferPointer
             {
-                let sendableRGBBuffer = UnsafeMutableSendable( $0 )
+                nonisolated( unsafe ) let sendableRGBBuffer = $0
 
                 PixelUtilities.parallelOrSerial( iterations: count )
                 {
                     let value = inputPixels[ $0 ]
                     let base  = $0 * 3
 
-                    sendableRGBBuffer.value[ base + 0 ] = value
-                    sendableRGBBuffer.value[ base + 1 ] = value
-                    sendableRGBBuffer.value[ base + 2 ] = value
+                    sendableRGBBuffer[ base + 0 ] = value
+                    sendableRGBBuffer[ base + 1 ] = value
+                    sendableRGBBuffer[ base + 2 ] = value
                 }
             }
 

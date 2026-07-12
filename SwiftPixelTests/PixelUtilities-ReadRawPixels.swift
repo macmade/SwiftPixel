@@ -231,11 +231,11 @@ struct Test_PixelUtilities_ReadRawPixels
 
             output.withUnsafeMutableBufferPointer
             {
-                let buffer = UnsafeMutableSendable( $0 )
+                nonisolated( unsafe ) let buffer = $0
 
                 PixelUtilities.parallelOrSerial( iterations: count )
                 {
-                    buffer.value[ $0 ] = $0 * 2
+                    buffer[ $0 ] = $0 * 2
                 }
             }
 

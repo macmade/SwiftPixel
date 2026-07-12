@@ -120,7 +120,7 @@ public enum PixelUtilities
 
         try result.withUnsafeMutableBufferPointer
         {
-            let resultBuffer = UnsafeMutableSendable( $0 )
+            nonisolated( unsafe ) let resultBuffer = $0
 
             try data.withUnsafeBytes
             {
@@ -130,7 +130,7 @@ public enum PixelUtilities
                     throw RuntimeError( message: "Failed to access data buffer" )
                 }
 
-                let base = UnsafeSendable( baseAddress )
+                nonisolated( unsafe ) let base = baseAddress
 
                 switch bitsPerPixel
                 {
@@ -138,35 +138,35 @@ public enum PixelUtilities
 
                         Self.parallelOrSerial( iterations: count )
                         {
-                            resultBuffer.value[ $0 ] = Double( base.value.loadUnaligned( fromByteOffset: $0, as: UInt8.self ) )
+                            resultBuffer[ $0 ] = Double( base.loadUnaligned( fromByteOffset: $0, as: UInt8.self ) )
                         }
 
                     case .int16:
 
                         Self.parallelOrSerial( iterations: count )
                         {
-                            resultBuffer.value[ $0 ] = Double( Int16( bigEndian: base.value.loadUnaligned( fromByteOffset: $0 * 2, as: Int16.self ) ) )
+                            resultBuffer[ $0 ] = Double( Int16( bigEndian: base.loadUnaligned( fromByteOffset: $0 * 2, as: Int16.self ) ) )
                         }
 
                     case .int32:
 
                         Self.parallelOrSerial( iterations: count )
                         {
-                            resultBuffer.value[ $0 ] = Double( Int32( bigEndian: base.value.loadUnaligned( fromByteOffset: $0 * 4, as: Int32.self ) ) )
+                            resultBuffer[ $0 ] = Double( Int32( bigEndian: base.loadUnaligned( fromByteOffset: $0 * 4, as: Int32.self ) ) )
                         }
 
                     case .float32:
 
                         Self.parallelOrSerial( iterations: count )
                         {
-                            resultBuffer.value[ $0 ] = Double( Float32( bitPattern: UInt32( bigEndian: base.value.loadUnaligned( fromByteOffset: $0 * 4, as: UInt32.self ) ) ) )
+                            resultBuffer[ $0 ] = Double( Float32( bitPattern: UInt32( bigEndian: base.loadUnaligned( fromByteOffset: $0 * 4, as: UInt32.self ) ) ) )
                         }
 
                     case .float64:
 
                         Self.parallelOrSerial( iterations: count )
                         {
-                            resultBuffer.value[ $0 ] = Double( bitPattern: UInt64( bigEndian: base.value.loadUnaligned( fromByteOffset: $0 * 8, as: UInt64.self ) ) )
+                            resultBuffer[ $0 ] = Double( bitPattern: UInt64( bigEndian: base.loadUnaligned( fromByteOffset: $0 * 8, as: UInt64.self ) ) )
                         }
                 }
             }

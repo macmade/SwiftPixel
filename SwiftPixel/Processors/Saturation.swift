@@ -79,21 +79,21 @@ public extension Processors
 
             buffer.withUnsafeMutablePixels
             {
-                let pixels = UnsafeMutableSendable( $0 )
+                nonisolated( unsafe ) let pixels = $0
 
                 PixelUtilities.parallelOrSerial( iterations: pixelCount )
                 {
                     let base = $0 * 3
-                    let r    = pixels.value[ base + 0 ]
-                    let g    = pixels.value[ base + 1 ]
-                    let b    = pixels.value[ base + 2 ]
+                    let r    = pixels[ base + 0 ]
+                    let g    = pixels[ base + 1 ]
+                    let b    = pixels[ base + 2 ]
 
                     // Rec. 709 luminance, matching Histogram's luminance channel.
                     let luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
 
-                    pixels.value[ base + 0 ] = min( 1.0, max( 0.0, luminance + ( r - luminance ) * factor ) )
-                    pixels.value[ base + 1 ] = min( 1.0, max( 0.0, luminance + ( g - luminance ) * factor ) )
-                    pixels.value[ base + 2 ] = min( 1.0, max( 0.0, luminance + ( b - luminance ) * factor ) )
+                    pixels[ base + 0 ] = min( 1.0, max( 0.0, luminance + ( r - luminance ) * factor ) )
+                    pixels[ base + 1 ] = min( 1.0, max( 0.0, luminance + ( g - luminance ) * factor ) )
+                    pixels[ base + 2 ] = min( 1.0, max( 0.0, luminance + ( b - luminance ) * factor ) )
                 }
             }
         }

@@ -272,7 +272,7 @@ public extension Processors
 
             result.withUnsafeMutableBufferPointer
             {
-                let sendableResult = UnsafeMutableSendable( $0 )
+                nonisolated( unsafe ) let sendableResult = $0
 
                 // One iteration per source pixel; each scatters its channels to a
                 // distinct destination, so parallel writes never overlap.
@@ -286,7 +286,7 @@ public extension Processors
 
                     for channel in 0 ..< channels
                     {
-                        sendableResult.value[ destinationBase + channel ] = source[ sourceBase + channel ]
+                        sendableResult[ destinationBase + channel ] = source[ sourceBase + channel ]
                     }
                 }
             }

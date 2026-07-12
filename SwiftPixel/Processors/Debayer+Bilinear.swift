@@ -23,7 +23,6 @@
  ******************************************************************************/
 
 import Foundation
-import SwiftUtilities
 
 extension Processors.Debayer
 {
@@ -44,7 +43,7 @@ extension Processors.Debayer
     ///
     /// - Returns: `width × height × 3` interleaved RGB samples.
     ///
-    /// - Throws: A `RuntimeError` if the sample buffers cannot be accessed.
+    /// - Throws: A `PixelBufferError` if the sample buffers cannot be accessed.
     internal static func bilinear( pixels: [ Double ], pattern: Pattern, width: Int, height: Int ) throws -> [ Double ]
     {
         let colorMap = self.colorMap( width: width, height: height, pattern: pattern )
@@ -55,7 +54,7 @@ extension Processors.Debayer
             guard let baseAddress = $0.baseAddress
             else
             {
-                throw RuntimeError( message: "Failed to access input data buffer" )
+                throw PixelBufferError.bufferAccessFailed( role: .input )
             }
 
             nonisolated( unsafe ) let input = baseAddress
@@ -65,7 +64,7 @@ extension Processors.Debayer
                 guard let baseAddress = $0.baseAddress
                 else
                 {
-                    throw RuntimeError( message: "Failed to access output data buffer" )
+                    throw PixelBufferError.bufferAccessFailed( role: .output )
                 }
 
                 nonisolated( unsafe ) let output = baseAddress

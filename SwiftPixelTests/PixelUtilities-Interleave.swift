@@ -24,7 +24,6 @@
 
 import Foundation
 @testable import SwiftPixel
-import SwiftUtilities
 import Testing
 
 struct Test_PixelUtilities_Interleave

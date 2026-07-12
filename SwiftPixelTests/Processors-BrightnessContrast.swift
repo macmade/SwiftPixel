@@ -24,7 +24,6 @@
 
 import Foundation
 @testable import SwiftPixel
-import SwiftUtilities
 import Testing
 
 struct Test_Processors_BrightnessContrast
@@ -118,7 +117,7 @@ struct Test_Processors_BrightnessContrast
     {
         var buffer = try PixelBuffer( width: 1, height: 1, channels: 1, pixels: [ 0.5 ], isNormalized: false )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try Processors.BrightnessContrast( brightness: 0.0, contrast: 1.0 ).process( buffer: &buffer )
         }

@@ -23,7 +23,6 @@
  ******************************************************************************/
 
 import Foundation
-import SwiftUtilities
 
 public extension Processors
 {
@@ -252,7 +251,7 @@ public extension Processors
         ///
         /// - Parameter buffer: The buffer to reorient.
         ///
-        /// - Throws: A `RuntimeError` if the reoriented geometry is inconsistent.
+        /// - Throws: A `PixelBufferError` if the reoriented geometry is inconsistent.
         public func process( buffer: inout PixelBuffer ) throws
         {
             guard self.orientation.isIdentity == false

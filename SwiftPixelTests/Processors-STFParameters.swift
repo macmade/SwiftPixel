@@ -24,7 +24,6 @@
 
 import Foundation
 @testable import SwiftPixel
-import SwiftUtilities
 import Testing
 
 struct Test_Processors_STFParameters
@@ -147,7 +146,7 @@ struct Test_Processors_STFParameters
     {
         let buffer = try PixelBuffer( width: 2, height: 1, channels: 1, pixels: [ 3.0, 9.0 ], isNormalized: false )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             _ = try STF.computed( from: buffer, shadowClipFactor: 2.8, targetBackground: 0.25 )
         }
@@ -181,7 +180,7 @@ struct Test_Processors_STFParameters
         var buffer = try PixelBuffer( width: 2, height: 1, channels: 1, pixels: [ 0.4, 0.6 ], isNormalized: true )
         let params = STF.perChannel( red: .identity, green: .identity, blue: .identity )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try Processors.Stretch( parameters: params ).process( buffer: &buffer )
         }
@@ -224,14 +223,14 @@ struct Test_Processors_STFParameters
     {
         let raw = try PixelBuffer( width: 2, height: 2, channels: 1, pixels: [ 0.1, 0.2, 0.3, 0.4 ], isNormalized: false )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             _ = try STF.computed( fromMosaic: raw, pattern: .rggb )
         }
 
         let rgb = try PixelBuffer( width: 1, height: 1, channels: 3, pixels: [ 0.1, 0.2, 0.3 ], isNormalized: true )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             _ = try STF.computed( fromMosaic: rgb, pattern: .rggb )
         }

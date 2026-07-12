@@ -91,7 +91,8 @@ public extension Processors
         ///
         /// - Parameter buffer: The buffer to normalize.
         ///
-        /// - Throws: A `RuntimeError` if normalization fails.
+        /// - Note: This stage never fails; it is `throws` only to satisfy the
+        ///         ``PixelProcessor`` requirement.
         public func process( buffer: inout PixelBuffer ) throws
         {
             guard buffer.pixels.isEmpty == false

@@ -24,7 +24,6 @@
 
 import Accelerate
 import Foundation
-import SwiftUtilities
 
 public extension Processors
 {
@@ -59,7 +58,7 @@ public extension Processors
         ///
         /// - Parameter buffer: The normalized buffer to transform.
         ///
-        /// - Throws: A `RuntimeError` if the buffer is not normalized, if a
+        /// - Throws: A `PixelBufferError` or `STFParameters.ValidationError` if the buffer is not normalized, if a
         ///           channel's parameters are degenerate, or if per-channel
         ///           parameters are used with a buffer that is not 3-channel.
         public func process( buffer: inout PixelBuffer ) throws
@@ -67,7 +66,7 @@ public extension Processors
             guard buffer.isNormalized
             else
             {
-                throw RuntimeError( message: "Buffer needs to be normalized" )
+                throw PixelBufferError.notNormalized
             }
 
             switch self.parameters
@@ -98,7 +97,7 @@ public extension Processors
                     guard buffer.channels == 3
                     else
                     {
-                        throw RuntimeError( message: "Per-channel screen transfer requires a 3-channel buffer: \( buffer.channels )" )
+                        throw PixelBufferError.unsupportedChannelCount( actual: buffer.channels, supported: [ 3 ] )
                     }
 
                     let pixelCount = buffer.width * buffer.height

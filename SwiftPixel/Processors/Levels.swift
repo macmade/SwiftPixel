@@ -24,7 +24,6 @@
 
 import Accelerate
 import Foundation
-import SwiftUtilities
 
 public extension Processors
 {
@@ -38,6 +37,31 @@ public extension Processors
     /// every channel, or independently per RGB channel.
     struct Levels: PixelProcessor
     {
+        /// A validation failure for a levels stage's configuration.
+        public enum ValidationError: LocalizedError, Equatable, Sendable
+        {
+            /// The midtone gamma is not strictly positive.
+            case nonPositiveGamma( Double )
+
+            /// The input white is not strictly greater than the input black.
+            case invalidInputRange( black: Double, white: Double )
+
+            /// A human-readable description of the failure.
+            public var errorDescription: String?
+            {
+                switch self
+                {
+                    case .nonPositiveGamma( let gamma ):
+
+                        return "Levels gamma must be greater than zero: \( gamma )"
+
+                    case .invalidInputRange( let black, let white ):
+
+                        return "Levels input white must be greater than input black: \( white ) <= \( black )"
+                }
+            }
+        }
+
         /// One channel's level mapping.
         ///
         /// The input window (`inputBlack`, `inputWhite`) selects the tonal range
@@ -94,20 +118,20 @@ public extension Processors
 
             /// Validates that the parameters describe a usable mapping.
             ///
-            /// - Throws: A `RuntimeError` if `gamma <= 0` or `inputWhite` is not
+            /// - Throws: A `Levels.ValidationError` if `gamma <= 0` or `inputWhite` is not
             ///           greater than `inputBlack`.
             func validate() throws
             {
                 guard self.gamma > 0
                 else
                 {
-                    throw RuntimeError( message: "Levels gamma must be greater than zero: \( self.gamma )" )
+                    throw Levels.ValidationError.nonPositiveGamma( self.gamma )
                 }
 
                 guard self.inputWhite > self.inputBlack
                 else
                 {
-                    throw RuntimeError( message: "Levels input white must be greater than input black: \( self.inputWhite ) <= \( self.inputBlack )" )
+                    throw Levels.ValidationError.invalidInputRange( black: self.inputBlack, white: self.inputWhite )
                 }
             }
 
@@ -174,7 +198,7 @@ public extension Processors
         ///
         /// - Parameter buffer: The normalized buffer to transform.
         ///
-        /// - Throws: A `RuntimeError` if the buffer is not normalized, a
+        /// - Throws: A `PixelBufferError` or `Levels.ValidationError` if the buffer is not normalized, a
         ///           parameter set is degenerate (`gamma <= 0` or `inputWhite <=
         ///           inputBlack`), or per-channel parameters are used with a
         ///           buffer that is not 3-channel.
@@ -183,7 +207,7 @@ public extension Processors
             guard buffer.isNormalized
             else
             {
-                throw RuntimeError( message: "Buffer needs to be normalized" )
+                throw PixelBufferError.notNormalized
             }
 
             switch self.channels
@@ -214,7 +238,7 @@ public extension Processors
                     guard buffer.channels == 3
                     else
                     {
-                        throw RuntimeError( message: "Per-channel levels require a 3-channel buffer: \( buffer.channels )" )
+                        throw PixelBufferError.unsupportedChannelCount( actual: buffer.channels, supported: [ 3 ] )
                     }
 
                     let pixelCount = buffer.width * buffer.height

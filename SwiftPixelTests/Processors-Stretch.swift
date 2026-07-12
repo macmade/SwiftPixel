@@ -24,7 +24,6 @@
 
 import Foundation
 @testable import SwiftPixel
-import SwiftUtilities
 import Testing
 
 struct Test_Processors_Stretch
@@ -40,7 +39,7 @@ struct Test_Processors_Stretch
         var buffer  = try Self.makeBuffer( [ 0.4, 0.6 ] )
         let channel = Processors.Stretch.STFParameters.Channel( shadows: 0.8, midtones: 0.5, highlights: 0.2, low: 0, high: 1 )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: Processors.Stretch.STFParameters.ValidationError.self )
         {
             try Processors.Stretch( parameters: .uniform( channel ) ).process( buffer: &buffer )
         }
@@ -51,7 +50,7 @@ struct Test_Processors_Stretch
     {
         var buffer = try PixelBuffer( width: 1, height: 1, channels: 1, pixels: [ 0.5 ], isNormalized: false )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try Processors.Stretch( parameters: .uniform( .identity ) ).process( buffer: &buffer )
         }

@@ -24,7 +24,6 @@
 
 import Foundation
 @testable import SwiftPixel
-import SwiftUtilities
 import Testing
 
 struct Test_Processors_MonoToRGB
@@ -83,7 +82,7 @@ struct Test_Processors_MonoToRGB
 
         let monoToRGB = Processors.MonoToRGB()
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try monoToRGB.process( buffer: &buffer )
         }
@@ -102,7 +101,7 @@ struct Test_Processors_MonoToRGB
 
         let debayer = Processors.Debayer( mode: .bilinear, pattern: .bggr )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try debayer.process( buffer: &buffer )
         }

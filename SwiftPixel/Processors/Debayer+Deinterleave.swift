@@ -23,7 +23,6 @@
  ******************************************************************************/
 
 import Foundation
-import SwiftUtilities
 
 public extension Processors.Debayer
 {
@@ -47,7 +46,7 @@ public extension Processors.Debayer
     ///   - pattern: The Bayer color-filter arrangement of the mosaic.
     /// - Returns: The red, green and blue sample sets, each in row-major order.
     ///
-    /// - Throws: A `RuntimeError` if the sample count does not match `width ×
+    /// - Throws: A `PixelBufferError` if the sample count does not match `width ×
     ///           height`, or the geometry is invalid.
     static func deinterleave( mosaic pixels: [ Double ], width: Int, height: Int, pattern: Pattern ) throws -> ( red: [ Double ], green: [ Double ], blue: [ Double ] )
     {
@@ -56,7 +55,7 @@ public extension Processors.Debayer
         guard pixels.count == expected
         else
         {
-            throw RuntimeError( message: "Data size does not match expected size: \( pixels.count ) != \( expected )" )
+            throw PixelBufferError.dataSizeMismatch( expected: expected, actual: pixels.count )
         }
 
         let colors = Self.colorMap( width: width, height: height, pattern: pattern )

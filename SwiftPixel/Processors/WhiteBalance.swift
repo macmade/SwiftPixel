@@ -24,7 +24,6 @@
 
 import Accelerate
 import Foundation
-import SwiftUtilities
 
 public extension Processors
 {
@@ -76,20 +75,20 @@ public extension Processors
         ///
         /// - Parameter buffer: A normalized, 3-channel buffer.
         ///
-        /// - Throws: A `RuntimeError` if the buffer is not normalized, is not
+        /// - Throws: A `PixelBufferError` if the buffer is not normalized, is not
         ///           3-channel, or its sample count does not match its geometry.
         public func process( buffer: inout PixelBuffer ) throws
         {
             guard buffer.isNormalized
             else
             {
-                throw RuntimeError( message: "Buffer needs to be normalized" )
+                throw PixelBufferError.notNormalized
             }
 
             guard buffer.channels == 3
             else
             {
-                throw RuntimeError( message: "Unsupported channel count: \( buffer.channels )" )
+                throw PixelBufferError.unsupportedChannelCount( actual: buffer.channels, supported: [ 3 ] )
             }
 
             let expected = try PixelUtilities.checkedSampleCount( width: buffer.width, height: buffer.height, channels: buffer.channels )
@@ -97,7 +96,7 @@ public extension Processors
             guard buffer.pixels.count == expected
             else
             {
-                throw RuntimeError( message: "Data size does not match expected size: \( buffer.pixels.count ) != \( expected )" )
+                throw PixelBufferError.dataSizeMismatch( expected: expected, actual: buffer.pixels.count )
             }
 
             switch ( self.mode )
@@ -123,7 +122,7 @@ public extension Processors
         ///   - g:      The gain for the green channel.
         ///   - b:      The gain for the blue channel.
         ///
-        /// - Throws: A `RuntimeError` if the sample buffer cannot be accessed.
+        /// - Throws: A `PixelBufferError` if the sample buffer cannot be accessed.
         private static func whiteBalance( buffer: inout PixelBuffer, r: Double, g: Double, b: Double ) throws
         {
             let count = vDSP_Length( buffer.width * buffer.height )
@@ -133,7 +132,7 @@ public extension Processors
                 guard let baseAddress = $0.baseAddress
                 else
                 {
-                    throw RuntimeError( message: "Failed to access data buffer" )
+                    throw PixelBufferError.bufferAccessFailed( role: .data )
                 }
 
                 var r = r
@@ -158,7 +157,7 @@ public extension Processors
         ///
         /// - Returns: The per-channel gains.
         ///
-        /// - Throws: A `RuntimeError` if the sample buffer cannot be accessed.
+        /// - Throws: A `PixelBufferError` if the sample buffer cannot be accessed.
         private static func computeGains( buffer: PixelBuffer ) throws -> ( r: Double, g: Double, b: Double )
         {
             let count = vDSP_Length( buffer.width * buffer.height )
@@ -168,7 +167,7 @@ public extension Processors
                 guard let baseAddress = $0.baseAddress
                 else
                 {
-                    throw RuntimeError( message: "Failed to access data buffer" )
+                    throw PixelBufferError.bufferAccessFailed( role: .data )
                 }
 
                 var sumR = 0.0

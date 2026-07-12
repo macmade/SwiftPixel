@@ -42,7 +42,7 @@ public protocol PixelProcessor: CustomStringConvertible
     ///
     /// - Parameter buffer: The buffer to transform.
     ///
-    /// - Throws: A `RuntimeError` if the buffer does not meet the stage's
+    /// - Throws: An error if the buffer does not meet the stage's
     ///           preconditions, or if processing fails.
     func process( buffer: inout PixelBuffer ) throws
 

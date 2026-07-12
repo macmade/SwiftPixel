@@ -24,7 +24,6 @@
 
 import Foundation
 @testable import SwiftPixel
-import SwiftUtilities
 import Testing
 
 struct Test_Processors_Debayer_Deinterleave
@@ -145,7 +144,7 @@ struct Test_Processors_Debayer_Deinterleave
     @Test
     func deinterleaveRejectsAMismatchedSampleCount() async throws
     {
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try Debayer.deinterleave( mosaic: [ 0, 1, 2 ], width: 2, height: 2, pattern: .rggb )
         }

@@ -24,7 +24,6 @@
 
 import Foundation
 @testable import SwiftPixel
-import SwiftUtilities
 import Testing
 
 struct Test_Processors_ColorBalance
@@ -157,7 +156,7 @@ struct Test_Processors_ColorBalance
     {
         var buffer = try PixelBuffer( width: 1, height: 1, channels: 1, pixels: [ 0.5 ], isNormalized: true )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try Processors.ColorBalance( ranges: self.ranges( midtones: .init( red: 0.2 ) ) ).process( buffer: &buffer )
         }
@@ -168,7 +167,7 @@ struct Test_Processors_ColorBalance
     {
         var buffer = try PixelBuffer( width: 1, height: 1, channels: 3, pixels: [ 0.2, 0.5, 0.9 ], isNormalized: false )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try Processors.ColorBalance( ranges: self.ranges( midtones: .init( red: 0.2 ) ) ).process( buffer: &buffer )
         }

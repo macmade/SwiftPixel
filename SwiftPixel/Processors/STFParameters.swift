@@ -23,7 +23,6 @@
  ******************************************************************************/
 
 import Foundation
-import SwiftUtilities
 
 public extension Processors.Stretch
 {
@@ -44,6 +43,52 @@ public extension Processors.Stretch
         /// A separate mapping for each of the red, green and blue channels;
         /// requires a 3-channel buffer.
         case perChannel( red: Channel, green: Channel, blue: Channel )
+
+        /// A validation failure for an STF's configuration or auto-derivation.
+        public enum ValidationError: LocalizedError, Equatable, Sendable
+        {
+            /// The highlights clip point is not strictly greater than the shadows.
+            case highlightsNotAboveShadows( highlights: Double, shadows: Double )
+
+            /// The high expansion bound is not strictly greater than the low bound.
+            case highNotAboveLow( high: Double, low: Double )
+
+            /// The midtones balance is outside `[0, 1]`.
+            case midtonesOutOfRange( Double )
+
+            /// An STF cannot be derived from an empty buffer.
+            case emptyBuffer
+
+            /// An STF cannot be derived from an empty channel.
+            case emptyChannel
+
+            /// A human-readable description of the failure.
+            public var errorDescription: String?
+            {
+                switch self
+                {
+                    case .highlightsNotAboveShadows( let highlights, let shadows ):
+
+                        return "STF highlights must be greater than shadows: \( highlights ) <= \( shadows )"
+
+                    case .highNotAboveLow( let high, let low ):
+
+                        return "STF high expansion must be greater than low: \( high ) <= \( low )"
+
+                    case .midtonesOutOfRange( let midtones ):
+
+                        return "STF midtones balance must be within [0, 1]: \( midtones )"
+
+                    case .emptyBuffer:
+
+                        return "Cannot derive an STF from an empty buffer"
+
+                    case .emptyChannel:
+
+                        return "Cannot derive an STF from an empty channel"
+                }
+            }
+        }
 
         /// One channel's STF mapping.
         ///
@@ -110,26 +155,26 @@ public extension Processors.Stretch
 
             /// Validates that the parameters describe a usable mapping.
             ///
-            /// - Throws: A `RuntimeError` if `highlights <= shadows`, `high <= low`,
+            /// - Throws: A `STFParameters.ValidationError` if `highlights <= shadows`, `high <= low`,
             ///           or `midtones` is outside `[0, 1]`.
             func validate() throws
             {
                 guard self.highlights > self.shadows
                 else
                 {
-                    throw RuntimeError( message: "STF highlights must be greater than shadows: \( self.highlights ) <= \( self.shadows )" )
+                    throw STFParameters.ValidationError.highlightsNotAboveShadows( highlights: self.highlights, shadows: self.shadows )
                 }
 
                 guard self.high > self.low
                 else
                 {
-                    throw RuntimeError( message: "STF high expansion must be greater than low: \( self.high ) <= \( self.low )" )
+                    throw STFParameters.ValidationError.highNotAboveLow( high: self.high, low: self.low )
                 }
 
                 guard self.midtones >= 0, self.midtones <= 1
                 else
                 {
-                    throw RuntimeError( message: "STF midtones balance must be within [0, 1]: \( self.midtones )" )
+                    throw STFParameters.ValidationError.midtonesOutOfRange( self.midtones )
                 }
             }
 
@@ -234,20 +279,20 @@ public extension Processors.Stretch
         ///                       `0.25`.
         /// - Returns: The derived STF parameters.
         ///
-        /// - Throws: A `RuntimeError` if the buffer is not normalized, is empty, or
+        /// - Throws: A `PixelBufferError` or `STFParameters.ValidationError` if the buffer is not normalized, is empty, or
         ///           has an unsupported channel count (only 1 and 3 are supported).
         public static func computed( from buffer: PixelBuffer, shadowClipFactor: Double = 2.8, targetBackground: Double = 0.25 ) throws -> STFParameters
         {
             guard buffer.isNormalized
             else
             {
-                throw RuntimeError( message: "Buffer needs to be normalized" )
+                throw PixelBufferError.notNormalized
             }
 
             guard buffer.pixels.isEmpty == false
             else
             {
-                throw RuntimeError( message: "Cannot derive an STF from an empty buffer" )
+                throw STFParameters.ValidationError.emptyBuffer
             }
 
             switch buffer.channels
@@ -266,7 +311,7 @@ public extension Processors.Stretch
 
                 default:
 
-                    throw RuntimeError( message: "Auto-STF supports 1- or 3-channel buffers only: \( buffer.channels )" )
+                    throw PixelBufferError.unsupportedChannelCount( actual: buffer.channels, supported: [ 1, 3 ] )
             }
         }
 
@@ -287,7 +332,7 @@ public extension Processors.Stretch
         ///                       `0.25`.
         /// - Returns: The derived STF parameters.
         ///
-        /// - Throws: A `RuntimeError` if normalization or derivation fails.
+        /// - Throws: A `PixelBufferError` or `STFParameters.ValidationError` if normalization or derivation fails.
         public static func computed( normalizing buffer: PixelBuffer, using mode: Processors.Normalize.Mode = .minMax, shadowClipFactor: Double = 2.8, targetBackground: Double = 0.25 ) throws -> STFParameters
         {
             var normalized = buffer
@@ -322,7 +367,7 @@ public extension Processors.Stretch
         ///                       `0.25`.
         /// - Returns: The derived per-channel STF parameters.
         ///
-        /// - Throws: A `RuntimeError` if the buffer is not normalized, is empty, is
+        /// - Throws: A `PixelBufferError` or `STFParameters.ValidationError` if the buffer is not normalized, is empty, is
         ///           not single-channel, or its sample count does not match its
         ///           geometry.
         public static func computed( fromMosaic buffer: PixelBuffer, pattern: Processors.Debayer.Pattern, shadowClipFactor: Double = 2.8, targetBackground: Double = 0.25 ) throws -> STFParameters
@@ -330,19 +375,19 @@ public extension Processors.Stretch
             guard buffer.isNormalized
             else
             {
-                throw RuntimeError( message: "Buffer needs to be normalized" )
+                throw PixelBufferError.notNormalized
             }
 
             guard buffer.pixels.isEmpty == false
             else
             {
-                throw RuntimeError( message: "Cannot derive an STF from an empty buffer" )
+                throw STFParameters.ValidationError.emptyBuffer
             }
 
             guard buffer.channels == 1
             else
             {
-                throw RuntimeError( message: "A mosaic auto-STF requires a single-channel buffer: \( buffer.channels )" )
+                throw PixelBufferError.unsupportedChannelCount( actual: buffer.channels, supported: [ 1 ] )
             }
 
             let samples = try Processors.Debayer.deinterleave( mosaic: buffer.pixels, width: buffer.width, height: buffer.height, pattern: pattern )
@@ -361,13 +406,13 @@ public extension Processors.Stretch
         ///   - targetBackground: The value the median should map to.
         /// - Returns: The derived channel mapping.
         ///
-        /// - Throws: A `RuntimeError` if the samples are empty.
+        /// - Throws: A `STFParameters.ValidationError` if the samples are empty.
         private static func channel( from samples: [ Double ], shadowClipFactor: Double, targetBackground: Double ) throws -> Channel
         {
             guard let median = PixelUtilities.median( samples ), let mad = PixelUtilities.medianAbsoluteDeviation( samples, around: median )
             else
             {
-                throw RuntimeError( message: "Cannot derive an STF from an empty channel" )
+                throw STFParameters.ValidationError.emptyChannel
             }
 
             return Channel.computed( median: median, mad: mad, shadowClipFactor: shadowClipFactor, targetBackground: targetBackground )

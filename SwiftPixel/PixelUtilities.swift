@@ -24,7 +24,6 @@
 
 import Accelerate
 import Foundation
-import SwiftUtilities
 
 /// A namespace of helpers for decoding and analyzing raw pixel data.
 public enum PixelUtilities
@@ -33,7 +32,7 @@ public enum PixelUtilities
     /// product overflows `Int`.
     ///
     /// Used to validate image geometry before allocating or comparing sample
-    /// counts, so a pathological dimension reports a `RuntimeError` rather than
+    /// counts, so a pathological dimension reports a `PixelBufferError` rather than
     /// crashing on multiplication overflow.
     ///
     /// - Parameters:
@@ -43,7 +42,7 @@ public enum PixelUtilities
     ///
     /// - Returns: The total sample count.
     ///
-    /// - Throws: A `RuntimeError` if the product overflows `Int`.
+    /// - Throws: A `PixelBufferError` if the product overflows `Int`.
     internal static func checkedSampleCount( width: Int, height: Int, channels: Int ) throws -> Int
     {
         let ( pixels, pixelsOverflow ) = width.multipliedReportingOverflow( by: height )
@@ -52,7 +51,7 @@ public enum PixelUtilities
         guard pixelsOverflow == false, totalOverflow == false
         else
         {
-            throw RuntimeError( message: "Image geometry overflows Int: \( width ) x \( height ) x \( channels )" )
+            throw PixelBufferError.geometryOverflow( width: width, height: height, channels: channels )
         }
 
         return total
@@ -103,7 +102,7 @@ public enum PixelUtilities
     ///
     /// - Returns: `width × height` samples as `Double`s, in row-major order.
     ///
-    /// - Throws: A `RuntimeError` if `data`'s length does not match the expected
+    /// - Throws: A `PixelBufferError` if `data`'s length does not match the expected
     ///           size for the given geometry and format.
     public static func readRawPixels( data: Data, width: Int, height: Int, bitsPerPixel: BitsPerPixel ) throws -> [ Double ]
     {
@@ -113,7 +112,7 @@ public enum PixelUtilities
         guard data.count == size
         else
         {
-            throw RuntimeError( message: "Data size does not match expected size: \( data.count ) != \( size )" )
+            throw PixelBufferError.dataSizeMismatch( expected: size, actual: data.count )
         }
 
         var result = [ Double ]( repeating: 0.0, count: count )
@@ -127,7 +126,7 @@ public enum PixelUtilities
                 guard let baseAddress = $0.baseAddress
                 else
                 {
-                    throw RuntimeError( message: "Failed to access data buffer" )
+                    throw PixelBufferError.bufferAccessFailed( role: .data )
                 }
 
                 nonisolated( unsafe ) let base = baseAddress
@@ -185,14 +184,14 @@ public enum PixelUtilities
     ///
     /// - Parameter planes: The channel planes, all the same non-zero length.
     /// - Returns: The interleaved samples, `planes.count × planeLength` long.
-    /// - Throws: A `RuntimeError` when there are no planes, a plane is empty, or the
+    /// - Throws: A `PixelInterleaveError` when there are no planes, a plane is empty, or the
     ///           planes differ in length.
     public static func interleave( planes: [ [ Double ] ] ) throws -> [ Double ]
     {
         guard let first = planes.first, first.isEmpty == false
         else
         {
-            throw RuntimeError( message: "Cannot interleave: at least one non-empty plane is required." )
+            throw PixelInterleaveError.noNonEmptyPlane
         }
 
         let count    = first.count
@@ -201,7 +200,7 @@ public enum PixelUtilities
         guard planes.allSatisfy( { $0.count == count } )
         else
         {
-            throw RuntimeError( message: "Cannot interleave planes of unequal length." )
+            throw PixelInterleaveError.unequalPlaneLengths
         }
 
         var result = [ Double ]( repeating: 0, count: count * channels )
@@ -409,5 +408,32 @@ public enum PixelUtilities
         }
 
         return ( ( m - 1.0 ) * x ) / ( ( 2.0 * m - 1.0 ) * x - m )
+    }
+}
+
+/// A failure originating from interleaving separate channel planes into a single
+/// interleaved sample array (see ``PixelUtilities/interleave(planes:)``).
+public enum PixelInterleaveError: LocalizedError, Equatable, Sendable
+{
+    /// No plane, or only empty planes, were provided; at least one non-empty plane
+    /// is required.
+    case noNonEmptyPlane
+
+    /// The planes differ in length; interleaving requires equal-length planes.
+    case unequalPlaneLengths
+
+    /// A human-readable description of the failure.
+    public var errorDescription: String?
+    {
+        switch self
+        {
+            case .noNonEmptyPlane:
+
+                return "Cannot interleave: at least one non-empty plane is required."
+
+            case .unequalPlaneLengths:
+
+                return "Cannot interleave planes of unequal length."
+        }
     }
 }

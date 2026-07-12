@@ -24,7 +24,6 @@
 
 import Foundation
 @testable import SwiftPixel
-import SwiftUtilities
 import Testing
 
 struct Test_Processors_CorrectGamma
@@ -78,7 +77,7 @@ struct Test_Processors_CorrectGamma
 
         let processor = Processors.CorrectGamma( gamma: 0.0 )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: Processors.CorrectGamma.ValidationError.self )
         {
             try processor.process( buffer: &buffer )
         }
@@ -97,7 +96,7 @@ struct Test_Processors_CorrectGamma
 
         let processor = Processors.CorrectGamma( gamma: -2.0 )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: Processors.CorrectGamma.ValidationError.self )
         {
             try processor.process( buffer: &buffer )
         }
@@ -116,7 +115,7 @@ struct Test_Processors_CorrectGamma
 
         let processor = Processors.CorrectGamma( gamma: 2.0 )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try processor.process( buffer: &buffer )
         }

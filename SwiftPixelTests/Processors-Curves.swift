@@ -24,7 +24,6 @@
 
 import Foundation
 @testable import SwiftPixel
-import SwiftUtilities
 import Testing
 
 struct Test_Processors_Curves
@@ -195,7 +194,7 @@ struct Test_Processors_Curves
     {
         var buffer = try self.sample()
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try Processors.Curves( channels: .perChannel( red: .identity, green: .identity, blue: .identity ) ).process( buffer: &buffer )
         }
@@ -206,7 +205,7 @@ struct Test_Processors_Curves
     {
         var buffer = try self.sample()
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: Processors.Curves.ValidationError.self )
         {
             try Processors.Curves( channels: .uniform( Processors.Curves.Curve( points: [ .init( x: 0.0, y: 0.0 ) ] ) ) ).process( buffer: &buffer )
         }
@@ -217,7 +216,7 @@ struct Test_Processors_Curves
     {
         var buffer = try self.sample()
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: Processors.Curves.ValidationError.self )
         {
             try Processors.Curves( channels: .uniform( Processors.Curves.Curve( points: [ .init( x: 0.5, y: 0.0 ), .init( x: 0.5, y: 1.0 ) ] ) ) ).process( buffer: &buffer )
         }
@@ -228,7 +227,7 @@ struct Test_Processors_Curves
     {
         var buffer = try self.sample()
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: Processors.Curves.ValidationError.self )
         {
             try Processors.Curves( channels: .uniform( Processors.Curves.Curve( points: [ .init( x: 0.0, y: 0.0 ), .init( x: 1.0, y: 1.5 ) ] ) ) ).process( buffer: &buffer )
         }
@@ -239,7 +238,7 @@ struct Test_Processors_Curves
     {
         var buffer = try PixelBuffer( width: 1, height: 1, channels: 1, pixels: [ 0.5 ], isNormalized: false )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try Processors.Curves( channels: .uniform( .identity ) ).process( buffer: &buffer )
         }

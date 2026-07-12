@@ -24,7 +24,6 @@
 
 import Foundation
 @testable import SwiftPixel
-import SwiftUtilities
 import Testing
 
 struct Test_Processors_Hue
@@ -144,7 +143,7 @@ struct Test_Processors_Hue
     {
         var buffer = try PixelBuffer( width: 1, height: 1, channels: 1, pixels: [ 0.5 ], isNormalized: true )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try Processors.Hue( angle: 45.0 ).process( buffer: &buffer )
         }
@@ -155,7 +154,7 @@ struct Test_Processors_Hue
     {
         var buffer = try PixelBuffer( width: 1, height: 1, channels: 3, pixels: [ 0.2, 0.5, 0.9 ], isNormalized: false )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try Processors.Hue( angle: 45.0 ).process( buffer: &buffer )
         }

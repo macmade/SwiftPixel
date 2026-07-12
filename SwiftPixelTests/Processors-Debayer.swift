@@ -24,7 +24,6 @@
 
 import Foundation
 @testable import SwiftPixel
-import SwiftUtilities
 import Testing
 
 struct Test_Processors_Debayer
@@ -73,7 +72,7 @@ struct Test_Processors_Debayer
 
         let debayer = Processors.Debayer( mode: .bilinear, pattern: .bggr )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try debayer.process( buffer: &buffer )
         }
@@ -92,7 +91,7 @@ struct Test_Processors_Debayer
 
         let debayer = Processors.Debayer( mode: .bilinear, pattern: .bggr )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try debayer.process( buffer: &buffer )
         }

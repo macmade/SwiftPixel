@@ -24,7 +24,6 @@
 
 import Foundation
 @testable import SwiftPixel
-import SwiftUtilities
 import Testing
 
 struct Test_Processors_Saturation
@@ -104,7 +103,7 @@ struct Test_Processors_Saturation
     {
         var buffer = try PixelBuffer( width: 1, height: 1, channels: 1, pixels: [ 0.5 ], isNormalized: true )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try Processors.Saturation( saturation: 0.5 ).process( buffer: &buffer )
         }
@@ -115,7 +114,7 @@ struct Test_Processors_Saturation
     {
         var buffer = try PixelBuffer( width: 1, height: 1, channels: 3, pixels: [ 0.2, 0.5, 0.9 ], isNormalized: false )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try Processors.Saturation( saturation: 0.5 ).process( buffer: &buffer )
         }

@@ -23,7 +23,6 @@
  ******************************************************************************/
 
 import Foundation
-import SwiftUtilities
 
 /// A configurable image-processing pipeline that decodes raw pixels and applies
 /// an ordered chain of processors.
@@ -207,7 +206,7 @@ public struct PixelPipeline: Sendable
     ///
     /// - Returns: The processed buffer.
     ///
-    /// - Throws: A `RuntimeError` if decoding fails or any stage fails.
+    /// - Throws: An error if decoding fails or any stage fails.
     public func run( data: Data, width: Int, height: Int, bitsPerPixel: BitsPerPixel ) throws -> PixelBuffer
     {
         let pixels = try PixelUtilities.readRawPixels( data: data, width: width, height: height, bitsPerPixel: bitsPerPixel )
@@ -229,7 +228,7 @@ public struct PixelPipeline: Sendable
     ///
     /// - Returns: The processed buffer.
     ///
-    /// - Throws: A `RuntimeError` if the geometry is inconsistent or any stage
+    /// - Throws: An error if the geometry is inconsistent or any stage
     ///           fails.
     public func run( pixels: [ Double ], width: Int, height: Int, bitsPerPixel: BitsPerPixel ) throws -> PixelBuffer
     {
@@ -270,7 +269,7 @@ public struct PixelPipeline: Sendable
     ///
     /// - Returns: The processed buffer.
     ///
-    /// - Throws: A `RuntimeError` if the plane count does not match the input
+    /// - Throws: An error if the plane count does not match the input
     ///           format's channel count, the planes are empty or unequal in length,
     ///           or any stage fails.
     public func run( planes: [ [ Double ] ], width: Int, height: Int, bitsPerPixel: BitsPerPixel ) throws -> PixelBuffer
@@ -278,7 +277,7 @@ public struct PixelPipeline: Sendable
         guard planes.count == self.config.inputFormat.channels
         else
         {
-            throw RuntimeError( message: "Plane count \( planes.count ) does not match the input format's channel count \( self.config.inputFormat.channels )." )
+            throw PixelPipelineError.planeCountMismatch( expected: self.config.inputFormat.channels, actual: planes.count )
         }
 
         let pixels = try PixelUtilities.interleave( planes: planes )
@@ -498,5 +497,24 @@ public struct PixelPipeline: Sendable
         }
 
         return processors
+    }
+}
+
+/// A failure originating from the pixel pipeline's own input handling.
+public enum PixelPipelineError: LocalizedError, Equatable, Sendable
+{
+    /// The number of supplied channel planes does not match the input format's
+    /// channel count.
+    case planeCountMismatch( expected: Int, actual: Int )
+
+    /// A human-readable description of the failure.
+    public var errorDescription: String?
+    {
+        switch self
+        {
+            case .planeCountMismatch( let expected, let actual ):
+
+                return "Plane count \( actual ) does not match the input format's channel count \( expected )."
+        }
     }
 }

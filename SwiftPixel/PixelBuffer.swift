@@ -24,7 +24,6 @@
 
 import Accelerate
 import Foundation
-import SwiftUtilities
 
 /// A geometrically consistent, channel-interleaved image buffer of `Double`
 /// samples.
@@ -71,20 +70,20 @@ public struct PixelBuffer: CustomStringConvertible, Equatable, Sendable
     ///                   `width × height × channels`.
     ///   - isNormalized: Whether the samples are in the `[0, 1]` range.
     ///
-    /// - Throws: A `RuntimeError` if `channels < 1`, if `width` or `height` is
+    /// - Throws: A `PixelBufferError` if `channels < 1`, if `width` or `height` is
     ///           negative, or if `pixels.count` does not match the geometry.
     public init( width: Int, height: Int, channels: Int, pixels: [ Double ], isNormalized: Bool ) throws
     {
         guard channels >= 1
         else
         {
-            throw RuntimeError( message: "Channel count must be at least 1: \( channels )" )
+            throw PixelBufferError.invalidChannelCount( channels )
         }
 
         guard width >= 0, height >= 0
         else
         {
-            throw RuntimeError( message: "Dimensions must not be negative: \( width )x\( height )" )
+            throw PixelBufferError.negativeDimensions( width: width, height: height )
         }
 
         let expected = try PixelUtilities.checkedSampleCount( width: width, height: height, channels: channels )
@@ -92,7 +91,7 @@ public struct PixelBuffer: CustomStringConvertible, Equatable, Sendable
         guard pixels.count == expected
         else
         {
-            throw RuntimeError( message: "Pixel count does not match geometry: \( pixels.count ) != \( expected )" )
+            throw PixelBufferError.pixelCountMismatch( expected: expected, actual: pixels.count )
         }
 
         self.width        = width
@@ -164,13 +163,13 @@ public struct PixelBuffer: CustomStringConvertible, Equatable, Sendable
     ///
     /// - Returns: The 8-bit samples, one per input sample, in the same order.
     ///
-    /// - Throws: A `RuntimeError` if the buffer is not normalized.
+    /// - Throws: A `PixelBufferError` if the buffer is not normalized.
     public func convertTo8Bits() throws -> [ UInt8 ]
     {
         guard self.isNormalized
         else
         {
-            throw RuntimeError( message: "Buffer needs to be normalized" )
+            throw PixelBufferError.notNormalized
         }
 
         var scaledPixels = [ Double ]( repeating: 0.0, count: self.pixels.count )
@@ -191,14 +190,14 @@ public struct PixelBuffer: CustomStringConvertible, Equatable, Sendable
     ///
     /// - Returns: A `CGImage` of the buffer's contents.
     ///
-    /// - Throws: A `RuntimeError` if the channel count is unsupported, if the
+    /// - Throws: A `PixelBufferError` or `PixelImageError` if the channel count is unsupported, if the
     ///           buffer is not normalized, or if image creation fails.
     public func createCGImage() throws -> CGImage
     {
         guard self.channels == 1 || self.channels == 3 || self.channels == 4
         else
         {
-            throw RuntimeError( message: "Unsupported number of channels: \( self.channels )" )
+            throw PixelImageError.unsupportedChannelConfiguration( self.channels )
         }
 
         return try Self.createCGImage( bytes: try self.convertTo8Bits(), width: self.width, height: self.height, channels: self.channels )
@@ -215,7 +214,7 @@ public struct PixelBuffer: CustomStringConvertible, Equatable, Sendable
     ///
     /// - Returns: A `CGImage` of the given samples.
     ///
-    /// - Throws: A `RuntimeError` if the channel count is unsupported or if image
+    /// - Throws: A `PixelImageError` if the channel count is unsupported or if image
     ///           creation fails.
     public static func createCGImage( bytes: [ UInt8 ], width: Int, height: Int, channels: Int ) throws -> CGImage
     {
@@ -245,13 +244,13 @@ public struct PixelBuffer: CustomStringConvertible, Equatable, Sendable
 
             default:
 
-                throw RuntimeError( message: "Unsupported channel configuration" )
+                throw PixelImageError.unsupportedChannelConfiguration( channels )
         }
 
         guard let provider = CGDataProvider( data: Data( bytes ) as CFData )
         else
         {
-            throw RuntimeError( message: "Failed to create CGDataProvider" )
+            throw PixelImageError.dataProviderCreationFailed
         }
 
         guard let image = CGImage(
@@ -269,9 +268,41 @@ public struct PixelBuffer: CustomStringConvertible, Equatable, Sendable
         )
         else
         {
-            throw RuntimeError( message: "Failed to create CGImage" )
+            throw PixelImageError.imageCreationFailed
         }
 
         return image
+    }
+}
+
+/// A failure originating from converting a ``PixelBuffer`` to a `CGImage`.
+public enum PixelImageError: LocalizedError, Equatable, Sendable
+{
+    /// The channel count is not one image conversion supports (1, 3 or 4).
+    case unsupportedChannelConfiguration( Int )
+
+    /// A `CGDataProvider` could not be created from the sample bytes.
+    case dataProviderCreationFailed
+
+    /// A `CGImage` could not be created from the sample bytes.
+    case imageCreationFailed
+
+    /// A human-readable description of the failure.
+    public var errorDescription: String?
+    {
+        switch self
+        {
+            case .unsupportedChannelConfiguration( let channels ):
+
+                return "Unsupported channel configuration: \( channels )"
+
+            case .dataProviderCreationFailed:
+
+                return "Failed to create CGDataProvider"
+
+            case .imageCreationFailed:
+
+                return "Failed to create CGImage"
+        }
     }
 }

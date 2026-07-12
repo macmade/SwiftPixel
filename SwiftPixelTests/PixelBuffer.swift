@@ -24,7 +24,6 @@
 
 import Foundation
 @testable import SwiftPixel
-import SwiftUtilities
 import Testing
 
 struct Test_PixelBuffer
@@ -59,7 +58,7 @@ struct Test_PixelBuffer
     @Test
     func initializeThrowsOnPixelCountMismatch()
     {
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             _ = try PixelBuffer( width: 2, height: 2, channels: 1, pixels: [ 0.0, 0.5, 1.0 ], isNormalized: true )
         }
@@ -68,7 +67,7 @@ struct Test_PixelBuffer
     @Test
     func initializeThrowsOnGeometryOverflow()
     {
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             _ = try PixelBuffer( width: Int.max, height: 2, channels: 1, pixels: [], isNormalized: false )
         }
@@ -145,7 +144,7 @@ struct Test_PixelBuffer
     @Test
     func initializeThrowsOnChannelsBelowOne()
     {
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             _ = try PixelBuffer( width: 0, height: 0, channels: 0, pixels: [], isNormalized: true )
         }
@@ -154,7 +153,7 @@ struct Test_PixelBuffer
     @Test
     func initializeThrowsOnNegativeDimensions()
     {
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             _ = try PixelBuffer( width: -1, height: 1, channels: 1, pixels: [ 0.5 ], isNormalized: true )
         }
@@ -217,7 +216,7 @@ struct Test_PixelBuffer
             isNormalized: false
         )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try buffer.convertTo8Bits()
         }
@@ -331,12 +330,12 @@ struct Test_PixelBuffer
             isNormalized: true
         )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelImageError.self )
         {
             try buffer.createCGImage()
         }
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelImageError.self )
         {
             try PixelBuffer.createCGImage( bytes: try buffer.convertTo8Bits(), width: buffer.width, height: buffer.height, channels: buffer.channels )
         }
@@ -353,12 +352,12 @@ struct Test_PixelBuffer
             isNormalized: false
         )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try buffer.createCGImage()
         }
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try PixelBuffer.createCGImage( bytes: try buffer.convertTo8Bits(), width: buffer.width, height: buffer.height, channels: buffer.channels )
         }

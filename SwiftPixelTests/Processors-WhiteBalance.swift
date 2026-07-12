@@ -24,7 +24,6 @@
 
 import Foundation
 @testable import SwiftPixel
-import SwiftUtilities
 import Testing
 
 struct Test_Processors_WhiteBalance
@@ -116,7 +115,7 @@ struct Test_Processors_WhiteBalance
 
         let processor = Processors.WhiteBalance( mode: .auto )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try processor.process( buffer: &buffer )
         }

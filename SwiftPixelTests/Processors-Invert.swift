@@ -24,7 +24,6 @@
 
 import Foundation
 @testable import SwiftPixel
-import SwiftUtilities
 import Testing
 
 struct Test_Processors_Invert
@@ -98,7 +97,7 @@ struct Test_Processors_Invert
             isNormalized: false
         )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try Processors.Invert().process( buffer: &buffer )
         }

@@ -24,7 +24,6 @@
 
 import Accelerate
 import Foundation
-import SwiftUtilities
 
 public extension Processors
 {
@@ -66,14 +65,14 @@ public extension Processors
         ///
         /// - Parameter buffer: The normalized buffer to transform.
         ///
-        /// - Throws: A `RuntimeError` if the buffer is not normalized or its data
+        /// - Throws: A `PixelBufferError` if the buffer is not normalized or its data
         ///           cannot be accessed.
         public func process( buffer: inout PixelBuffer ) throws
         {
             guard buffer.isNormalized
             else
             {
-                throw RuntimeError( message: "Buffer needs to be normalized" )
+                throw PixelBufferError.notNormalized
             }
 
             // (v - 0.5)·c + 0.5 + b  ==  v·c + (0.5·(1 - c) + b), then clip.
@@ -85,7 +84,7 @@ public extension Processors
                 guard let baseAddress = $0.baseAddress
                 else
                 {
-                    throw RuntimeError( message: "Failed to access data buffer" )
+                    throw PixelBufferError.bufferAccessFailed( role: .data )
                 }
 
                 vDSP_vsmsaD( baseAddress, 1, &multiplier, &offset, baseAddress, 1, vDSP_Length( $0.count ) )

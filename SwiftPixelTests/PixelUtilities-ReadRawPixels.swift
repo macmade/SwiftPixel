@@ -24,7 +24,6 @@
 
 import Foundation
 @testable import SwiftPixel
-import SwiftUtilities
 import Testing
 
 struct Test_PixelUtilities_ReadRawPixels
@@ -179,7 +178,7 @@ struct Test_PixelUtilities_ReadRawPixels
     @Test
     func incorrectSize() async throws
     {
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             _ = try PixelUtilities.readRawPixels( data: Data( [ 0x00, 0x01 ] ), width: 2, height: 2, bitsPerPixel: .int16 )
         }
@@ -196,7 +195,7 @@ struct Test_PixelUtilities_ReadRawPixels
     @Test
     func checkedSampleCount_overflowThrows() async throws
     {
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             _ = try PixelUtilities.checkedSampleCount( width: Int.max, height: 2, channels: 1 )
         }
@@ -205,7 +204,7 @@ struct Test_PixelUtilities_ReadRawPixels
     @Test
     func checkedSampleCount_channelOverflowThrows() async throws
     {
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             _ = try PixelUtilities.checkedSampleCount( width: Int.max, height: 1, channels: 3 )
         }
@@ -214,7 +213,7 @@ struct Test_PixelUtilities_ReadRawPixels
     @Test
     func readRawPixels_overflowThrows() async throws
     {
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             _ = try PixelUtilities.readRawPixels( data: Data(), width: Int.max, height: 2, bitsPerPixel: .uint8 )
         }

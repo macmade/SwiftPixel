@@ -24,7 +24,6 @@
 
 import Accelerate
 import Foundation
-import SwiftUtilities
 
 public extension Processors
 {
@@ -53,24 +52,42 @@ public extension Processors
             self.gamma = gamma
         }
 
+        /// A validation failure for a gamma-correction stage's configuration.
+        public enum ValidationError: LocalizedError, Equatable, Sendable
+        {
+            /// The gamma exponent is not strictly positive.
+            case nonPositiveGamma( Double )
+
+            /// A human-readable description of the failure.
+            public var errorDescription: String?
+            {
+                switch self
+                {
+                    case .nonPositiveGamma( let gamma ):
+
+                        return "Gamma must be greater than zero: \( gamma )"
+                }
+            }
+        }
+
         /// Raises every sample to `1 / gamma`, in place.
         ///
         /// - Parameter buffer: The normalized buffer to transform.
         ///
-        /// - Throws: A `RuntimeError` if the buffer is not normalized or if
+        /// - Throws: A `PixelBufferError` or `CorrectGamma.ValidationError` if the buffer is not normalized or if
         ///           `gamma <= 0`.
         public func process( buffer: inout PixelBuffer ) throws
         {
             guard buffer.isNormalized
             else
             {
-                throw RuntimeError( message: "Buffer needs to be normalized" )
+                throw PixelBufferError.notNormalized
             }
 
             guard self.gamma > 0
             else
             {
-                throw RuntimeError( message: "Gamma must be greater than zero: \( self.gamma )" )
+                throw ValidationError.nonPositiveGamma( self.gamma )
             }
 
             let chunkSize    = 4096
@@ -83,7 +100,7 @@ public extension Processors
                 guard let baseAddress = $0.baseAddress
                 else
                 {
-                    throw RuntimeError( message: "Failed to access data buffer" )
+                    throw PixelBufferError.bufferAccessFailed( role: .data )
                 }
 
                 var offset = 0

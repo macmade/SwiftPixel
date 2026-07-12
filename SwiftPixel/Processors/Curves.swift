@@ -24,7 +24,6 @@
 
 import Accelerate
 import Foundation
-import SwiftUtilities
 
 public extension Processors
 {
@@ -38,6 +37,38 @@ public extension Processors
     /// points; the result is clipped to `[0, 1]`.
     struct Curves: PixelProcessor
     {
+        /// A validation failure for a tone-curve stage's configuration.
+        public enum ValidationError: LocalizedError, Equatable, Sendable
+        {
+            /// Fewer than two control points were provided.
+            case tooFewControlPoints
+
+            /// A control point lies outside the unit square `[0, 1] × [0, 1]`.
+            case controlPointOutOfRange( x: Double, y: Double )
+
+            /// The control points' x coordinates are not strictly increasing.
+            case nonIncreasingX
+
+            /// A human-readable description of the failure.
+            public var errorDescription: String?
+            {
+                switch self
+                {
+                    case .tooFewControlPoints:
+
+                        return "Curves needs at least two control points"
+
+                    case .controlPointOutOfRange( let x, let y ):
+
+                        return "Curves control point out of range: (\( x ), \( y ))"
+
+                    case .nonIncreasingX:
+
+                        return "Curves control points must have strictly increasing x"
+                }
+            }
+        }
+
         /// A single control point of a tone curve, with both coordinates in
         /// `[0, 1]` (input `x` mapped to output `y`).
         public struct Point: Sendable, Equatable
@@ -93,7 +124,7 @@ public extension Processors
 
             /// Validates that the curve is usable.
             ///
-            /// - Throws: A `RuntimeError` if there are fewer than two points, the
+            /// - Throws: A `Curves.ValidationError` if there are fewer than two points, the
             ///           `x` coordinates are not strictly increasing, or any
             ///           coordinate is outside `[0, 1]`.
             func validate() throws
@@ -101,7 +132,7 @@ public extension Processors
                 guard self.points.count >= 2
                 else
                 {
-                    throw RuntimeError( message: "Curves needs at least two control points" )
+                    throw Curves.ValidationError.tooFewControlPoints
                 }
 
                 for ( index, point ) in self.points.enumerated()
@@ -109,12 +140,12 @@ public extension Processors
                     guard point.x >= 0, point.x <= 1, point.y >= 0, point.y <= 1
                     else
                     {
-                        throw RuntimeError( message: "Curves control point out of range: (\( point.x ), \( point.y ))" )
+                        throw Curves.ValidationError.controlPointOutOfRange( x: point.x, y: point.y )
                     }
 
                     if index > 0, point.x <= self.points[ index - 1 ].x
                     {
-                        throw RuntimeError( message: "Curves control points must have strictly increasing x" )
+                        throw Curves.ValidationError.nonIncreasingX
                     }
                 }
             }
@@ -301,7 +332,7 @@ public extension Processors
         ///
         /// - Parameter buffer: The normalized buffer to transform.
         ///
-        /// - Throws: A `RuntimeError` if the buffer is not normalized, a curve is
+        /// - Throws: A `PixelBufferError` or `Curves.ValidationError` if the buffer is not normalized, a curve is
         ///           invalid, or per-channel curves are used with a buffer that is
         ///           not 3-channel.
         public func process( buffer: inout PixelBuffer ) throws
@@ -309,7 +340,7 @@ public extension Processors
             guard buffer.isNormalized
             else
             {
-                throw RuntimeError( message: "Buffer needs to be normalized" )
+                throw PixelBufferError.notNormalized
             }
 
             switch self.channels
@@ -341,7 +372,7 @@ public extension Processors
                     guard buffer.channels == 3
                     else
                     {
-                        throw RuntimeError( message: "Per-channel curves require a 3-channel buffer: \( buffer.channels )" )
+                        throw PixelBufferError.unsupportedChannelCount( actual: buffer.channels, supported: [ 3 ] )
                     }
 
                     let redLUT     = red.lookupTable()

@@ -23,7 +23,6 @@
  ******************************************************************************/
 
 import Foundation
-import SwiftUtilities
 
 public extension Processors
 {
@@ -119,7 +118,7 @@ public extension Processors
         ///
         /// - Parameter buffer: A non-normalized, 1-channel mosaic buffer.
         ///
-        /// - Throws: A `RuntimeError` if the buffer is normalized, is not
+        /// - Throws: A `PixelBufferError` if the buffer is normalized, is not
         ///           single-channel, or its sample count does not match its
         ///           geometry.
         public func process( buffer: inout PixelBuffer ) throws
@@ -129,19 +128,19 @@ public extension Processors
             guard buffer.pixels.count == expected
             else
             {
-                throw RuntimeError( message: "Data size does not match expected size: \( buffer.pixels.count ) != \( expected )" )
+                throw PixelBufferError.dataSizeMismatch( expected: expected, actual: buffer.pixels.count )
             }
 
             guard buffer.channels == 1
             else
             {
-                throw RuntimeError( message: "Unsupported channel count: \( buffer.channels )" )
+                throw PixelBufferError.unsupportedChannelCount( actual: buffer.channels, supported: [ 1 ] )
             }
 
             guard buffer.isNormalized == false
             else
             {
-                throw RuntimeError( message: "Input buffer must not be normalized" )
+                throw PixelBufferError.mustNotBeNormalized
             }
 
             let pixels: [ Double ]

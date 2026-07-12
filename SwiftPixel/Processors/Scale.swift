@@ -24,7 +24,6 @@
 
 import Accelerate
 import Foundation
-import SwiftUtilities
 
 public extension Processors
 {
@@ -63,7 +62,7 @@ public extension Processors
         ///
         /// - Parameter buffer: The buffer to transform.
         ///
-        /// - Throws: A `RuntimeError` if the sample buffer cannot be accessed.
+        /// - Throws: A `PixelBufferError` if the sample buffer cannot be accessed.
         public func process( buffer: inout PixelBuffer ) throws
         {
             let count            = vDSP_Length( buffer.pixels.count )
@@ -75,7 +74,7 @@ public extension Processors
                 guard let baseAddress = $0.baseAddress
                 else
                 {
-                    throw RuntimeError( message: "Failed to access data buffer" )
+                    throw PixelBufferError.bufferAccessFailed( role: .data )
                 }
 
                 // vDSP scalar registers for the in-place multiply-then-add.

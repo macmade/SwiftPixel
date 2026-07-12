@@ -24,7 +24,6 @@
 
 import Foundation
 @testable import SwiftPixel
-import SwiftUtilities
 import Testing
 
 struct Test_Processors_Levels
@@ -138,7 +137,7 @@ struct Test_Processors_Levels
     {
         var buffer = try self.sample()
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try Processors.Levels( channels: .perChannel( red: .identity, green: .identity, blue: .identity ) ).process( buffer: &buffer )
         }
@@ -149,7 +148,7 @@ struct Test_Processors_Levels
     {
         var buffer = try self.sample()
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: Processors.Levels.ValidationError.self )
         {
             try Processors.Levels( channels: .uniform( Processors.Levels.Parameters( gamma: 0.0 ) ) ).process( buffer: &buffer )
         }
@@ -160,7 +159,7 @@ struct Test_Processors_Levels
     {
         var buffer = try self.sample()
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: Processors.Levels.ValidationError.self )
         {
             try Processors.Levels( channels: .uniform( Processors.Levels.Parameters( inputBlack: 0.6, inputWhite: 0.6 ) ) ).process( buffer: &buffer )
         }
@@ -181,7 +180,7 @@ struct Test_Processors_Levels
     {
         var buffer = try PixelBuffer( width: 1, height: 1, channels: 1, pixels: [ 0.5 ], isNormalized: false )
 
-        #expect( throws: RuntimeError.self )
+        #expect( throws: PixelBufferError.self )
         {
             try Processors.Levels( channels: .uniform( .identity ) ).process( buffer: &buffer )
         }

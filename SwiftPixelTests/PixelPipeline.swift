@@ -57,6 +57,7 @@ struct Test_PixelPipeline
     private static func config(
         scale:           ( scale: Double, offset: Double )?                                           = nil,
         inputFormat:     PixelPipeline.Config.InputFormat                                              = .mono,
+        cosmeticCorrection: Processors.CosmeticCorrection.Parameters?                                  = nil,
         normalize:       Processors.Normalize.Mode?                                                    = nil,
         stretch:         Processors.Stretch.STFParameters?                                             = nil,
         correctGamma:    Double?                                                                       = nil,
@@ -72,7 +73,7 @@ struct Test_PixelPipeline
         measure:            ( @Sendable ( String, () throws -> Void ) throws -> Void )?                = nil
     ) -> PixelPipeline.Config
     {
-        PixelPipeline.Config( scale: scale, inputFormat: inputFormat, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, invert: invert, brightnessContrast: brightnessContrast, levels: levels, curves: curves, colorBalance: colorBalance, hue: hue, saturation: saturation, orient: orient, measure: measure )
+        PixelPipeline.Config( scale: scale, inputFormat: inputFormat, cosmeticCorrection: cosmeticCorrection, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, invert: invert, brightnessContrast: brightnessContrast, levels: levels, curves: curves, colorBalance: colorBalance, hue: hue, saturation: saturation, orient: orient, measure: measure )
     }
 
     @Test
@@ -591,5 +592,121 @@ struct Test_PixelPipeline
         {
             _ = try pipeline.run( planes: [ [ 10, 40 ], [ 20, 50 ] ], width: 2, height: 1, bitsPerPixel: .uint8 )
         }
+    }
+
+    // MARK: - Cosmetic correction
+
+    @Test
+    func cosmeticCorrectionAbsentByDefault() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( inputFormat: .mono ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        #expect( names.contains { $0.hasPrefix( "Cosmetic Correction" ) } == false )
+    }
+
+    @Test
+    func cosmeticCorrectionPresentWhenConfigured() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( inputFormat: .mono, cosmeticCorrection: .default ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        #expect( names.contains { $0.hasPrefix( "Cosmetic Correction" ) } )
+    }
+
+    @Test
+    func cosmeticCorrectionRunsAfterScaleBeforeMonoForming() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( scale: ( scale: 2.0, offset: 1.0 ), inputFormat: .mono, cosmeticCorrection: .default ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        let scaleIndex     = try #require( names.firstIndex { $0.hasPrefix( "Scale" ) } )
+        let cosmeticIndex  = try #require( names.firstIndex { $0.hasPrefix( "Cosmetic Correction" ) } )
+        let formingIndex   = try #require( names.firstIndex { $0.hasPrefix( "Mono to RGB" ) } )
+
+        // The stage runs on the raw samples: after the affine scale, before the
+        // channel-forming stage.
+        #expect( scaleIndex    < cosmeticIndex )
+        #expect( cosmeticIndex < formingIndex )
+    }
+
+    @Test
+    func cosmeticCorrectionRunsBeforeDebayer() async throws
+    {
+        let pipeline = PixelPipeline( config: Self.config( inputFormat: .cfa( pattern: .rggb, mode: .bilinear ), cosmeticCorrection: .default ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        let cosmeticIndex = try #require( names.firstIndex { $0.hasPrefix( "Cosmetic Correction" ) } )
+        let debayerIndex  = try #require( names.firstIndex { $0.hasPrefix( "Debayer" ) } )
+
+        #expect( cosmeticIndex < debayerIndex )
+    }
+
+    @Test
+    func cosmeticCorrectionLayoutDerivedFromInputFormat() async throws
+    {
+        let mono = PixelPipeline( config: Self.config( inputFormat: .mono, cosmeticCorrection: .default ) ).processors().map { $0.name }
+        let cfa  = PixelPipeline( config: Self.config( inputFormat: .cfa( pattern: .rggb, mode: .bilinear ), cosmeticCorrection: .default ) ).processors().map { $0.name }
+        let rgb  = PixelPipeline( config: Self.config( inputFormat: .rgb, cosmeticCorrection: .default ) ).processors().map { $0.name }
+
+        #expect( mono.contains { $0.hasPrefix( "Cosmetic Correction" ) && $0.contains( "Mono" ) } )
+        #expect( cfa.contains  { $0.hasPrefix( "Cosmetic Correction" ) && $0.contains( "CFA" ) } )
+        #expect( rgb.contains  { $0.hasPrefix( "Cosmetic Correction" ) && $0.contains( "RGB" ) } )
+    }
+
+    @Test
+    func cosmeticCorrectionDoesNotForceNormalization() async throws
+    {
+        // Cosmetic correction runs on raw samples, so requesting it alone must not
+        // insert an automatic Normalize the way the display stages do.
+        let pipeline = PixelPipeline( config: Self.config( inputFormat: .mono, cosmeticCorrection: .default ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        #expect( names.contains { $0.hasPrefix( "Normalize" ) } == false )
+        #expect( names == [ "Cosmetic Correction (hot 8.00, cold 8.00, Mono)", "Mono to RGB" ] )
+    }
+
+    @Test
+    func cosmeticCorrectionRepairsHotPixelBeforeDebayer() async throws
+    {
+        // A constant CFA mosaic with a single hot pixel at an interior red site.
+        var pixels = [ Double ]( repeating: 100.0, count: 36 )
+
+        pixels[ 2 * 6 + 2 ] = 1000.0
+
+        // With the stage enabled the defect is repaired to the same-colour median
+        // (100) BEFORE demosaicing, so the whole demosaiced frame is a flat 100 —
+        // the spike is never smeared into its neighbours.
+        let corrected = try PixelPipeline( config: Self.config( inputFormat: .cfa( pattern: .rggb, mode: .bilinear ), cosmeticCorrection: .default ) )
+            .run( pixels: pixels, width: 6, height: 6, bitsPerPixel: .float32 )
+
+        #expect( corrected.channels == 3 )
+        #expect( corrected.pixels.allSatisfy { $0 == 100.0 } )
+
+        // Without it, the hot pixel survives into the debayer, which smears it into
+        // neighbouring samples.
+        let uncorrected = try PixelPipeline( config: Self.config( inputFormat: .cfa( pattern: .rggb, mode: .bilinear ) ) )
+            .run( pixels: pixels, width: 6, height: 6, bitsPerPixel: .float32 )
+
+        #expect( uncorrected.pixels.contains { $0 > 100.0 } )
+    }
+
+    @Test
+    func cosmeticCorrectionRepairsHotPixelBeforeMonoForming() async throws
+    {
+        var pixels = [ Double ]( repeating: 50.0, count: 25 )
+
+        pixels[ 2 * 5 + 2 ] = 500.0
+
+        let corrected = try PixelPipeline( config: Self.config( inputFormat: .mono, cosmeticCorrection: .default ) )
+            .run( pixels: pixels, width: 5, height: 5, bitsPerPixel: .float32 )
+
+        #expect( corrected.channels == 3 )
+        #expect( corrected.pixels.allSatisfy { $0 == 50.0 } )
+
+        let uncorrected = try PixelPipeline( config: Self.config( inputFormat: .mono ) )
+            .run( pixels: pixels, width: 5, height: 5, bitsPerPixel: .float32 )
+
+        #expect( uncorrected.pixels.contains { $0 == 500.0 } )
     }
 }

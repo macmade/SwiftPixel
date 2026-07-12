@@ -97,6 +97,23 @@ struct Test_PixelPipeline_Config
     }
 
     @Test
+    func initDefaultsCosmeticCorrectionToNil() async throws
+    {
+        let config = PixelPipeline.Config( inputFormat: .mono )
+
+        #expect( config.cosmeticCorrection == nil )
+    }
+
+    @Test
+    func initCarriesCosmeticCorrection() async throws
+    {
+        let parameters = Processors.CosmeticCorrection.Parameters( isEnabled: true, correctHot: true, hotThreshold: 5.0, correctCold: false, coldThreshold: 8.0 )
+        let config     = PixelPipeline.Config( inputFormat: .cfa( pattern: .rggb, mode: .vng ), cosmeticCorrection: parameters )
+
+        #expect( config.cosmeticCorrection == parameters )
+    }
+
+    @Test
     func initOnlySpecifiedStage() async throws
     {
         let config = PixelPipeline.Config( stretch: .uniform( .init( midtones: 0.3 ) ) )

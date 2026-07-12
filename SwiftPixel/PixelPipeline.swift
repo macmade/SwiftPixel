@@ -83,6 +83,14 @@ public struct PixelPipeline: Sendable
         /// and an already-interleaved RGB frame is passed through untouched.
         public let inputFormat: InputFormat
 
+        /// The cosmetic-correction (hot/cold pixel repair) parameters, or `nil` to
+        /// skip the stage. Applied to the raw samples, before the channel-forming
+        /// stage, so a defect is repaired before demosaicing can smear it across
+        /// its neighbours; its ``Processors/CosmeticCorrection/Layout`` is derived
+        /// from ``inputFormat``. Operates on raw samples and never forces
+        /// normalization.
+        public let cosmeticCorrection: Processors.CosmeticCorrection.Parameters?
+
         /// The normalization mode. May be inserted automatically (as `.minMax`)
         /// when a normalization-dependent stage is requested without one.
         public let normalize: Processors.Normalize.Mode?
@@ -152,6 +160,7 @@ public struct PixelPipeline: Sendable
         /// - Parameters:
         ///   - scale:           Optional affine scaling of the raw samples. Defaults to `nil`.
         ///   - inputFormat:     How the input samples are laid out — mono (expanded to RGB), a colour-filter array (demosaiced), or already-RGB (passed through). Defaults to `.mono`.
+        ///   - cosmeticCorrection: Optional hot/cold pixel repair applied to the raw samples before the channel-forming stage. Defaults to `nil`.
         ///   - normalize:       Optional normalization mode. Defaults to `nil`.
         ///   - stretch:         Optional Screen Transfer parameters. Defaults to `nil`.
         ///   - correctGamma:    Optional gamma exponent. Defaults to `nil`.
@@ -165,10 +174,11 @@ public struct PixelPipeline: Sendable
         ///   - saturation:         Optional colour-saturation factor. Defaults to `nil`.
         ///   - orient:             Optional net orientation to apply last. Defaults to `nil`.
         ///   - measure:            Optional per-stage timing hook. Defaults to `nil` (stages run un-measured).
-        public init( scale: ( scale: Double, offset: Double )? = nil, inputFormat: InputFormat = .mono, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.STFParameters? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, brightnessContrast: ( brightness: Double, contrast: Double )? = nil, levels: Processors.Levels.Channels? = nil, curves: Processors.Curves.Channels? = nil, colorBalance: Processors.ColorBalance.Ranges? = nil, hue: Double? = nil, saturation: Double? = nil, orient: Processors.Orient.Orientation? = nil, measure: ( @Sendable ( String, () throws -> Void ) throws -> Void )? = nil )
+        public init( scale: ( scale: Double, offset: Double )? = nil, inputFormat: InputFormat = .mono, cosmeticCorrection: Processors.CosmeticCorrection.Parameters? = nil, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.STFParameters? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, brightnessContrast: ( brightness: Double, contrast: Double )? = nil, levels: Processors.Levels.Channels? = nil, curves: Processors.Curves.Channels? = nil, colorBalance: Processors.ColorBalance.Ranges? = nil, hue: Double? = nil, saturation: Double? = nil, orient: Processors.Orient.Orientation? = nil, measure: ( @Sendable ( String, () throws -> Void ) throws -> Void )? = nil )
         {
             self.scale              = scale
             self.inputFormat        = inputFormat
+            self.cosmeticCorrection = cosmeticCorrection
             self.normalize          = normalize
             self.stretch            = stretch
             self.correctGamma       = correctGamma
@@ -309,6 +319,26 @@ public struct PixelPipeline: Sendable
         if let scale = self.config.scale
         {
             processors.append( Processors.Scale( scale: scale.scale, offset: scale.offset ) )
+        }
+
+        // Cosmetic correction repairs hot/cold pixels on the raw samples, before
+        // the channel-forming stage, so a defect is fixed before demosaicing can
+        // smear it across its neighbours. Its neighbour lattice is derived from the
+        // input layout; the concrete Bayer pattern is not needed. It runs on raw
+        // samples and is intentionally absent from the normalization predicate
+        // below, so requesting it never forces a normalization.
+        if let cosmeticCorrection = self.config.cosmeticCorrection
+        {
+            let layout: Processors.CosmeticCorrection.Layout
+
+            switch self.config.inputFormat
+            {
+                case .mono: layout = .mono
+                case .cfa:  layout = .cfa
+                case .rgb:  layout = .rgb
+            }
+
+            processors.append( Processors.CosmeticCorrection( layout: layout, parameters: cosmeticCorrection ) )
         }
 
         // The channel-forming stage brings the input to RGB according to its

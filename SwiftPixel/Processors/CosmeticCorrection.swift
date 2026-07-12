@@ -146,24 +146,38 @@ public extension Processors
             }
         }
 
-        /// The unit neighbour directions (the 8-connected ring), scaled by the
-        /// layout's step to form the actual sampling offsets.
-        private static let neighbourOffsets: [ ( dx: Int, dy: Int ) ] =
-            [
-                ( -1, -1 ), ( 0, -1 ), ( 1, -1 ),
-                ( -1,  0 ),            ( 1,  0 ),
-                ( -1,  1 ), ( 0,  1 ), ( 1,  1 ),
-            ]
+        /// The maximum number of same-kind neighbours a sample can have (the
+        /// 8-connected ring) — the capacity of the per-pixel scratch buffer.
+        private static let maximumNeighbours = 8
+
+        /// The minimum number of in-bounds neighbours required before a sample is
+        /// eligible for correction. Robust statistics over one or two samples are
+        /// meaningless, and a low absolute robust-scale floor would otherwise flag
+        /// ordinary gradients at image borders (or on tiny images) as defects; a
+        /// sample with fewer neighbours is left untouched.
+        private static let minimumNeighbours = 3
 
         /// The scale factor converting a median absolute deviation into a robust
         /// estimate of the standard deviation for normally distributed data.
         private static let robustScaleFactor = 1.4826
 
-        /// A small floor on the robust scale, so a perfectly uniform neighbourhood
-        /// (zero MAD) still requires a real margin before a sample is flagged,
-        /// rather than any infinitesimal deviation. Provisional; revisited when the
-        /// thresholds are settled empirically.
-        private static let sigmaFloor = 1e-6
+        /// The floor on the robust scale, expressed as a fraction of the local level
+        /// (the neighbour median), so a (near-)uniform neighbourhood still requires a
+        /// real margin before a sample is flagged.
+        ///
+        /// A *relative* floor is essential because the stage runs on raw, un-scaled
+        /// samples whose magnitude is unknown (a normalized `[0, 1]` frame or a
+        /// 16-bit `0…65535` one): an absolute floor would be meaningless at one scale
+        /// and over-eager at the other. When the MAD collapses to zero on a smooth
+        /// gradient — e.g. an image corner — the margin then tracks the signal level
+        /// instead of vanishing, so ordinary gradients are not mistaken for defects.
+        private static let relativeScaleFloor = 0.02
+
+        /// A tiny absolute floor on the robust scale, applied only where the relative
+        /// floor also collapses (a neighbour median at or near zero), purely to keep
+        /// the threshold positive. Defects near the zero level are themselves tiny,
+        /// so this cannot meaningfully over-flag.
+        private static let sigmaFloor = 1e-9
 
         /// The source layout, selecting the neighbour lattice.
         public let layout: Layout
@@ -260,9 +274,8 @@ public extension Processors
                 return pixels
             }
 
-            var output           = pixels
-            let sampleCount      = pixels.count
-            let neighbourOffsets = Self.neighbourOffsets
+            var output      = pixels
+            let sampleCount = pixels.count
 
             output.withUnsafeMutableBufferPointer
             {
@@ -286,29 +299,7 @@ public extension Processors
                     {
                         sample in
 
-                        let channel = sample % channels
-                        let pixel   = sample / channels
-                        let x       = pixel % width
-                        let y       = pixel / width
-                        let value   = source[ sample ]
-
-                        let neighbours = neighbourOffsets.compactMap
-                        {
-                            offset -> Double? in
-
-                            let nx = x + offset.dx * step
-                            let ny = y + offset.dy * step
-
-                            guard nx >= 0, nx < width, ny >= 0, ny < height
-                            else
-                            {
-                                return nil
-                            }
-
-                            return source[ ( ny * width + nx ) * channels + channel ]
-                        }
-
-                        out[ sample ] = Self.repairedValue( value: value, neighbours: neighbours, parameters: parameters )
+                        out[ sample ] = Self.repairedValue( sample: sample, source: source, width: width, height: height, channels: channels, step: step, parameters: parameters )
                     }
                 }
             }
@@ -326,68 +317,150 @@ public extension Processors
         /// stars) safe, since their peak's neighbours are also bright; the robust
         /// `k · σ` margin keeps textured regions safe.
         ///
+        /// The same-kind neighbours are read straight from `source` into a stack
+        /// buffer and reduced without any heap allocation: at up to 8 samples per
+        /// pixel and tens of millions of pixels on a large frame, a per-pixel array
+        /// plus sort would dominate the whole stage. A small in-place insertion sort
+        /// yields the median, the minimum and the maximum; the absolute deviations
+        /// are sorted in the same buffer for the MAD.
+        ///
         /// - Parameters:
-        ///   - value:      The sample under test.
-        ///   - neighbours: Its same-kind neighbour samples.
+        ///   - sample:     The index of the sample under test in `source`.
+        ///   - source:     The original interleaved samples to read from.
+        ///   - width:      The image width in pixels.
+        ///   - height:     The image height in pixels.
+        ///   - channels:   The number of interleaved channels.
+        ///   - step:       The neighbour sampling step (1 or 2).
         ///   - parameters: The detection and correction parameters.
         ///
-        /// - Returns: The neighbour median if flagged, otherwise `value`.
-        static func repairedValue( value: Double, neighbours: [ Double ], parameters: Parameters ) -> Double
+        /// - Returns: The neighbour median if flagged, otherwise the sample value.
+        static func repairedValue( sample: Int, source: UnsafePointer< Double >, width: Int, height: Int, channels: Int, step: Int, parameters: Parameters ) -> Double
         {
-            guard neighbours.isEmpty == false
-            else
+            let channel = sample % channels
+            let pixel   = sample / channels
+            let x       = pixel % width
+            let y       = pixel / width
+            let value   = source[ sample ]
+
+            return withUnsafeTemporaryAllocation( of: Double.self, capacity: Self.maximumNeighbours )
             {
+                scratch in
+
+                // Raw loops (rather than the usual map/forEach/reduce) are a
+                // deliberate exception here: this runs once per sample — tens of
+                // millions of times on a large frame — where per-iteration closure
+                // contexts and heap-backed collections dominate the whole stage. The
+                // 8-connected same-kind neighbours are gathered inline into the stack
+                // buffer with no allocation. A shift of `step` (2 for a CFA layout)
+                // lands on the same colour for any Bayer pattern.
+                var count = 0
+
+                for dy in -1 ... 1
+                {
+                    for dx in -1 ... 1
+                    {
+                        if dx == 0, dy == 0
+                        {
+                            continue
+                        }
+
+                        let nx = x + dx * step
+                        let ny = y + dy * step
+
+                        if nx >= 0, nx < width, ny >= 0, ny < height
+                        {
+                            scratch[ count ] = source[ ( ny * width + nx ) * channels + channel ]
+                            count           += 1
+                        }
+                    }
+                }
+
+                if count < Self.minimumNeighbours
+                {
+                    return value
+                }
+
+                Self.insertionSort( scratch, count: count )
+
+                let median  = Self.median( ofSorted: scratch, count: count )
+                let minimum = scratch[ 0 ]
+                let maximum = scratch[ count - 1 ]
+
+                var index = 0
+
+                while index < count
+                {
+                    scratch[ index ] = abs( scratch[ index ] - median )
+                    index           += 1
+                }
+
+                Self.insertionSort( scratch, count: count )
+
+                let mad   = Self.median( ofSorted: scratch, count: count )
+                let sigma = Swift.max( Self.robustScaleFactor * mad, Self.relativeScaleFloor * abs( median ), Self.sigmaFloor )
+
+                if parameters.correctHot, value > maximum, value - median > parameters.hotThreshold * sigma
+                {
+                    return median
+                }
+
+                if parameters.correctCold, value < minimum, median - value > parameters.coldThreshold * sigma
+                {
+                    return median
+                }
+
                 return value
             }
-
-            // The neighbour set is tiny (at most 8 samples), so a plain sort is
-            // cheaper than the Accelerate-backed `PixelUtilities.median`, whose
-            // per-call `vDSP.sort` setup would dominate at this size and run once
-            // per sample on a multi-megapixel frame. Sorting once yields the
-            // median, the minimum and the maximum; a second small sort of the
-            // absolute deviations yields the MAD.
-            let sorted     = neighbours.sorted()
-            let median     = Self.median( ofSorted: sorted )
-            let deviations = sorted.map { abs( $0 - median ) }.sorted()
-            let mad        = Self.median( ofSorted: deviations )
-            let sigma      = Swift.max( Self.robustScaleFactor * mad, Self.sigmaFloor )
-            let minimum    = sorted[ 0 ]
-            let maximum    = sorted[ sorted.count - 1 ]
-
-            if parameters.correctHot, value > maximum, value - median > parameters.hotThreshold * sigma
-            {
-                return median
-            }
-
-            if parameters.correctCold, value < minimum, median - value > parameters.coldThreshold * sigma
-            {
-                return median
-            }
-
-            return value
         }
 
-        /// The median of an already-ascending-sorted, non-empty set of values: the
-        /// middle value for an odd count, the average of the two middle values for
-        /// an even count.
+        /// Sorts the first `count` elements of `buffer` ascending, in place, with an
+        /// insertion sort — chosen because `count` is tiny (at most 8), so the simple
+        /// algorithm beats a general sort's setup cost on the per-pixel hot path. The
+        /// raw loops are the same deliberate hot-path exception as in
+        /// ``repairedValue(sample:source:width:height:channels:step:parameters:)``.
         ///
-        /// A small-array helper matching ``PixelUtilities/median(_:)``'s
-        /// interpolation, used to avoid that helper's per-call `vDSP.sort` on the
-        /// tiny neighbour set. The caller guarantees `sorted` is non-empty.
+        /// - Parameters:
+        ///   - buffer: The buffer whose leading `count` elements to sort.
+        ///   - count:  The number of leading elements to sort.
+        private static func insertionSort( _ buffer: UnsafeMutableBufferPointer< Double >, count: Int )
+        {
+            var i = 1
+
+            while i < count
+            {
+                let key = buffer[ i ]
+                var j   = i - 1
+
+                while j >= 0, buffer[ j ] > key
+                {
+                    buffer[ j + 1 ] = buffer[ j ]
+                    j              -= 1
+                }
+
+                buffer[ j + 1 ] = key
+                i              += 1
+            }
+        }
+
+        /// The median of the first `count` already-ascending-sorted elements of
+        /// `buffer`: the middle value for an odd count, the average of the two middle
+        /// values for an even count. The caller guarantees `count > 0`.
         ///
-        /// - Parameter sorted: The values in ascending order; must not be empty.
+        /// - Parameters:
+        ///   - buffer: The buffer holding the sorted values.
+        ///   - count:  The number of leading elements to consider.
         ///
         /// - Returns: The median value.
-        private static func median( ofSorted sorted: [ Double ] ) -> Double
+        private static func median( ofSorted buffer: UnsafeMutableBufferPointer< Double >, count: Int ) -> Double
         {
-            let middle = sorted.count / 2
+            let middle = count / 2
 
-            if sorted.count.isMultiple( of: 2 )
+            if count.isMultiple( of: 2 )
             {
-                return ( sorted[ middle - 1 ] + sorted[ middle ] ) / 2.0
+                return ( buffer[ middle - 1 ] + buffer[ middle ] ) / 2.0
             }
 
-            return sorted[ middle ]
+            return buffer[ middle ]
         }
     }
 }

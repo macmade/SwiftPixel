@@ -187,6 +187,43 @@ struct Test_Processors_CosmeticCorrection
     }
 
     @Test
+    func underDeterminedPixelsAreLeftUntouched() async throws
+    {
+        // A 3×1 gradient: the two ends have a single neighbour and the middle two,
+        // so none reaches the minimum neighbour count. An ordinary gradient here
+        // must not be mistaken for hot/cold defects (regression: on-by-default
+        // correction corrupting tiny images).
+        let pixels: [ Double ] = [ 0.4, 0.5, 0.6 ]
+        var buffer             = try PixelBuffer( width: 3, height: 1, channels: 1, pixels: pixels, isNormalized: false )
+
+        try Processors.CosmeticCorrection( layout: .mono, parameters: .default ).process( buffer: &buffer )
+
+        #expect( buffer.pixels == pixels )
+    }
+
+    @Test
+    func smoothGradientIsNotFlagged() async throws
+    {
+        // A smooth linear gradient: the two opposite corners are strict local
+        // extremes whose 3-neighbour neighbourhoods have zero MAD. With an absolute
+        // robust-scale floor these gentle corners were wrongly "corrected"; the
+        // relative floor makes the margin track the local level, so an ordinary
+        // gradient is left entirely untouched.
+        let pixels: [ Double ] =
+        [
+            0.50, 0.51, 0.52,
+            0.51, 0.52, 0.53,
+            0.52, 0.53, 0.54,
+        ]
+
+        var buffer = try PixelBuffer( width: 3, height: 3, channels: 1, pixels: pixels, isNormalized: false )
+
+        try Processors.CosmeticCorrection( layout: .mono, parameters: .default ).process( buffer: &buffer )
+
+        #expect( buffer.pixels == pixels )
+    }
+
+    @Test
     func cornerHotPixelRepairedFromAvailableNeighbours() async throws
     {
         // The top-left corner spike is repaired using its three in-bounds neighbours.
@@ -328,5 +365,81 @@ struct Test_Processors_CosmeticCorrection
         {
             try Processors.CosmeticCorrection( layout: .rgb, parameters: .default ).process( buffer: &buffer )
         }
+    }
+
+    // MARK: - End-to-end (realistic synthetic frame)
+
+    /// On a realistic frame — a noisy background with a multi-pixel star and
+    /// injected hot/cold defects — the conservative default repairs the defects
+    /// (restoring the value range) while leaving the star intact.
+    @Test
+    func restoresRangeAndPreservesStarOnANoisyFrame() async throws
+    {
+        let width  = 48
+        let height = 48
+
+        // Deterministic pseudo-noise so the neighbourhoods have a real spread (a
+        // perfectly flat field would make the robust scale degenerate).
+        var state  = UInt64( 0x9E3779B97F4A7C15 )
+        var pixels = [ Double ]( repeating: 0, count: width * height )
+
+        ( 0 ..< pixels.count ).forEach
+        {
+            state   = state &* 6364136223846793005 &+ 1442695040888963407
+            let unit = Double( state >> 40 ) / Double( 1 << 24 )
+
+            pixels[ $0 ] = 100.0 + unit * 20.0
+        }
+
+        // A multi-pixel star (a small Gaussian): its neighbours are also bright, so
+        // it must survive the conservative threshold.
+        let starX     = 24
+        let starY     = 24
+        let amplitude = 500.0
+        let sigma     = 1.2
+
+        ( -3 ... 3 ).forEach
+        {
+            dy in ( -3 ... 3 ).forEach
+            {
+                dx in
+
+                let x = starX + dx
+                let y = starY + dy
+
+                pixels[ y * width + x ] += amplitude * exp( -( Double( dx * dx + dy * dy ) ) / ( 2.0 * sigma * sigma ) )
+            }
+        }
+
+        // Isolated defects, well clear of the star and of each other.
+        let hot  = [ ( 6, 6 ), ( 40, 8 ), ( 8, 40 ), ( 41, 41 ) ]
+        let cold = [ ( 12, 30 ), ( 34, 14 ) ]
+
+        hot.forEach  { pixels[ $0.1 * width + $0.0 ] = 5000.0 }
+        cold.forEach { pixels[ $0.1 * width + $0.0 ] = 0.0 }
+
+        let starIndex     = starY * width + starX
+        let starPeakBefore = pixels[ starIndex ]
+
+        var buffer = try PixelBuffer( width: width, height: height, channels: 1, pixels: pixels, isNormalized: false )
+
+        try Processors.CosmeticCorrection( layout: .mono, parameters: .default ).process( buffer: &buffer )
+
+        // Every injected defect is repaired back into the background range.
+        hot.forEach  { #expect( buffer.pixels[ $0.1 * width + $0.0 ] < 200.0, "hot pixel not repaired" ) }
+        cold.forEach { #expect( buffer.pixels[ $0.1 * width + $0.0 ] > 80.0,  "cold pixel not repaired" ) }
+
+        // The star's peak is untouched …
+        #expect( buffer.pixels[ starIndex ] == starPeakBefore )
+
+        // … and with the defects gone the range collapses back to the real content:
+        // the maximum is the star (~600), far below the 5000 hot value, and the
+        // minimum is back in the background band rather than the injected 0.
+        let maximum = try #require( buffer.pixels.max() )
+        let minimum = try #require( buffer.pixels.min() )
+
+        #expect( maximum == starPeakBefore )
+        #expect( maximum < 1000.0 )
+        #expect( minimum > 80.0 )
     }
 }

@@ -33,22 +33,15 @@ let package = Package(
     products: [
         .library( name: "SwiftPixel", targets: [ "SwiftPixel" ] ),
     ],
-    dependencies: [
-        .package( url: "https://github.com/macmade/SwiftUtilities.git", branch: "main" ),
-    ],
     targets: [
         .target(
             name: "SwiftPixel",
-            dependencies: [
-                .product( name: "SwiftUtilities", package: "SwiftUtilities" ),
-            ],
             path: "SwiftPixel"
         ),
         .testTarget(
             name: "SwiftPixelTests",
             dependencies: [
                 "SwiftPixel",
-                .product( name: "SwiftUtilities", package: "SwiftUtilities" ),
             ],
             path: "SwiftPixelTests"
         ),

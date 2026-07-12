@@ -69,11 +69,10 @@ struct Test_PixelPipeline
         hue:                Double?                                                                    = nil,
         saturation:         Double?                                                                    = nil,
         orient:             Processors.Orient.Orientation?                                             = nil,
-        benchmark:          Bool                                                                       = false,
-        benchmarkOutput:    ( @Sendable ( String ) -> Void )?                                          = nil
+        measure:            ( @Sendable ( String, () throws -> Void ) throws -> Void )?                = nil
     ) -> PixelPipeline.Config
     {
-        PixelPipeline.Config( scale: scale, inputFormat: inputFormat, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, invert: invert, brightnessContrast: brightnessContrast, levels: levels, curves: curves, colorBalance: colorBalance, hue: hue, saturation: saturation, orient: orient, benchmark: benchmark, benchmarkOutput: benchmarkOutput )
+        PixelPipeline.Config( scale: scale, inputFormat: inputFormat, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, invert: invert, brightnessContrast: brightnessContrast, levels: levels, curves: curves, colorBalance: colorBalance, hue: hue, saturation: saturation, orient: orient, measure: measure )
     }
 
     @Test
@@ -524,26 +523,45 @@ struct Test_PixelPipeline
     }
 
     @Test
-    func benchmarkSilentByDefault() async throws
+    func measureHookAbsentByDefault() async throws
     {
-        let collector = OutputCollector()
-        let pipeline  = PixelPipeline( config: Self.config( normalize: .minMax, benchmarkOutput: { collector.append( $0 ) } ) )
+        // The measure hook defaults to nil …
+        #expect( Self.config( normalize: .minMax ).measure == nil )
 
-        _ = try pipeline.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax ) )
+        let result   = try pipeline.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
 
-        #expect( collector.lines.isEmpty )
+        // … and with no measure hook the pipeline still runs every stage and yields
+        // a fully processed RGB buffer.
+        #expect( result.width    == 2 )
+        #expect( result.height   == 2 )
+        #expect( result.channels == 3 )
     }
 
     @Test
-    func benchmarkEmitsOneLinePerStage() async throws
+    func measureWrapsEachStageOnce() async throws
     {
         let collector = OutputCollector()
-        let pipeline  = PixelPipeline( config: Self.config( normalize: .minMax, benchmark: true, benchmarkOutput: { collector.append( $0 ) } ) )
+        let measure: @Sendable ( String, () throws -> Void ) throws -> Void =
+        {
+            label, stage in
 
-        _ = try pipeline.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
+            collector.append( label )
+            try stage()
+        }
 
+        let measured = PixelPipeline( config: Self.config( normalize: .minMax, measure: measure ) )
+        let plain    = PixelPipeline( config: Self.config( normalize: .minMax ) )
+
+        let fromMeasured = try measured.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
+        let fromPlain    = try plain.run(    pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
+
+        // The hook is invoked exactly once per stage, each with a non-empty label,
         #expect( collector.lines.count == 2 )
-        #expect( collector.lines.allSatisfy { $0.hasPrefix( "Benchmarking - " ) } )
+        #expect( collector.lines.allSatisfy { $0.isEmpty == false } )
+
+        // and wrapping the stages leaves the result unchanged.
+        #expect( fromMeasured.pixels == fromPlain.pixels )
     }
 
     @Test

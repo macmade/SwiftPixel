@@ -138,12 +138,15 @@ public struct PixelPipeline: Sendable
         /// permutation.
         public let orient: Processors.Orient.Orientation?
 
-        /// Whether to emit per-stage timing measurements. Off by default.
-        public let benchmark: Bool
-
-        /// The sink for benchmarking output when `benchmark` is `true`; falls
-        /// back to printing to standard output when `nil`.
-        public let benchmarkOutput: ( @Sendable ( String ) -> Void )?
+        /// An optional per-stage timing hook.
+        ///
+        /// When non-`nil`, the pipeline wraps each processor stage in this closure,
+        /// passing the stage's label and the work to run; when `nil`, stages run
+        /// directly with no measurement. The pipeline performs no timing or
+        /// formatting itself — a consumer that wants per-stage measurements supplies
+        /// the timing (for example by forwarding to its own benchmarking helper), so
+        /// the pipeline stays free of any benchmarking dependency.
+        public let measure: ( @Sendable ( String, () throws -> Void ) throws -> Void )?
 
         /// Creates a pipeline configuration.
         ///
@@ -162,9 +165,8 @@ public struct PixelPipeline: Sendable
         ///   - hue:                Optional hue-rotation angle in degrees. Defaults to `nil`.
         ///   - saturation:         Optional colour-saturation factor. Defaults to `nil`.
         ///   - orient:             Optional net orientation to apply last. Defaults to `nil`.
-        ///   - benchmark:          Whether to emit per-stage timings. Defaults to `false`.
-        ///   - benchmarkOutput:    Optional sink for timing output. Defaults to `nil` (prints).
-        public init( scale: ( scale: Double, offset: Double )? = nil, inputFormat: InputFormat = .mono, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.STFParameters? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, brightnessContrast: ( brightness: Double, contrast: Double )? = nil, levels: Processors.Levels.Channels? = nil, curves: Processors.Curves.Channels? = nil, colorBalance: Processors.ColorBalance.Ranges? = nil, hue: Double? = nil, saturation: Double? = nil, orient: Processors.Orient.Orientation? = nil, benchmark: Bool = false, benchmarkOutput: ( @Sendable ( String ) -> Void )? = nil )
+        ///   - measure:            Optional per-stage timing hook. Defaults to `nil` (stages run un-measured).
+        public init( scale: ( scale: Double, offset: Double )? = nil, inputFormat: InputFormat = .mono, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.STFParameters? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, brightnessContrast: ( brightness: Double, contrast: Double )? = nil, levels: Processors.Levels.Channels? = nil, curves: Processors.Curves.Channels? = nil, colorBalance: Processors.ColorBalance.Ranges? = nil, hue: Double? = nil, saturation: Double? = nil, orient: Processors.Orient.Orientation? = nil, measure: ( @Sendable ( String, () throws -> Void ) throws -> Void )? = nil )
         {
             self.scale              = scale
             self.inputFormat        = inputFormat
@@ -180,8 +182,7 @@ public struct PixelPipeline: Sendable
             self.hue                = hue
             self.saturation         = saturation
             self.orient             = orient
-            self.benchmark          = benchmark
-            self.benchmarkOutput    = benchmarkOutput
+            self.measure            = measure
         }
     }
 
@@ -234,22 +235,19 @@ public struct PixelPipeline: Sendable
     {
         var buffer = try PixelBuffer( width: width, height: height, channels: self.config.inputFormat.channels, pixels: pixels, isNormalized: false )
 
-        let output: ( String ) -> Void
-
-        if self.config.benchmark
-        {
-            output = self.config.benchmarkOutput ?? { print( $0 ) }
-        }
-        else
-        {
-            output = { _ in }
-        }
-
         try self.processors().forEach
         {
-            processor in try Benchmark.run( label: processor.description, output: output )
+            processor in
+
+            let stage = { try processor.process( buffer: &buffer ) }
+
+            if let measure = self.config.measure
             {
-                try processor.process( buffer: &buffer )
+                try measure( processor.description, stage )
+            }
+            else
+            {
+                try stage()
             }
         }
 

@@ -83,6 +83,23 @@ public struct PixelPipeline: Sendable
         /// and an already-interleaved RGB frame is passed through untouched.
         public let inputFormat: InputFormat
 
+        /// The largest dimension the rendered image may take, or `nil` to render at
+        /// full resolution. When set, a box-averaging downsample runs immediately
+        /// after the channel-forming stage (on co-located RGB, so it is safe for a
+        /// colour-filter-array source too), shrinking the image before the
+        /// per-pixel stages so a small preview costs a fraction of a full render.
+        /// The full-resolution app render leaves this `nil`.
+        public let maxDimension: Int?
+
+        /// The factor by which to bin the raw single-channel mosaic *before* the
+        /// demosaic; one (the default) skips binning. A ``Processors/Bin`` stage runs
+        /// before channel-forming (only for a single-channel input), averaging
+        /// same-colour sites so a colour-filter-array frame stays phase-aligned, so
+        /// the expensive debayer then runs on a `factor²`-smaller mosaic. Set above
+        /// one only when heavily downsampling a mosaic preview; the full-resolution
+        /// app render leaves it at one.
+        public let binFactor: Int
+
         /// The cosmetic-correction (hot/cold pixel repair) parameters, or `nil` to
         /// skip the stage. Applied to the raw samples, before the channel-forming
         /// stage, so a defect is repaired before demosaicing can smear it across
@@ -160,6 +177,8 @@ public struct PixelPipeline: Sendable
         /// - Parameters:
         ///   - scale:           Optional affine scaling of the raw samples. Defaults to `nil`.
         ///   - inputFormat:     How the input samples are laid out — mono (expanded to RGB), a colour-filter array (demosaiced), or already-RGB (passed through). Defaults to `.mono`.
+        ///   - maxDimension:    Optional cap on the rendered image's largest dimension; a box-averaging downsample runs after channel-forming when set. Defaults to `nil` (full resolution).
+        ///   - binFactor:       Factor to bin a single-channel mosaic before channel-forming, so the debayer runs on a smaller mosaic. Defaults to one (no binning); a value below one, or too large for the image, throws when the stage runs.
         ///   - cosmeticCorrection: Optional hot/cold pixel repair applied to the raw samples before the channel-forming stage. Defaults to `nil`.
         ///   - normalize:       Optional normalization mode. Defaults to `nil`.
         ///   - stretch:         Optional Screen Transfer parameters. Defaults to `nil`.
@@ -174,10 +193,12 @@ public struct PixelPipeline: Sendable
         ///   - saturation:         Optional colour-saturation factor. Defaults to `nil`.
         ///   - orient:             Optional net orientation to apply last. Defaults to `nil`.
         ///   - measure:            Optional per-stage timing hook. Defaults to `nil` (stages run un-measured).
-        public init( scale: ( scale: Double, offset: Double )? = nil, inputFormat: InputFormat = .mono, cosmeticCorrection: Processors.CosmeticCorrection.Parameters? = nil, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.STFParameters? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, brightnessContrast: ( brightness: Double, contrast: Double )? = nil, levels: Processors.Levels.Channels? = nil, curves: Processors.Curves.Channels? = nil, colorBalance: Processors.ColorBalance.Ranges? = nil, hue: Double? = nil, saturation: Double? = nil, orient: Processors.Orient.Orientation? = nil, measure: ( @Sendable ( String, () throws -> Void ) throws -> Void )? = nil )
+        public init( scale: ( scale: Double, offset: Double )? = nil, inputFormat: InputFormat = .mono, maxDimension: Int? = nil, binFactor: Int = 1, cosmeticCorrection: Processors.CosmeticCorrection.Parameters? = nil, normalize: Processors.Normalize.Mode? = nil, stretch: Processors.Stretch.STFParameters? = nil, correctGamma: Double? = nil, whiteBalance: Processors.WhiteBalance.Mode? = nil, invert: Bool = false, brightnessContrast: ( brightness: Double, contrast: Double )? = nil, levels: Processors.Levels.Channels? = nil, curves: Processors.Curves.Channels? = nil, colorBalance: Processors.ColorBalance.Ranges? = nil, hue: Double? = nil, saturation: Double? = nil, orient: Processors.Orient.Orientation? = nil, measure: ( @Sendable ( String, () throws -> Void ) throws -> Void )? = nil )
         {
             self.scale              = scale
             self.inputFormat        = inputFormat
+            self.maxDimension       = maxDimension
+            self.binFactor          = binFactor
             self.cosmeticCorrection = cosmeticCorrection
             self.normalize          = normalize
             self.stretch            = stretch
@@ -341,6 +362,15 @@ public struct PixelPipeline: Sendable
             processors.append( Processors.CosmeticCorrection( layout: layout, parameters: cosmeticCorrection ) )
         }
 
+        // Binning reduces a raw single-channel mosaic before the demosaic, averaging
+        // same-colour sites so the pattern survives, so the expensive debayer runs on
+        // a smaller mosaic. It applies only to a single-channel input (a mono or CFA
+        // frame); an already-RGB frame has no mosaic to bin.
+        if self.config.binFactor != 1, self.config.inputFormat.channels == 1
+        {
+            processors.append( Processors.Bin( factor: self.config.binFactor ) )
+        }
+
         // The channel-forming stage brings the input to RGB according to its
         // layout: a monochrome frame is expanded, a colour-filter array is
         // demosaiced, and an already-RGB frame needs no forming stage.
@@ -357,6 +387,16 @@ public struct PixelPipeline: Sendable
             case .rgb:
 
                 break
+        }
+
+        // Downsampling runs right after channel-forming: the buffer is now
+        // co-located RGB, so box averaging is safe (a raw colour-filter-array
+        // mosaic must never be averaged across its colour sites), and shrinking
+        // here spares every per-pixel stage below the full-resolution cost — the
+        // point of a small preview render. A no-op when the image already fits.
+        if let maxDimension = self.config.maxDimension
+        {
+            processors.append( Processors.Resample( maxDimension: maxDimension ) )
         }
 
         // A neutral brightness/contrast (no offset, unit factor) is a no-op and

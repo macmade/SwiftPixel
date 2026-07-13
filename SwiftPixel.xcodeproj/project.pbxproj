@@ -40,6 +40,8 @@
 		05D710C32DF1D89B00CE32E3 /* PixelPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D710C22DF1D89700CE32E3 /* PixelPipeline.swift */; };
 		0AB10000000000000000A002 /* Processors-Invert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A001 /* Processors-Invert.swift */; };
 		0AB10000000000000000A102 /* Processors-Orient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A101 /* Processors-Orient.swift */; };
+		0AB10000000000000000D202 /* Processors-Resample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000D201 /* Processors-Resample.swift */; };
+		0AB10000000000000000D402 /* Processors-Bin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000D401 /* Processors-Bin.swift */; };
 		0AB10000000000000000A202 /* Processors-BrightnessContrast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A201 /* Processors-BrightnessContrast.swift */; };
 		0AB10000000000000000A302 /* Processors-Saturation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A301 /* Processors-Saturation.swift */; };
 		0AB10000000000000000A402 /* Processors-Levels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A401 /* Processors-Levels.swift */; };
@@ -55,6 +57,8 @@
 		0AB10000000000000000D002 /* Processors-Debayer+VNG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000D001 /* Processors-Debayer+VNG.swift */; };
 		0AB10000000000000000E002 /* Invert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E001 /* Invert.swift */; };
 		0AB10000000000000000E102 /* Orient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E101 /* Orient.swift */; };
+		0AB10000000000000000F202 /* Resample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000F201 /* Resample.swift */; };
+		0AB10000000000000000F402 /* Bin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000F401 /* Bin.swift */; };
 		0AB10000000000000000F102 /* CosmeticCorrection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000F101 /* CosmeticCorrection.swift */; };
 		0AB10000000000000000D102 /* Processors-CosmeticCorrection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000D101 /* Processors-CosmeticCorrection.swift */; };
 		0AB10000000000000000E202 /* BrightnessContrast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E201 /* BrightnessContrast.swift */; };
@@ -186,6 +190,8 @@
 		05EFC6812DE64B250096C4B4 /* SwiftPixel.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = SwiftPixel.xctestplan; sourceTree = "<group>"; };
 		0AB10000000000000000A001 /* Processors-Invert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Invert.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000A101 /* Processors-Orient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Orient.swift"; sourceTree = "<group>"; };
+		0AB10000000000000000D201 /* Processors-Resample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Resample.swift"; sourceTree = "<group>"; };
+		0AB10000000000000000D401 /* Processors-Bin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Bin.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000D101 /* Processors-CosmeticCorrection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-CosmeticCorrection.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000A201 /* Processors-BrightnessContrast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-BrightnessContrast.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000A301 /* Processors-Saturation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Saturation.swift"; sourceTree = "<group>"; };
@@ -202,6 +208,8 @@
 		0AB10000000000000000D001 /* Processors-Debayer+VNG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Debayer+VNG.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000E001 /* Invert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Invert.swift; sourceTree = "<group>"; };
 		0AB10000000000000000E101 /* Orient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Orient.swift; sourceTree = "<group>"; };
+		0AB10000000000000000F201 /* Resample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Resample.swift; sourceTree = "<group>"; };
+		0AB10000000000000000F401 /* Bin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bin.swift; sourceTree = "<group>"; };
 		0AB10000000000000000F101 /* CosmeticCorrection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CosmeticCorrection.swift; sourceTree = "<group>"; };
 		0AB10000000000000000E201 /* BrightnessContrast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessContrast.swift; sourceTree = "<group>"; };
 		0AB10000000000000000E301 /* Saturation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Saturation.swift; sourceTree = "<group>"; };
@@ -250,6 +258,8 @@
 				0AB10000000000000000F001 /* Debayer+VNG.swift */,
 				0AB10000000000000000E001 /* Invert.swift */,
 				0AB10000000000000000E101 /* Orient.swift */,
+				0AB10000000000000000F201 /* Resample.swift */,
+				0AB10000000000000000F401 /* Bin.swift */,
 				0AB10000000000000000E201 /* BrightnessContrast.swift */,
 				0AB10000000000000000E301 /* Saturation.swift */,
 				0AB10000000000000000E601 /* Hue.swift */,
@@ -323,6 +333,8 @@
 				0AB10000000000000000D001 /* Processors-Debayer+VNG.swift */,
 				0AB10000000000000000A001 /* Processors-Invert.swift */,
 				0AB10000000000000000A101 /* Processors-Orient.swift */,
+				0AB10000000000000000D201 /* Processors-Resample.swift */,
+				0AB10000000000000000D401 /* Processors-Bin.swift */,
 				0AB10000000000000000A201 /* Processors-BrightnessContrast.swift */,
 				0AB10000000000000000A301 /* Processors-Saturation.swift */,
 				0AB10000000000000000A601 /* Processors-Hue.swift */,
@@ -643,6 +655,8 @@
 				050F380E2DEE0BBE00E84F97 /* MonoToRGB.swift in Sources */,
 				0AB10000000000000000E002 /* Invert.swift in Sources */,
 				0AB10000000000000000E102 /* Orient.swift in Sources */,
+				0AB10000000000000000F202 /* Resample.swift in Sources */,
+				0AB10000000000000000F402 /* Bin.swift in Sources */,
 				0AB10000000000000000E202 /* BrightnessContrast.swift in Sources */,
 				0AB10000000000000000E302 /* Saturation.swift in Sources */,
 				0AB10000000000000000E602 /* Hue.swift in Sources */,
@@ -684,6 +698,8 @@
 				0AB10000000000000000D102 /* Processors-CosmeticCorrection.swift in Sources */,
 				0AB10000000000000000A002 /* Processors-Invert.swift in Sources */,
 				0AB10000000000000000A102 /* Processors-Orient.swift in Sources */,
+				0AB10000000000000000D202 /* Processors-Resample.swift in Sources */,
+				0AB10000000000000000D402 /* Processors-Bin.swift in Sources */,
 				0AB10000000000000000A202 /* Processors-BrightnessContrast.swift in Sources */,
 				0AB10000000000000000A302 /* Processors-Saturation.swift in Sources */,
 				0AB10000000000000000A602 /* Processors-Hue.swift in Sources */,

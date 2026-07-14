@@ -207,18 +207,18 @@ struct Test_PixelPipeline
         let names = pipeline.processors().map { $0.name }
 
         // The fixed order: raw scaling and demosaicing, then normalization, then
-        // the linear-domain adjustments applied before the non-linear stretch
-        // (white balance as colour calibration, then brightness/contrast), then
-        // the stretch, then the display-referred stages applied on the stretched
-        // image (gamma, levels, curves, colour balance, hue, saturation,
-        // invert), with orientation — a pure geometry permutation — last.
+        // white balance as a linear colour calibration applied before the
+        // non-linear stretch, then the stretch, then the display-referred stages
+        // applied on the stretched image (brightness/contrast, gamma, levels,
+        // curves, colour balance, hue, saturation, invert), with orientation — a
+        // pure geometry permutation — last.
         #expect( names.count == 14 )
         #expect( names[  0 ].hasPrefix( "Scale" ) )
         #expect( names[  1 ].hasPrefix( "Debayer" ) )
         #expect( names[  2 ].hasPrefix( "Normalize" ) )
         #expect( names[  3 ].hasPrefix( "White Balance" ) )
-        #expect( names[  4 ].hasPrefix( "Brightness/Contrast" ) )
-        #expect( names[  5 ].hasPrefix( "Stretch" ) )
+        #expect( names[  4 ].hasPrefix( "Stretch" ) )
+        #expect( names[  5 ].hasPrefix( "Brightness/Contrast" ) )
         #expect( names[  6 ].hasPrefix( "Gamma Correction" ) )
         #expect( names[  7 ].hasPrefix( "Levels" ) )
         #expect( names[  8 ].hasPrefix( "Curves" ) )
@@ -255,17 +255,19 @@ struct Test_PixelPipeline
     }
 
     @Test
-    func brightnessContrastAppendedAfterNormalizeBeforeStretch() async throws
+    func brightnessContrastAppendedAfterStretch() async throws
     {
         let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, stretch: .uniform( .init( midtones: 0.3 ) ), brightnessContrast: ( brightness: 0.2, contrast: 1.5 ) ) )
         let names    = pipeline.processors().map { $0.name }
 
         let normalizeIndex = try #require( names.firstIndex { $0.hasPrefix( "Normalize" ) } )
-        let brightIndex    = try #require( names.firstIndex { $0.hasPrefix( "Brightness/Contrast" ) } )
         let stretchIndex   = try #require( names.firstIndex { $0.hasPrefix( "Stretch" ) } )
+        let brightIndex    = try #require( names.firstIndex { $0.hasPrefix( "Brightness/Contrast" ) } )
 
-        #expect( normalizeIndex < brightIndex )
-        #expect( brightIndex < stretchIndex )
+        // Brightness/contrast is a display-referred adjustment applied on the
+        // stretched image, immediately after the stretch.
+        #expect( normalizeIndex < stretchIndex )
+        #expect( stretchIndex < brightIndex )
     }
 
     @Test
@@ -297,10 +299,10 @@ struct Test_PixelPipeline
         let stretchIndex = try #require( names.firstIndex { $0.hasPrefix( "Stretch" ) } )
         let levelsIndex  = try #require( names.firstIndex { $0.hasPrefix( "Levels" ) } )
 
-        // Brightness/contrast is a linear adjustment applied before the stretch;
-        // levels is a display-referred tone remap applied after it.
-        #expect( brightIndex  < stretchIndex )
-        #expect( stretchIndex < levelsIndex )
+        // Brightness/contrast and levels are both display-referred adjustments
+        // applied after the stretch, brightness/contrast first.
+        #expect( stretchIndex < brightIndex )
+        #expect( brightIndex  < levelsIndex )
     }
 
     @Test

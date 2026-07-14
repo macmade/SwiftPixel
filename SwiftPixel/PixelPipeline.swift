@@ -29,11 +29,11 @@ import Foundation
 ///
 /// The stage order is fixed and enforces each processor's preconditions: scale,
 /// then demosaic to RGB, then normalize, then the normalization-dependent
-/// stages. Those run in two groups around the non-linear stretch: the linear
-/// pre-stretch adjustments (white balance as a colour calibration, then
-/// brightness/contrast), then the stretch, then the display-referred stages on
-/// the stretched image (gamma, levels, curves, colour balance, hue, saturation, invert), with
-/// orientation last. A default normalization is inserted automatically when a
+/// stages. Those run in two groups around the non-linear stretch: white balance
+/// as a linear colour calibration before the stretch, then the stretch, then the
+/// display-referred stages on the stretched image (brightness/contrast, gamma,
+/// levels, curves, colour balance, hue, saturation, invert), with orientation
+/// last. A default normalization is inserted automatically when a
 /// normalization-dependent stage is requested without one.
 public struct PixelPipeline: Sendable
 {
@@ -124,8 +124,8 @@ public struct PixelPipeline: Sendable
         public let whiteBalance: Processors.WhiteBalance.Mode?
 
         /// The brightness offset and contrast factor, or `nil` to leave both at
-        /// their neutral values. Requires normalization; a linear adjustment
-        /// applied before the stretch, after white balance.
+        /// their neutral values. Requires normalization; a display-referred
+        /// adjustment applied after the stretch, before gamma.
         public let brightnessContrast: ( brightness: Double, contrast: Double )?
 
         /// The levels remap to apply, or `nil` to leave the tones untouched.
@@ -321,11 +321,11 @@ public struct PixelPipeline: Sendable
     /// The order is fixed and enforces the processors' preconditions: raw
     /// scaling, then demosaicing to RGB, then normalization, then the stages
     /// that require a normalized buffer. Those normalization-dependent stages
-    /// run in two groups around the non-linear stretch: the linear pre-stretch
-    /// adjustments (white balance, then brightness/contrast), then the stretch,
-    /// then the display-referred stages on the stretched image (gamma, levels,
-    /// curves, colour balance, hue, saturation, invert). Orientation, a pure geometry permutation,
-    /// runs last.
+    /// run in two groups around the non-linear stretch: white balance as a
+    /// linear colour calibration before the stretch, then the stretch, then the
+    /// display-referred stages on the stretched image (brightness/contrast,
+    /// gamma, levels, curves, colour balance, hue, saturation, invert).
+    /// Orientation, a pure geometry permutation, runs last.
     ///
     /// All of these stages require a normalized buffer. If any is requested
     /// without an explicit normalization mode, a default min/max Normalize is
@@ -503,16 +503,20 @@ public struct PixelPipeline: Sendable
             processors.append( Processors.WhiteBalance( mode: whiteBalance ) )
         }
 
-        // Brightness/contrast is a linear adjustment on the normalized data,
-        // applied before the non-linear stretch.
-        if let brightnessContrast
-        {
-            processors.append( Processors.BrightnessContrast( brightness: brightnessContrast.brightness, contrast: brightnessContrast.contrast ) )
-        }
-
         if let stretch = self.config.stretch
         {
             processors.append( Processors.Stretch( parameters: stretch ) )
+        }
+
+        // Brightness/contrast is a display-referred adjustment applied on the
+        // stretched image, immediately after the stretch — where the tones are
+        // spread across the display range, so a midpoint-centred contrast and an
+        // additive brightness respond gently and predictably (on the linear
+        // pre-stretch signal, which sits near black, the same adjustment is wildly
+        // over-sensitive).
+        if let brightnessContrast
+        {
+            processors.append( Processors.BrightnessContrast( brightness: brightnessContrast.brightness, contrast: brightnessContrast.contrast ) )
         }
 
         if let correctGamma = self.config.correctGamma

@@ -113,6 +113,32 @@ To clone it, use the following command:
 git clone --recursive https://github.com/macmade/SwiftPixel.git
 ```
 
+### Benchmarks
+
+The test target includes an opt-in **benchmark & profiling harness** (under
+`SwiftPixelTests/Benchmarks/`) that measures the runtime — and approximate peak
+memory — of every processor and core primitive over a fixed set of deterministic
+synthetic frames (mono, RGB, raw, and RGGB mosaic at a few sizes), and writes a
+committed baseline for before/after comparison.
+
+It is **excluded from ordinary test runs** — only the harness's own fast unit
+tests run there — and executes only when the `RUN_BENCHMARKS` environment
+variable is set. Because `xcodebuild test` does not forward the environment to
+the test-host process, capture a baseline through SwiftPM, in an optimized build:
+
+```bash
+RUN_BENCHMARKS=1 swift test -c release --filter Test_SwiftPixelBenchmarks
+```
+
+Two files are written to `Docs/Benchmarks/` (override the directory with the
+`FITSCOPE_BENCH_OUT` environment variable): `swiftpixel-baseline.json` — the
+machine-diffable source of truth — and `swiftpixel-baseline.md` — a
+human-readable table generated from it. Each measurement records min / median /
+max wall-clock timing (the **min** is the least noisy estimate of intrinsic cost)
+and a best-effort, approximate peak allocation. A baseline is a snapshot, not a
+target: real timings vary between runs, so compare like for like — same host,
+same Release build.
+
 License
 -------
 

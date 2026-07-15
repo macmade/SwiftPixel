@@ -1,0 +1,592 @@
+{
+  "measurements" : [
+    {
+      "algorithm" : "Invert",
+      "category" : "Processor",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : true,
+        "layout" : "mono",
+        "name" : "mono-2048",
+        "notes" : "Synthetic mono gradient + noise in [0, 1]. Large frame that exposes per-pixel scaling.",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 33571536,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 1492709,
+        "medianNanoseconds" : 1384604,
+        "minNanoseconds" : 1308708
+      }
+    },
+    {
+      "algorithm" : "BrightnessContrast",
+      "category" : "Processor",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : true,
+        "layout" : "mono",
+        "name" : "mono-2048",
+        "notes" : "Synthetic mono gradient + noise in [0, 1]. Large frame that exposes per-pixel scaling.",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 33571264,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 2296667,
+        "medianNanoseconds" : 2012666,
+        "minNanoseconds" : 1910334
+      }
+    },
+    {
+      "algorithm" : "CorrectGamma",
+      "category" : "Processor",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : true,
+        "layout" : "mono",
+        "name" : "mono-2048",
+        "notes" : "Synthetic mono gradient + noise in [0, 1]. Large frame that exposes per-pixel scaling.",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 33620352,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 12126875,
+        "medianNanoseconds" : 11958791,
+        "minNanoseconds" : 11912000
+      }
+    },
+    {
+      "algorithm" : "Levels",
+      "category" : "Processor",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : true,
+        "layout" : "mono",
+        "name" : "mono-2048",
+        "notes" : "Synthetic mono gradient + noise in [0, 1]. Large frame that exposes per-pixel scaling.",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 33571200,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 14781791,
+        "medianNanoseconds" : 14430833,
+        "minNanoseconds" : 14304750
+      }
+    },
+    {
+      "algorithm" : "Curves",
+      "category" : "Processor",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : true,
+        "layout" : "mono",
+        "name" : "mono-2048",
+        "notes" : "Synthetic mono gradient + noise in [0, 1]. Large frame that exposes per-pixel scaling.",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 33591680,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 3835250,
+        "medianNanoseconds" : 3613437,
+        "minNanoseconds" : 3550292
+      }
+    },
+    {
+      "algorithm" : "Stretch",
+      "category" : "Processor",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : true,
+        "layout" : "mono",
+        "name" : "mono-2048",
+        "notes" : "Synthetic mono gradient + noise in [0, 1]. Large frame that exposes per-pixel scaling.",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 67142016,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 9794458,
+        "medianNanoseconds" : 6301979,
+        "minNanoseconds" : 6044958
+      }
+    },
+    {
+      "algorithm" : "Normalize",
+      "category" : "Processor",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : false,
+        "layout" : "mono (raw)",
+        "name" : "raw-mono-2048",
+        "notes" : "Synthetic mono in the 16-bit ADU range. Input to stages that operate on unnormalized data (Normalize, Scale, Bin, MonoToRGB).",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 33571200,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 3209750,
+        "medianNanoseconds" : 3042312,
+        "minNanoseconds" : 3011333
+      }
+    },
+    {
+      "algorithm" : "Scale",
+      "category" : "Processor",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : false,
+        "layout" : "mono (raw)",
+        "name" : "raw-mono-2048",
+        "notes" : "Synthetic mono in the 16-bit ADU range. Input to stages that operate on unnormalized data (Normalize, Scale, Bin, MonoToRGB).",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 33571200,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 2064292,
+        "medianNanoseconds" : 1920895,
+        "minNanoseconds" : 1887250
+      }
+    },
+    {
+      "algorithm" : "MonoToRGB",
+      "category" : "Processor",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : false,
+        "layout" : "mono (raw)",
+        "name" : "raw-mono-2048",
+        "notes" : "Synthetic mono in the 16-bit ADU range. Input to stages that operate on unnormalized data (Normalize, Scale, Bin, MonoToRGB).",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 100680848,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 200605291,
+        "medianNanoseconds" : 196069166,
+        "minNanoseconds" : 168707334
+      }
+    },
+    {
+      "algorithm" : "Orient",
+      "category" : "Processor",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : true,
+        "layout" : "mono",
+        "name" : "mono-2048",
+        "notes" : "Synthetic mono gradient + noise in [0, 1]. Large frame that exposes per-pixel scaling.",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 33571984,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 195303250,
+        "medianNanoseconds" : 186319771,
+        "minNanoseconds" : 177788667
+      }
+    },
+    {
+      "algorithm" : "Resample",
+      "category" : "Processor",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : true,
+        "layout" : "mono",
+        "name" : "mono-2048",
+        "notes" : "Synthetic mono gradient + noise in [0, 1]. Large frame that exposes per-pixel scaling.",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 2134336,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 1532042,
+        "medianNanoseconds" : 1473687,
+        "minNanoseconds" : 1467792
+      }
+    },
+    {
+      "algorithm" : "Bin",
+      "category" : "Processor",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : false,
+        "layout" : "mono (raw)",
+        "name" : "raw-mono-2048",
+        "notes" : "Synthetic mono in the 16-bit ADU range. Input to stages that operate on unnormalized data (Normalize, Scale, Bin, MonoToRGB).",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 8425856,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 1942542,
+        "medianNanoseconds" : 1843062,
+        "minNanoseconds" : 1821959
+      }
+    },
+    {
+      "algorithm" : "CosmeticCorrection",
+      "category" : "Processor",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : false,
+        "layout" : "mono (raw)",
+        "name" : "raw-mono-2048",
+        "notes" : "Synthetic mono in the 16-bit ADU range. Input to stages that operate on unnormalized data (Normalize, Scale, Bin, MonoToRGB).",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 33571984,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 387770625,
+        "medianNanoseconds" : 206452062,
+        "minNanoseconds" : 204550375
+      }
+    },
+    {
+      "algorithm" : "WhiteBalance",
+      "category" : "Processor",
+      "frame" : {
+        "channels" : 3,
+        "height" : 1024,
+        "isNormalized" : true,
+        "layout" : "rgb",
+        "name" : "rgb-1024",
+        "notes" : "Synthetic interleaved RGB in [0, 1]. Exercises the colour processors (white balance, hue, saturation, colour balance).",
+        "width" : 1024
+      },
+      "peakAllocationBytes" : 33571200,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 5527834,
+        "medianNanoseconds" : 3448375,
+        "minNanoseconds" : 3381208
+      }
+    },
+    {
+      "algorithm" : "Hue",
+      "category" : "Processor",
+      "frame" : {
+        "channels" : 3,
+        "height" : 1024,
+        "isNormalized" : true,
+        "layout" : "rgb",
+        "name" : "rgb-1024",
+        "notes" : "Synthetic interleaved RGB in [0, 1]. Exercises the colour processors (white balance, hue, saturation, colour balance).",
+        "width" : 1024
+      },
+      "peakAllocationBytes" : 33571984,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 57309416,
+        "medianNanoseconds" : 56722188,
+        "minNanoseconds" : 54530208
+      }
+    },
+    {
+      "algorithm" : "Saturation",
+      "category" : "Processor",
+      "frame" : {
+        "channels" : 3,
+        "height" : 1024,
+        "isNormalized" : true,
+        "layout" : "rgb",
+        "name" : "rgb-1024",
+        "notes" : "Synthetic interleaved RGB in [0, 1]. Exercises the colour processors (white balance, hue, saturation, colour balance).",
+        "width" : 1024
+      },
+      "peakAllocationBytes" : 33571984,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 54413292,
+        "medianNanoseconds" : 52822270,
+        "minNanoseconds" : 50925292
+      }
+    },
+    {
+      "algorithm" : "ColorBalance",
+      "category" : "Processor",
+      "frame" : {
+        "channels" : 3,
+        "height" : 1024,
+        "isNormalized" : true,
+        "layout" : "rgb",
+        "name" : "rgb-1024",
+        "notes" : "Synthetic interleaved RGB in [0, 1]. Exercises the colour processors (white balance, hue, saturation, colour balance).",
+        "width" : 1024
+      },
+      "peakAllocationBytes" : 33571984,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 55406292,
+        "medianNanoseconds" : 55159396,
+        "minNanoseconds" : 48369167
+      }
+    },
+    {
+      "algorithm" : "Debayer (Bilinear)",
+      "category" : "Processor",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : false,
+        "layout" : "cfa (RGGB mosaic)",
+        "name" : "cfa-2048",
+        "notes" : "Synthetic single-channel Bayer mosaic in the 16-bit ADU range. Input to the Debayer family.",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 109085840,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 81405958,
+        "medianNanoseconds" : 7447812,
+        "minNanoseconds" : 7086542
+      }
+    },
+    {
+      "algorithm" : "Debayer (VNG)",
+      "category" : "Processor",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : false,
+        "layout" : "cfa (RGGB mosaic)",
+        "name" : "cfa-2048",
+        "notes" : "Synthetic single-channel Bayer mosaic in the 16-bit ADU range. Input to the Debayer family.",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 142657232,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 29184042,
+        "medianNanoseconds" : 23458979,
+        "minNanoseconds" : 20852541
+      }
+    },
+    {
+      "algorithm" : "Convolution.zeroSumResponse",
+      "category" : "Primitive",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : true,
+        "layout" : "mono",
+        "name" : "mono-2048",
+        "notes" : "Synthetic mono gradient + noise in [0, 1]. Large frame that exposes per-pixel scaling.",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 67666240,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 89320791,
+        "medianNanoseconds" : 86323021,
+        "minNanoseconds" : 86112708
+      }
+    },
+    {
+      "algorithm" : "Histogram",
+      "category" : "Primitive",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : true,
+        "layout" : "mono",
+        "name" : "mono-2048",
+        "notes" : "Synthetic mono gradient + noise in [0, 1]. Large frame that exposes per-pixel scaling.",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 13184,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 4195834,
+        "medianNanoseconds" : 4167396,
+        "minNanoseconds" : 4152416
+      }
+    },
+    {
+      "algorithm" : "HistogramStatistics",
+      "category" : "Primitive",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : true,
+        "layout" : "mono",
+        "name" : "mono-2048",
+        "notes" : "Synthetic mono gradient + noise in [0, 1]. Large frame that exposes per-pixel scaling.",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 384,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 625,
+        "medianNanoseconds" : 583,
+        "minNanoseconds" : 541
+      }
+    },
+    {
+      "algorithm" : "PixelUtilities.median",
+      "category" : "Primitive",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : true,
+        "layout" : "mono",
+        "name" : "mono-2048",
+        "notes" : "Synthetic mono gradient + noise in [0, 1]. Large frame that exposes per-pixel scaling.",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 33571200,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 262179500,
+        "medianNanoseconds" : 245040562,
+        "minNanoseconds" : 243831167
+      }
+    },
+    {
+      "algorithm" : "PixelUtilities.medianAbsoluteDeviation",
+      "category" : "Primitive",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : true,
+        "layout" : "mono",
+        "name" : "mono-2048",
+        "notes" : "Synthetic mono gradient + noise in [0, 1]. Large frame that exposes per-pixel scaling.",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 67142016,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 291256250,
+        "medianNanoseconds" : 250466333,
+        "minNanoseconds" : 249651791
+      }
+    },
+    {
+      "algorithm" : "PixelUtilities.percentileBounds",
+      "category" : "Primitive",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : true,
+        "layout" : "mono",
+        "name" : "mono-2048",
+        "notes" : "Synthetic mono gradient + noise in [0, 1]. Large frame that exposes per-pixel scaling.",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 33571200,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 268130333,
+        "medianNanoseconds" : 245262167,
+        "minNanoseconds" : 244382375
+      }
+    },
+    {
+      "algorithm" : "PixelUtilities.interleave",
+      "category" : "Primitive",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : true,
+        "layout" : "mono",
+        "name" : "mono-2048",
+        "notes" : "Synthetic mono gradient + noise in [0, 1]. Large frame that exposes per-pixel scaling.",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 100680064,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 115998458,
+        "medianNanoseconds" : 26341041,
+        "minNanoseconds" : 26174375
+      }
+    },
+    {
+      "algorithm" : "PixelUtilities.readRawPixels",
+      "category" : "Primitive",
+      "frame" : {
+        "channels" : 1,
+        "height" : 2048,
+        "isNormalized" : true,
+        "layout" : "mono",
+        "name" : "mono-2048",
+        "notes" : "Synthetic mono gradient + noise in [0, 1]. Large frame that exposes per-pixel scaling.",
+        "width" : 2048
+      },
+      "peakAllocationBytes" : 33571984,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 188844209,
+        "medianNanoseconds" : 178614062,
+        "minNanoseconds" : 171237833
+      }
+    },
+    {
+      "algorithm" : "GaussianKernel(sigma:)",
+      "category" : "Primitive",
+      "frame" : {
+        "channels" : 1,
+        "height" : 512,
+        "isNormalized" : true,
+        "layout" : "mono",
+        "name" : "mono-512",
+        "notes" : "Synthetic mono gradient + noise in [0, 1]. Small frame for quick primitives and tone\/level stages.",
+        "width" : 512
+      },
+      "peakAllocationBytes" : 320,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 1125,
+        "medianNanoseconds" : 792,
+        "minNanoseconds" : 750
+      }
+    },
+    {
+      "algorithm" : "GaussianFit.fit",
+      "category" : "Primitive",
+      "frame" : {
+        "channels" : 1,
+        "height" : 512,
+        "isNormalized" : true,
+        "layout" : "mono",
+        "name" : "mono-512",
+        "notes" : "Synthetic mono gradient + noise in [0, 1]. Small frame for quick primitives and tone\/level stages.",
+        "width" : 512
+      },
+      "peakAllocationBytes" : 7392,
+      "timings" : {
+        "iterations" : 20,
+        "maxNanoseconds" : 41125,
+        "medianNanoseconds" : 39000,
+        "minNanoseconds" : 38875
+      }
+    }
+  ],
+  "metadata" : {
+    "capturedAt" : "2026-07-15T19:24:10Z",
+    "configuration" : "release",
+    "host" : "Mac16,12",
+    "iterations" : 20,
+    "module" : "SwiftPixel",
+    "operatingSystem" : "Version 26.5.1 (Build 25F80)"
+  }
+}

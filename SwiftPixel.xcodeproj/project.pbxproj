@@ -38,10 +38,9 @@
 		05D710BF2DF1D84D00CE32E3 /* Processors-WhiteBalance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D710BE2DF1D84A00CE32E3 /* Processors-WhiteBalance.swift */; };
 		05D710C12DF1D85700CE32E3 /* Processors-Stretch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D710C02DF1D85000CE32E3 /* Processors-Stretch.swift */; };
 		05D710C32DF1D89B00CE32E3 /* PixelPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D710C22DF1D89700CE32E3 /* PixelPipeline.swift */; };
+		09EB553696FD8DB12FBDC550 /* BenchmarkFrames.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9B95207318F108519FD7C39 /* BenchmarkFrames.swift */; };
 		0AB10000000000000000A002 /* Processors-Invert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A001 /* Processors-Invert.swift */; };
 		0AB10000000000000000A102 /* Processors-Orient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A101 /* Processors-Orient.swift */; };
-		0AB10000000000000000D202 /* Processors-Resample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000D201 /* Processors-Resample.swift */; };
-		0AB10000000000000000D402 /* Processors-Bin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000D401 /* Processors-Bin.swift */; };
 		0AB10000000000000000A202 /* Processors-BrightnessContrast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A201 /* Processors-BrightnessContrast.swift */; };
 		0AB10000000000000000A302 /* Processors-Saturation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A301 /* Processors-Saturation.swift */; };
 		0AB10000000000000000A402 /* Processors-Levels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000A401 /* Processors-Levels.swift */; };
@@ -55,12 +54,11 @@
 		0AB10000000000000000C002 /* Processors-Debayer+Bilinear.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000C001 /* Processors-Debayer+Bilinear.swift */; };
 		0AB10000000000000000C102 /* Processors-Debayer+Deinterleave.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000C101 /* Processors-Debayer+Deinterleave.swift */; };
 		0AB10000000000000000D002 /* Processors-Debayer+VNG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000D001 /* Processors-Debayer+VNG.swift */; };
+		0AB10000000000000000D102 /* Processors-CosmeticCorrection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000D101 /* Processors-CosmeticCorrection.swift */; };
+		0AB10000000000000000D202 /* Processors-Resample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000D201 /* Processors-Resample.swift */; };
+		0AB10000000000000000D402 /* Processors-Bin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000D401 /* Processors-Bin.swift */; };
 		0AB10000000000000000E002 /* Invert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E001 /* Invert.swift */; };
 		0AB10000000000000000E102 /* Orient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E101 /* Orient.swift */; };
-		0AB10000000000000000F202 /* Resample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000F201 /* Resample.swift */; };
-		0AB10000000000000000F402 /* Bin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000F401 /* Bin.swift */; };
-		0AB10000000000000000F102 /* CosmeticCorrection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000F101 /* CosmeticCorrection.swift */; };
-		0AB10000000000000000D102 /* Processors-CosmeticCorrection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000D101 /* Processors-CosmeticCorrection.swift */; };
 		0AB10000000000000000E202 /* BrightnessContrast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E201 /* BrightnessContrast.swift */; };
 		0AB10000000000000000E302 /* Saturation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E301 /* Saturation.swift */; };
 		0AB10000000000000000E402 /* Levels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E401 /* Levels.swift */; };
@@ -69,7 +67,31 @@
 		0AB10000000000000000E702 /* ColorBalance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E701 /* ColorBalance.swift */; };
 		0AB10000000000000000E802 /* STFParameters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000E801 /* STFParameters.swift */; };
 		0AB10000000000000000F002 /* Debayer+VNG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000F001 /* Debayer+VNG.swift */; };
+		0AB10000000000000000F102 /* CosmeticCorrection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000F101 /* CosmeticCorrection.swift */; };
+		0AB10000000000000000F202 /* Resample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000F201 /* Resample.swift */; };
+		0AB10000000000000000F402 /* Bin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB10000000000000000F401 /* Bin.swift */; };
+		19DC497141A3E553B687CEBE /* BenchmarkClockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30FAA562D5E949562EBEF91 /* BenchmarkClockTests.swift */; };
+		1E1E17F4ACD333825E690F22 /* BenchmarkFrameDescriptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9A92EF189F82498F0EE0F0F /* BenchmarkFrameDescriptor.swift */; };
+		3144C87471C751CA6BA15C5E /* BenchmarkTimingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8981BB26C98EE785294B57D /* BenchmarkTimingsTests.swift */; };
+		3334529B591DD745EE254E55 /* BenchmarkFramesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25178AB07AC926711A659719 /* BenchmarkFramesTests.swift */; };
+		34D4E9A9680B8423EEF1C635 /* BenchmarkMeasurement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75848490BE664AF547BB297C /* BenchmarkMeasurement.swift */; };
+		40378674B8F5A089A3D12269 /* BenchmarkReportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAECCDA3548125B88B676560 /* BenchmarkReportTests.swift */; };
+		4646E1926A91566BBF9F460C /* BenchmarkEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 093BCC4B3065CCB72F9E214E /* BenchmarkEnvironment.swift */; };
 		4ED1A4B5910ADEBF4F2E133C /* PixelBufferError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057F9EC4B1B716EEDD1791E1 /* PixelBufferError.swift */; };
+		5AA7BDEE257F2D10E9419940 /* SwiftPixelBenchmarks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F19961E72345968F4B4AD4E /* SwiftPixelBenchmarks.swift */; };
+		64363D47203F2D18C24507E2 /* BenchmarkFrameSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 701C7A5B47929F5F89DA1E4F /* BenchmarkFrameSet.swift */; };
+		6642642C917648BC036DFB11 /* BenchmarkReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7FE032817855E108D0BB138 /* BenchmarkReport.swift */; };
+		7A75B694C15A20ADCB337D5D /* SwiftPixelBenchmarkSuite.swift in Sources */ = {isa = PBXBuildFile; fileRef = 493027EC6C2CF55A5DAB8381 /* SwiftPixelBenchmarkSuite.swift */; };
+		7B75B4C3E7666621DC5D0C2B /* SwiftPixelBenchmarkSuiteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9886A85ADEF899D2CE6174E /* SwiftPixelBenchmarkSuiteTests.swift */; };
+		8054950C8A9C7C167F90BC40 /* BenchmarkClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D2C8916DAFCC1CC3058C179 /* BenchmarkClock.swift */; };
+		A02DA96602F71DE25917B3C7 /* BenchmarkFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8575F3774DFFBC562501BB62 /* BenchmarkFrame.swift */; };
+		A7FEA5BB18406FA4F176A191 /* BenchmarkOutput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 166AF9B8103B366CCB295320 /* BenchmarkOutput.swift */; };
+		AB59B05F946931E02FE82270 /* AllocationMeter.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAFFB8D085F07FF77E22648B /* AllocationMeter.swift */; };
+		BF084113B84A62206E768A03 /* BenchmarkTimings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 706CB8C7AF9E8995025FCC84 /* BenchmarkTimings.swift */; };
+		BFD80533D1057A37FF7BD402 /* MarkdownReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A51CD55CA1D31D4D882B2F0B /* MarkdownReport.swift */; };
+		C6C46C07FB40D67BA48CF0E7 /* AllocationMeterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11891B84F530619746D1118 /* AllocationMeterTests.swift */; };
+		F1D21D3A88B303ED5ADAD3DE /* MarkdownReportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89DDD186A9AB422101A2CA5C /* MarkdownReportTests.swift */; };
+		FA27D485F7940092F508BF15 /* BenchmarkRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D595FB2D057A0570F671B06 /* BenchmarkRunner.swift */; };
 		FE00000000000000000000B1 /* GaussianKernel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000A1 /* GaussianKernel.swift */; };
 		FE00000000000000000000B2 /* Convolution.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000A2 /* Convolution.swift */; };
 		FE00000000000000000000B3 /* GaussianKernel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000A3 /* GaussianKernel.swift */; };
@@ -77,6 +99,7 @@
 		FE00000000000000000000C4 /* PixelUtilities-Median.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000C3 /* PixelUtilities-Median.swift */; };
 		FE00000000000000000000E2 /* GaussianFit.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000E1 /* GaussianFit.swift */; };
 		FE00000000000000000000E4 /* GaussianFit.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000E3 /* GaussianFit.swift */; };
+		FF9252E2ACE77EC9B0299769 /* BenchmarkOutputTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5150775826A50B7F83DB38 /* BenchmarkOutputTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -188,11 +211,9 @@
 		05D710C02DF1D85000CE32E3 /* Processors-Stretch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Stretch.swift"; sourceTree = "<group>"; };
 		05D710C22DF1D89700CE32E3 /* PixelPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelPipeline.swift; sourceTree = "<group>"; };
 		05EFC6812DE64B250096C4B4 /* SwiftPixel.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = SwiftPixel.xctestplan; sourceTree = "<group>"; };
+		093BCC4B3065CCB72F9E214E /* BenchmarkEnvironment.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkEnvironment.swift; sourceTree = "<group>"; };
 		0AB10000000000000000A001 /* Processors-Invert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Invert.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000A101 /* Processors-Orient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Orient.swift"; sourceTree = "<group>"; };
-		0AB10000000000000000D201 /* Processors-Resample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Resample.swift"; sourceTree = "<group>"; };
-		0AB10000000000000000D401 /* Processors-Bin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Bin.swift"; sourceTree = "<group>"; };
-		0AB10000000000000000D101 /* Processors-CosmeticCorrection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-CosmeticCorrection.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000A201 /* Processors-BrightnessContrast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-BrightnessContrast.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000A301 /* Processors-Saturation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Saturation.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000A401 /* Processors-Levels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Levels.swift"; sourceTree = "<group>"; };
@@ -206,11 +227,11 @@
 		0AB10000000000000000C001 /* Processors-Debayer+Bilinear.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Debayer+Bilinear.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000C101 /* Processors-Debayer+Deinterleave.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Debayer+Deinterleave.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000D001 /* Processors-Debayer+VNG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Debayer+VNG.swift"; sourceTree = "<group>"; };
+		0AB10000000000000000D101 /* Processors-CosmeticCorrection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-CosmeticCorrection.swift"; sourceTree = "<group>"; };
+		0AB10000000000000000D201 /* Processors-Resample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Resample.swift"; sourceTree = "<group>"; };
+		0AB10000000000000000D401 /* Processors-Bin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Processors-Bin.swift"; sourceTree = "<group>"; };
 		0AB10000000000000000E001 /* Invert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Invert.swift; sourceTree = "<group>"; };
 		0AB10000000000000000E101 /* Orient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Orient.swift; sourceTree = "<group>"; };
-		0AB10000000000000000F201 /* Resample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Resample.swift; sourceTree = "<group>"; };
-		0AB10000000000000000F401 /* Bin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bin.swift; sourceTree = "<group>"; };
-		0AB10000000000000000F101 /* CosmeticCorrection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CosmeticCorrection.swift; sourceTree = "<group>"; };
 		0AB10000000000000000E201 /* BrightnessContrast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessContrast.swift; sourceTree = "<group>"; };
 		0AB10000000000000000E301 /* Saturation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Saturation.swift; sourceTree = "<group>"; };
 		0AB10000000000000000E401 /* Levels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Levels.swift; sourceTree = "<group>"; };
@@ -219,6 +240,31 @@
 		0AB10000000000000000E701 /* ColorBalance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorBalance.swift; sourceTree = "<group>"; };
 		0AB10000000000000000E801 /* STFParameters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STFParameters.swift; sourceTree = "<group>"; };
 		0AB10000000000000000F001 /* Debayer+VNG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Debayer+VNG.swift"; sourceTree = "<group>"; };
+		0AB10000000000000000F101 /* CosmeticCorrection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CosmeticCorrection.swift; sourceTree = "<group>"; };
+		0AB10000000000000000F201 /* Resample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Resample.swift; sourceTree = "<group>"; };
+		0AB10000000000000000F401 /* Bin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bin.swift; sourceTree = "<group>"; };
+		0D595FB2D057A0570F671B06 /* BenchmarkRunner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkRunner.swift; sourceTree = "<group>"; };
+		0F19961E72345968F4B4AD4E /* SwiftPixelBenchmarks.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SwiftPixelBenchmarks.swift; sourceTree = "<group>"; };
+		166AF9B8103B366CCB295320 /* BenchmarkOutput.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkOutput.swift; sourceTree = "<group>"; };
+		25178AB07AC926711A659719 /* BenchmarkFramesTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkFramesTests.swift; sourceTree = "<group>"; };
+		493027EC6C2CF55A5DAB8381 /* SwiftPixelBenchmarkSuite.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SwiftPixelBenchmarkSuite.swift; sourceTree = "<group>"; };
+		4D2C8916DAFCC1CC3058C179 /* BenchmarkClock.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkClock.swift; sourceTree = "<group>"; };
+		701C7A5B47929F5F89DA1E4F /* BenchmarkFrameSet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkFrameSet.swift; sourceTree = "<group>"; };
+		706CB8C7AF9E8995025FCC84 /* BenchmarkTimings.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkTimings.swift; sourceTree = "<group>"; };
+		75848490BE664AF547BB297C /* BenchmarkMeasurement.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkMeasurement.swift; sourceTree = "<group>"; };
+		8575F3774DFFBC562501BB62 /* BenchmarkFrame.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkFrame.swift; sourceTree = "<group>"; };
+		89DDD186A9AB422101A2CA5C /* MarkdownReportTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MarkdownReportTests.swift; sourceTree = "<group>"; };
+		A51CD55CA1D31D4D882B2F0B /* MarkdownReport.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MarkdownReport.swift; sourceTree = "<group>"; };
+		B8981BB26C98EE785294B57D /* BenchmarkTimingsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkTimingsTests.swift; sourceTree = "<group>"; };
+		B9A92EF189F82498F0EE0F0F /* BenchmarkFrameDescriptor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkFrameDescriptor.swift; sourceTree = "<group>"; };
+		C7FE032817855E108D0BB138 /* BenchmarkReport.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkReport.swift; sourceTree = "<group>"; };
+		D30FAA562D5E949562EBEF91 /* BenchmarkClockTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkClockTests.swift; sourceTree = "<group>"; };
+		DAFFB8D085F07FF77E22648B /* AllocationMeter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AllocationMeter.swift; sourceTree = "<group>"; };
+		E9886A85ADEF899D2CE6174E /* SwiftPixelBenchmarkSuiteTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SwiftPixelBenchmarkSuiteTests.swift; sourceTree = "<group>"; };
+		EAECCDA3548125B88B676560 /* BenchmarkReportTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkReportTests.swift; sourceTree = "<group>"; };
+		F11891B84F530619746D1118 /* AllocationMeterTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AllocationMeterTests.swift; sourceTree = "<group>"; };
+		F9B95207318F108519FD7C39 /* BenchmarkFrames.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkFrames.swift; sourceTree = "<group>"; };
+		FA5150775826A50B7F83DB38 /* BenchmarkOutputTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkOutputTests.swift; sourceTree = "<group>"; };
 		FE00000000000000000000A1 /* GaussianKernel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GaussianKernel.swift; sourceTree = "<group>"; };
 		FE00000000000000000000A2 /* Convolution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Convolution.swift; sourceTree = "<group>"; };
 		FE00000000000000000000A3 /* GaussianKernel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GaussianKernel.swift; sourceTree = "<group>"; };
@@ -347,6 +393,7 @@
 				05398CF52DEEE0A2005904EC /* Processors-Scale.swift */,
 				05D710C02DF1D85000CE32E3 /* Processors-Stretch.swift */,
 				05D710BE2DF1D84A00CE32E3 /* Processors-WhiteBalance.swift */,
+				1D8C29E315031B3BBB098BFB /* Benchmarks */,
 			);
 			path = SwiftPixelTests;
 			sourceTree = "<group>";
@@ -520,6 +567,64 @@
 			);
 			name = Errors;
 			path = Errors;
+			sourceTree = "<group>";
+		};
+		1D8C29E315031B3BBB098BFB /* Benchmarks */ = {
+			isa = PBXGroup;
+			children = (
+				DFBE666737DE99A8478DC134 /* Core */,
+				430813AB0D4EE8BFF88991AC /* CoreTests */,
+				456D3D9C668C544EE0048DD6 /* Fixtures */,
+				493027EC6C2CF55A5DAB8381 /* SwiftPixelBenchmarkSuite.swift */,
+				0F19961E72345968F4B4AD4E /* SwiftPixelBenchmarks.swift */,
+			);
+			name = Benchmarks;
+			path = Benchmarks;
+			sourceTree = "<group>";
+		};
+		430813AB0D4EE8BFF88991AC /* CoreTests */ = {
+			isa = PBXGroup;
+			children = (
+				F11891B84F530619746D1118 /* AllocationMeterTests.swift */,
+				D30FAA562D5E949562EBEF91 /* BenchmarkClockTests.swift */,
+				25178AB07AC926711A659719 /* BenchmarkFramesTests.swift */,
+				FA5150775826A50B7F83DB38 /* BenchmarkOutputTests.swift */,
+				EAECCDA3548125B88B676560 /* BenchmarkReportTests.swift */,
+				B8981BB26C98EE785294B57D /* BenchmarkTimingsTests.swift */,
+				89DDD186A9AB422101A2CA5C /* MarkdownReportTests.swift */,
+				E9886A85ADEF899D2CE6174E /* SwiftPixelBenchmarkSuiteTests.swift */,
+			);
+			name = CoreTests;
+			path = CoreTests;
+			sourceTree = "<group>";
+		};
+		456D3D9C668C544EE0048DD6 /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				8575F3774DFFBC562501BB62 /* BenchmarkFrame.swift */,
+				701C7A5B47929F5F89DA1E4F /* BenchmarkFrameSet.swift */,
+				F9B95207318F108519FD7C39 /* BenchmarkFrames.swift */,
+			);
+			name = Fixtures;
+			path = Fixtures;
+			sourceTree = "<group>";
+		};
+		DFBE666737DE99A8478DC134 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				DAFFB8D085F07FF77E22648B /* AllocationMeter.swift */,
+				4D2C8916DAFCC1CC3058C179 /* BenchmarkClock.swift */,
+				093BCC4B3065CCB72F9E214E /* BenchmarkEnvironment.swift */,
+				B9A92EF189F82498F0EE0F0F /* BenchmarkFrameDescriptor.swift */,
+				75848490BE664AF547BB297C /* BenchmarkMeasurement.swift */,
+				166AF9B8103B366CCB295320 /* BenchmarkOutput.swift */,
+				C7FE032817855E108D0BB138 /* BenchmarkReport.swift */,
+				0D595FB2D057A0570F671B06 /* BenchmarkRunner.swift */,
+				706CB8C7AF9E8995025FCC84 /* BenchmarkTimings.swift */,
+				A51CD55CA1D31D4D882B2F0B /* MarkdownReport.swift */,
+			);
+			name = Core;
+			path = Core;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -708,6 +813,29 @@
 				0AB10000000000000000A502 /* Processors-Curves.swift in Sources */,
 				0AB10000000000000000A802 /* Processors-STFParameters.swift in Sources */,
 				0AB10000000000000000A902 /* PixelUtilities-MTF.swift in Sources */,
+				AB59B05F946931E02FE82270 /* AllocationMeter.swift in Sources */,
+				8054950C8A9C7C167F90BC40 /* BenchmarkClock.swift in Sources */,
+				4646E1926A91566BBF9F460C /* BenchmarkEnvironment.swift in Sources */,
+				1E1E17F4ACD333825E690F22 /* BenchmarkFrameDescriptor.swift in Sources */,
+				34D4E9A9680B8423EEF1C635 /* BenchmarkMeasurement.swift in Sources */,
+				A7FEA5BB18406FA4F176A191 /* BenchmarkOutput.swift in Sources */,
+				6642642C917648BC036DFB11 /* BenchmarkReport.swift in Sources */,
+				FA27D485F7940092F508BF15 /* BenchmarkRunner.swift in Sources */,
+				BF084113B84A62206E768A03 /* BenchmarkTimings.swift in Sources */,
+				BFD80533D1057A37FF7BD402 /* MarkdownReport.swift in Sources */,
+				C6C46C07FB40D67BA48CF0E7 /* AllocationMeterTests.swift in Sources */,
+				19DC497141A3E553B687CEBE /* BenchmarkClockTests.swift in Sources */,
+				3334529B591DD745EE254E55 /* BenchmarkFramesTests.swift in Sources */,
+				FF9252E2ACE77EC9B0299769 /* BenchmarkOutputTests.swift in Sources */,
+				40378674B8F5A089A3D12269 /* BenchmarkReportTests.swift in Sources */,
+				3144C87471C751CA6BA15C5E /* BenchmarkTimingsTests.swift in Sources */,
+				F1D21D3A88B303ED5ADAD3DE /* MarkdownReportTests.swift in Sources */,
+				7B75B4C3E7666621DC5D0C2B /* SwiftPixelBenchmarkSuiteTests.swift in Sources */,
+				A02DA96602F71DE25917B3C7 /* BenchmarkFrame.swift in Sources */,
+				64363D47203F2D18C24507E2 /* BenchmarkFrameSet.swift in Sources */,
+				09EB553696FD8DB12FBDC550 /* BenchmarkFrames.swift in Sources */,
+				7A75B694C15A20ADCB337D5D /* SwiftPixelBenchmarkSuite.swift in Sources */,
+				5AA7BDEE257F2D10E9419940 /* SwiftPixelBenchmarks.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

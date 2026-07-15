@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+import Accelerate
 import Foundation
 
 /// A least-squares fit of a 2D elliptical Gaussian to a set of samples, by the
@@ -40,13 +41,22 @@ import Foundation
 public enum GaussianFit
 {
     /// The maximum number of Levenberg–Marquardt outer iterations.
-    private static let maxIterations = 200
+    ///
+    /// A star fit converges in well under this; the cap only bounds the cost of a
+    /// pathological source that never settles (which would otherwise dominate a
+    /// frame's detection time, each such fit re-evaluating the model hundreds of
+    /// times over its window).
+    private static let maxIterations = 50
 
     /// The maximum number of damping (λ) adjustments per outer iteration.
     private static let maxDampingSteps = 20
 
     /// The relative cost improvement below which the fit is considered converged.
-    private static let costTolerance = 1e-8
+    ///
+    /// Set for a star centroid and width, which are sub-pixel-meaningful long before
+    /// the cost stops improving in the twelfth decimal — a tighter tolerance only
+    /// spends iterations refining noise.
+    private static let costTolerance = 1e-5
 
     /// The number of fitted parameters.
     private static let parameterCount = 7
@@ -137,16 +147,14 @@ public enum GaussianFit
             return nil
         }
 
-        let residuals: ( [ Double ] ) -> [ Double ] =
-        {
-            vector in
+        // Contiguous coordinate/value arrays so the model evaluation — the fit's hot
+        // path, dominated by a per-sample `exp` — runs vectorised on Accelerate.
+        let xs = samples.map { $0.x }
+        let ys = samples.map { $0.y }
+        let vs = samples.map { $0.value }
 
-            let parameters = Parameters( vector: vector )
-
-            return samples.map { parameters.value( atX: $0.x, y: $0.y ) - $0.value }
-        }
-
-        let cost: ( [ Double ] ) -> Double = { residuals( $0 ).reduce( 0 ) { $0 + ( $1 * $1 ) } }
+        let residuals: ( [ Double ] ) -> [ Double ] = { Self.modelResiduals( $0, xs: xs, ys: ys, values: vs ) }
+        let cost:      ( [ Double ] ) -> Double     = { vDSP.sumOfSquares( residuals( $0 ) ) }
 
         var current      = initialGuess.vector
         var currentCost  = cost( current )
@@ -158,7 +166,7 @@ public enum GaussianFit
         {
             iteration += 1
 
-            let ( jtj, jtr ) = Self.normalEquations( at: current, residuals: residuals )
+            let ( jtj, jtr ) = Self.normalEquations( at: current, xs: xs, ys: ys, values: vs )
             var stepAccepted = false
             var dampingStep  = 0
 
@@ -215,32 +223,152 @@ public enum GaussianFit
         return Self.validated( current, samples: samples, cost: currentCost )
     }
 
-    /// Builds the normal-equation matrices `JᵀJ` and the vector `Jᵀr` using a
-    /// central-difference Jacobian.
-    private static func normalEquations( at vector: [ Double ], residuals: ( [ Double ] ) -> [ Double ] ) -> ( jtj: [ [ Double ] ], jtr: [ Double ] )
+    /// The model-minus-data residuals for a parameter vector, over the sample grid,
+    /// evaluated vectorised on Accelerate.
+    ///
+    /// This is the fit's hot path — the Levenberg–Marquardt loop calls it for every
+    /// cost evaluation and every finite-difference Jacobian column — and it is
+    /// dominated by a per-sample `exp`, so the whole model is built with `vDSP`
+    /// element-wise math and a single batched `vForce.exp`, rather than a scalar
+    /// per-pixel loop.
+    ///
+    /// - Parameters:
+    ///   - vector: The parameter vector, in fitting order.
+    ///   - xs:     The samples' columns.
+    ///   - ys:     The samples' rows.
+    ///   - values: The samples' measured values.
+    /// - Returns: `model(xs, ys) − values`, per sample.
+    private static func modelResiduals( _ vector: [ Double ], xs: [ Double ], ys: [ Double ], values: [ Double ] ) -> [ Double ]
     {
-        let r = residuals( vector )
+        let amplitude  = vector[ 0 ]
+        let x0         = vector[ 1 ]
+        let y0         = vector[ 2 ]
+        let sigmaX     = vector[ 3 ]
+        let sigmaY     = vector[ 4 ]
+        let theta      = vector[ 5 ]
+        let background = vector[ 6 ]
 
-        // One Jacobian column per parameter, by central differences.
-        let columns = vector.indices.map
+        let cosT  = Foundation.cos( theta )
+        let sinT  = Foundation.sin( theta )
+        let sx2   = Swift.max( sigmaX * sigmaX, 1e-12 )
+        let sy2   = Swift.max( sigmaY * sigmaY, 1e-12 )
+        let count = xs.count
+
+        var dx  = [ Double ]( repeating: 0, count: count )
+        var dy  = [ Double ]( repeating: 0, count: count )
+        var xr  = [ Double ]( repeating: 0, count: count )
+        var yr  = [ Double ]( repeating: 0, count: count )
+        var tmp = [ Double ]( repeating: 0, count: count )
+
+        // Centre: dx = x − x₀, dy = y − y₀.
+        vDSP.add( -x0, xs, result: &dx )
+        vDSP.add( -y0, ys, result: &dy )
+
+        // Rotate: xr = dx·cosθ + dy·sinθ, yr = −dx·sinθ + dy·cosθ.
+        vDSP.multiply( cosT, dx, result: &xr )
+        vDSP.multiply( sinT, dy, result: &tmp )
+        vDSP.add( xr, tmp, result: &xr )
+
+        vDSP.multiply( -sinT, dx, result: &yr )
+        vDSP.multiply( cosT, dy, result: &tmp )
+        vDSP.add( yr, tmp, result: &yr )
+
+        // Exponent: arg = −( xr²/(2σx²) + yr²/(2σy²) ).
+        vDSP.multiply( xr, xr, result: &xr )
+        vDSP.multiply( yr, yr, result: &yr )
+        vDSP.multiply( -1 / ( 2 * sx2 ), xr, result: &xr )
+        vDSP.multiply( -1 / ( 2 * sy2 ), yr, result: &yr )
+        vDSP.add( xr, yr, result: &tmp )
+
+        // model = background + amplitude·exp(arg); residual = model − value.
+        var result = [ Double ]( repeating: 0, count: count )
+
+        vForce.exp( tmp, result: &result )
+        vDSP.multiply( amplitude, result, result: &result )
+        vDSP.add( background, result, result: &result )
+        vDSP.subtract( result, values, result: &result )
+
+        return result
+    }
+
+    /// Builds the normal-equation matrices `JᵀJ` and the vector `Jᵀr` from the
+    /// **analytic** Jacobian of the rotated Gaussian.
+    ///
+    /// A central-difference Jacobian re-evaluates the whole model twice per
+    /// parameter — fourteen extra `exp`-laden passes over the window every
+    /// iteration, which dominates a frame's detection time. The rotated Gaussian's
+    /// partials are known in closed form (derived from `arg = −[xr²/(2σx²) +
+    /// yr²/(2σy²)]` and the rotation of `(x−x₀, y−y₀)`), so a single pass computes
+    /// the model and all seven derivatives together, accumulating `JᵀJ` and `Jᵀr`
+    /// as it goes.
+    ///
+    /// - Parameters:
+    ///   - vector: The parameter vector, in fitting order.
+    ///   - xs:     The samples' columns.
+    ///   - ys:     The samples' rows.
+    ///   - values: The samples' measured values.
+    /// - Returns: The symmetric `JᵀJ` and the gradient `Jᵀr`.
+    private static func normalEquations( at vector: [ Double ], xs: [ Double ], ys: [ Double ], values: [ Double ] ) -> ( jtj: [ [ Double ] ], jtr: [ Double ] )
+    {
+        let amplitude  = vector[ 0 ]
+        let x0         = vector[ 1 ]
+        let y0         = vector[ 2 ]
+        let sigmaX     = vector[ 3 ]
+        let sigmaY     = vector[ 4 ]
+        let theta      = vector[ 5 ]
+        let background = vector[ 6 ]
+
+        let cosT = Foundation.cos( theta )
+        let sinT = Foundation.sin( theta )
+        let sx2  = Swift.max( sigmaX * sigmaX, 1e-12 )
+        let sy2  = Swift.max( sigmaY * sigmaY, 1e-12 )
+        let sx3  = sigmaX * sx2
+        let sy3  = sigmaY * sy2
+
+        var jtj = [ [ Double ] ]( repeating: [ Double ]( repeating: 0, count: Self.parameterCount ), count: Self.parameterCount )
+        var jtr = [ Double ]( repeating: 0, count: Self.parameterCount )
+
+        for k in xs.indices
         {
-            index -> [ Double ] in
+            let dx = xs[ k ] - x0
+            let dy = ys[ k ] - y0
+            let xr = ( dx * cosT ) + ( dy * sinT )
+            let yr = ( -dx * sinT ) + ( dy * cosT )
+            let g  = Foundation.exp( -( ( ( xr * xr ) / ( 2 * sx2 ) ) + ( ( yr * yr ) / ( 2 * sy2 ) ) ) )
+            let ag = amplitude * g
 
-            let step = Swift.max( 1e-6, 1e-4 * abs( vector[ index ] ) )
-            var plus = vector
-            var minus = vector
+            // ∂/∂[ amplitude, x₀, y₀, σx, σy, θ, background ].
+            let row = [
+                g,
+                ag * ( ( ( xr * cosT ) / sx2 ) - ( ( yr * sinT ) / sy2 ) ),
+                ag * ( ( ( xr * sinT ) / sx2 ) + ( ( yr * cosT ) / sy2 ) ),
+                abs( sx3 ) > 1e-18 ? ag * ( ( xr * xr ) / sx3 ) : 0,
+                abs( sy3 ) > 1e-18 ? ag * ( ( yr * yr ) / sy3 ) : 0,
+                ag * xr * yr * ( ( 1 / sy2 ) - ( 1 / sx2 ) ),
+                1,
+            ]
 
-            plus[ index ]  += step
-            minus[ index ] -= step
+            let residual = background + ag - values[ k ]
 
-            let rPlus  = residuals( plus )
-            let rMinus = residuals( minus )
+            for i in 0 ..< Self.parameterCount
+            {
+                jtr[ i ] += row[ i ] * residual
 
-            return zip( rPlus, rMinus ).map { ( $0 - $1 ) / ( 2 * step ) }
+                for j in i ..< Self.parameterCount
+                {
+                    jtj[ i ][ j ] += row[ i ] * row[ j ]
+                }
+            }
         }
 
-        let jtj = columns.map { columnA in columns.map { columnB in zip( columnA, columnB ).reduce( 0 ) { $0 + ( $1.0 * $1.1 ) } } }
-        let jtr = columns.map { column in zip( column, r ).reduce( 0 ) { $0 + ( $1.0 * $1.1 ) } }
+        // Mirror the lower triangle: JᵀJ is symmetric.
+        for i in 0 ..< Self.parameterCount
+        {
+            for j in 0 ..< i
+            {
+                jtj[ i ][ j ] = jtj[ j ][ i ]
+            }
+        }
 
         return ( jtj: jtj, jtr: jtr )
     }

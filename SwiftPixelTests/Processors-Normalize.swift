@@ -222,6 +222,104 @@ struct Test_Processors_Normalize
     }
 
     @Test
+    func minMaxIgnoresNonFiniteBlanks() async throws
+    {
+        // A NaN blank must not defeat the `min != max` guard (NaN != NaN is true)
+        // nor poison the whole buffer: the finite range [0, 8] drives the scale and
+        // the blank maps to 0 (black).
+        var buffer = try PixelBuffer(
+            width:        4,
+            height:       1,
+            channels:     1,
+            pixels:       [ .nan, 0, 4, 8 ],
+            isNormalized: false
+        )
+
+        try Processors.Normalize( mode: .minMax ).process( buffer: &buffer )
+
+        #expect( buffer.isNormalized == true )
+        #expect( buffer.pixels == [ 0.0, 0.0, 0.5, 1.0 ] )
+        #expect( buffer.pixels.allSatisfy { $0.isFinite } )
+    }
+
+    @Test
+    func minMaxMapsInfinityBlanksToBlack() async throws
+    {
+        // +Inf previously produced [NaN, 0, 0, 0]; it is now treated as a blank
+        // and mapped to 0, leaving the finite samples correctly normalized.
+        var buffer = try PixelBuffer(
+            width:        4,
+            height:       1,
+            channels:     1,
+            pixels:       [ .infinity, 0, 4, 8 ],
+            isNormalized: false
+        )
+
+        try Processors.Normalize( mode: .minMax ).process( buffer: &buffer )
+
+        #expect( buffer.isNormalized == true )
+        #expect( buffer.pixels == [ 0.0, 0.0, 0.5, 1.0 ] )
+    }
+
+    @Test
+    func minMaxAllNonFiniteIsZero() async throws
+    {
+        // With no finite samples there is no range to map to; the buffer collapses
+        // to all-0, like a constant image.
+        var buffer = try PixelBuffer(
+            width:        2,
+            height:       1,
+            channels:     1,
+            pixels:       [ .nan, .infinity ],
+            isNormalized: false
+        )
+
+        try Processors.Normalize( mode: .minMax ).process( buffer: &buffer )
+
+        #expect( buffer.isNormalized == true )
+        #expect( buffer.pixels == [ 0.0, 0.0 ] )
+    }
+
+    @Test
+    func percentileIgnoresNonFiniteBlanks() async throws
+    {
+        // The percentile bounds are computed over the finite samples, and the
+        // blank maps to the lower bound (→ 0) rather than poisoning the output.
+        var buffer = try PixelBuffer(
+            width:        4,
+            height:       1,
+            channels:     1,
+            pixels:       [ .nan, 0, 4, 8 ],
+            isNormalized: false
+        )
+
+        try Processors.Normalize( mode: .percentile( 0.0, 100.0 ) ).process( buffer: &buffer )
+
+        #expect( buffer.isNormalized == true )
+        #expect( buffer.pixels == [ 0.0, 0.0, 0.5, 1.0 ] )
+        #expect( buffer.pixels.allSatisfy { $0.isFinite } )
+    }
+
+    @Test
+    func identityMapsNonFiniteBlanksToBlack() async throws
+    {
+        // Identity clamps to [0, 1]; a NaN blank is mapped to 0 rather than left
+        // as NaN.
+        var buffer = try PixelBuffer(
+            width:        4,
+            height:       1,
+            channels:     1,
+            pixels:       [ .nan, 0.25, 0.5, 1.5 ],
+            isNormalized: false
+        )
+
+        try Processors.Normalize( mode: .identity ).process( buffer: &buffer )
+
+        #expect( buffer.isNormalized == true )
+        #expect( buffer.pixels == [ 0.0, 0.25, 0.5, 1.0 ] )
+    }
+
+    @Test
     func equatable() async throws
     {
         #expect( Processors.Normalize.Mode.minMax == .minMax )

@@ -89,6 +89,11 @@ public extension Processors
         /// An empty buffer is simply marked normalized; a constant buffer (no
         /// dynamic range) is mapped to all-`0.0`.
         ///
+        /// Non-finite samples (NaN / ±Inf, e.g. FITS blank pixels) are ignored when
+        /// choosing the range and mapped to `0`, so a stray blank degrades to black
+        /// instead of poisoning the whole buffer; a buffer with no finite samples
+        /// collapses to all-`0.0`.
+        ///
         /// - Parameter buffer: The buffer to normalize.
         ///
         /// - Note: This stage never fails; it is `throws` only to satisfy the
@@ -109,13 +114,10 @@ public extension Processors
             {
                 case .minMax:
 
-                    var minValue: Double = 0
-                    var maxValue: Double = 0
-
-                    vDSP_minvD( buffer.pixels, 1, &minValue, count )
-                    vDSP_maxvD( buffer.pixels, 1, &maxValue, count )
-
-                    guard minValue != maxValue
+                    // A single scalar pass yields the finite range and whether any
+                    // blank is present, avoiding both a separate finiteness scan and
+                    // the vDSP_minvD / vDSP_maxvD that would propagate a NaN/Inf.
+                    guard let ( minValue, maxValue, hasNonFinite ) = Self.finiteExtent( of: buffer.pixels ), minValue != maxValue
                     else
                     {
                         buffer.withUnsafeMutablePixels( isNormalized: true ) { $0.update( repeating: 0.0 ) }
@@ -135,13 +137,21 @@ public extension Processors
                             return
                         }
 
+                        // Map non-finite blanks to the low bound (→ 0) so they can't
+                        // poison the affine scale.
+                        if hasNonFinite
+                        {
+                            Self.mapNonFinite( base, count: $0.count, to: minValue )
+                        }
+
                         vDSP_vsmsaD( base, 1, [ scale ], [ offset ], base, 1, count )
                         vDSP_vclipD( base, 1, [ 0.0 ],   [ 1.0 ],    base, 1, count )
                     }
 
                 case .percentile( let lowerPercentile, let upperPercentile ):
 
-                    let bounds = PixelUtilities.percentileBounds( in: buffer.pixels, lower: lowerPercentile, upper: upperPercentile )
+                    let hasNonFinite = buffer.pixels.contains { $0.isFinite == false }
+                    let bounds       = PixelUtilities.percentileBounds( in: buffer.pixels, lower: lowerPercentile, upper: upperPercentile )
 
                     guard bounds.lower != bounds.upper
                     else
@@ -163,6 +173,13 @@ public extension Processors
                             return
                         }
 
+                        // Map non-finite blanks to the lower bound (→ 0); the bounds
+                        // already ignored them.
+                        if hasNonFinite
+                        {
+                            Self.mapNonFinite( base, count: $0.count, to: bounds.lower )
+                        }
+
                         vDSP_vclipD( base, 1, [ bounds.lower ], [ bounds.upper ], base, 1, count )
                         vDSP_vsmsaD( base, 1, [ scale ],        [ offset ],       base, 1, count )
                         vDSP_vclipD( base, 1, [ 0.0 ],          [ 1.0 ],          base, 1, count )
@@ -170,9 +187,11 @@ public extension Processors
 
                 case .identity:
 
+                    let hasNonFinite = buffer.pixels.contains { $0.isFinite == false }
+
                     // The samples are assumed already in the display range; clamp
                     // any strays into [0, 1] and mark the buffer normalized without
-                    // remapping the range.
+                    // remapping the range. A non-finite blank is mapped to 0.
                     buffer.withUnsafeMutablePixels( isNormalized: true )
                     {
                         guard let base = $0.baseAddress
@@ -181,8 +200,76 @@ public extension Processors
                             return
                         }
 
+                        if hasNonFinite
+                        {
+                            Self.mapNonFinite( base, count: $0.count, to: 0.0 )
+                        }
+
                         vDSP_vclipD( base, 1, [ 0.0 ], [ 1.0 ], base, 1, count )
                     }
+            }
+        }
+
+        /// The minimum and maximum of the finite samples in `pixels`, plus whether
+        /// any sample was non-finite — computed in a single pass — or `nil` when no
+        /// sample is finite.
+        ///
+        /// Used by ``process(buffer:)`` for the `.minMax` range. Scanning for the
+        /// extent and the non-finite flag together means a stray NaN/Inf (which
+        /// would propagate through `vDSP_minvD` / `vDSP_maxvD`) is handled without a
+        /// second pass over the buffer.
+        ///
+        /// - Parameter pixels: The samples to scan.
+        /// - Returns: The finite `(min, max)` and the non-finite flag, or `nil` if
+        ///   no sample is finite.
+        private static func finiteExtent( of pixels: [ Double ] ) -> ( min: Double, max: Double, hasNonFinite: Bool )?
+        {
+            var minValue     = Double.infinity
+            var maxValue     = -Double.infinity
+            var hasFinite    = false
+            var hasNonFinite = false
+
+            pixels.withUnsafeBufferPointer
+            {
+                $0.forEach
+                {
+                    value in
+
+                    guard value.isFinite
+                    else
+                    {
+                        hasNonFinite = true
+
+                        return
+                    }
+
+                    hasFinite = true
+                    minValue  = Swift.min( minValue, value )
+                    maxValue  = Swift.max( maxValue, value )
+                }
+            }
+
+            return hasFinite ? ( min: minValue, max: maxValue, hasNonFinite: hasNonFinite ) : nil
+        }
+
+        /// Replaces every non-finite sample in the first `count` elements of `base`
+        /// with `replacement`, in place.
+        ///
+        /// Called only when the buffer is known to carry a non-finite blank, so the
+        /// common all-finite path pays nothing.
+        ///
+        /// - Parameters:
+        ///   - base:        The samples to sanitize.
+        ///   - count:       The number of leading samples to scan.
+        ///   - replacement: The value to substitute for each non-finite sample.
+        private static func mapNonFinite( _ base: UnsafeMutablePointer< Double >, count: Int, to replacement: Double )
+        {
+            ( 0 ..< count ).forEach
+            {
+                if base[ $0 ].isFinite == false
+                {
+                    base[ $0 ] = replacement
+                }
             }
         }
     }

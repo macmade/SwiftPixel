@@ -118,4 +118,34 @@ struct Test_PixelUtilities_PercentileBounds
         #expect( result.lower == 20 )
         #expect( result.upper == 40 )
     }
+
+    @Test
+    func nonFiniteSamplesAreIgnored() async throws
+    {
+        // A NaN blank is dropped, so the bounds are those of the finite samples.
+        let result = PixelUtilities.percentileBounds( in: [ 10, .nan, 20, 30, 40, 50 ], lower: 0, upper: 100 )
+
+        #expect( result.lower == 10 )
+        #expect( result.upper == 50 )
+    }
+
+    @Test
+    func infiniteSamplesAreIgnored() async throws
+    {
+        // ±Inf are dropped as well, so an infinite blank cannot skew the bounds.
+        let result = PixelUtilities.percentileBounds( in: [ 10, .infinity, 20, -.infinity, 30, 40, 50 ], lower: 0, upper: 100 )
+
+        #expect( result.lower == 10 )
+        #expect( result.upper == 50 )
+    }
+
+    @Test
+    func allNonFiniteYieldsZero() async throws
+    {
+        // No finite samples behaves like an empty array.
+        let result = PixelUtilities.percentileBounds( in: [ .nan, .infinity, -.infinity ], lower: 25, upper: 75 )
+
+        #expect( result.lower == 0 )
+        #expect( result.upper == 0 )
+    }
 }

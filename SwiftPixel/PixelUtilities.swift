@@ -250,21 +250,30 @@ public enum PixelUtilities
     /// outside that range are clamped, and if `lower` exceeds `upper` they are
     /// reordered, so the call never traps on out-of-range input.
     ///
+    /// Non-finite samples (NaN / ±Inf, e.g. FITS blank pixels) are ignored, so
+    /// they cannot give the sort an undefined ordering; an array with no finite
+    /// samples is treated like an empty one.
+    ///
     /// - Parameters:
-    ///   - array: The samples to analyze. An empty array yields `(0, 0)`.
+    ///   - array: The samples to analyze. An empty array — or one with no finite
+    ///            samples — yields `(0, 0)`.
     ///   - lower: The lower percentile, as a percentage in `0...100`.
     ///   - upper: The upper percentile, as a percentage in `0...100`.
     ///
     /// - Returns: The interpolated values at the lower and upper percentiles.
     public static func percentileBounds( in array: [ Double ], lower: Double, upper: Double ) -> ( lower: Double, upper: Double )
     {
-        guard array.isEmpty == false
+        // Drop non-finite blanks before sorting; the common all-finite case skips
+        // the filtering copy entirely.
+        let finite = array.contains { $0.isFinite == false } ? array.filter { $0.isFinite } : array
+
+        guard finite.isEmpty == false
         else
         {
             return ( 0, 0 )
         }
 
-        var sorted = array
+        var sorted = finite
 
         vDSP.sort( &sorted, sortOrder: .ascending )
 
@@ -293,17 +302,23 @@ public enum PixelUtilities
     /// would truncate. A concrete, Accelerate-backed overload exists for
     /// `[Double]`.
     ///
+    /// Non-finite samples (NaN / ±Inf) are ignored, matching the `[Double]`
+    /// overload; an input with no finite samples has no median.
+    ///
     /// - Parameter values: The values to summarize.
-    /// - Returns: The median, or `nil` for an empty input.
+    /// - Returns: The median, or `nil` for an empty input or one with no finite
+    ///   samples.
     public static func median< T: BinaryFloatingPoint >( _ values: [ T ] ) -> T?
     {
-        guard values.isEmpty == false
+        let finite = values.contains { $0.isFinite == false } ? values.filter { $0.isFinite } : values
+
+        guard finite.isEmpty == false
         else
         {
             return nil
         }
 
-        let sorted = values.sorted()
+        let sorted = finite.sorted()
         let middle = sorted.count / 2
 
         if sorted.count.isMultiple( of: 2 )
@@ -322,11 +337,16 @@ public enum PixelUtilities
     /// generic ``median(_:)``: the exact middle value for an odd count, the
     /// average of the two middle values for an even count.
     ///
+    /// Non-finite samples (NaN / ±Inf) are ignored via
+    /// ``percentileBounds(in:lower:upper:)``; an input with no finite samples has
+    /// no median, so the two overloads agree on `nil` there.
+    ///
     /// - Parameter values: The values to summarize.
-    /// - Returns: The median, or `nil` for an empty input.
+    /// - Returns: The median, or `nil` for an empty input or one with no finite
+    ///   samples.
     public static func median( _ values: [ Double ] ) -> Double?
     {
-        guard values.isEmpty == false
+        guard values.contains( where: { $0.isFinite } )
         else
         {
             return nil
@@ -338,11 +358,14 @@ public enum PixelUtilities
     /// The median absolute deviation of a set of values about a center — a robust
     /// measure of spread.
     ///
+    /// Non-finite samples (NaN / ±Inf) are ignored: a non-finite deviation is
+    /// dropped by the underlying median.
+    ///
     /// - Parameters:
     ///   - values: The values to summarize.
     ///   - center: The center to measure deviations from (typically the median).
     /// - Returns: The median of the absolute deviations, or `nil` for an empty
-    ///   input.
+    ///   input or one with no finite samples.
     public static func medianAbsoluteDeviation< T: BinaryFloatingPoint >( _ values: [ T ], around center: T ) -> T?
     {
         self.median( values.map { abs( $0 - center ) } )
@@ -352,11 +375,13 @@ public enum PixelUtilities
     /// the Accelerate-backed counterpart to the generic
     /// ``medianAbsoluteDeviation(_:around:)``.
     ///
+    /// Non-finite samples (NaN / ±Inf) are ignored, as in the generic overload.
+    ///
     /// - Parameters:
     ///   - values: The values to summarize.
     ///   - center: The center to measure deviations from (typically the median).
     /// - Returns: The median of the absolute deviations, or `nil` for an empty
-    ///   input.
+    ///   input or one with no finite samples.
     public static func medianAbsoluteDeviation( _ values: [ Double ], around center: Double ) -> Double?
     {
         self.median( values.map { abs( $0 - center ) } )

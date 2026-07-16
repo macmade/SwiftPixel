@@ -71,4 +71,55 @@ struct Test_PixelUtilities_Median
     {
         #expect( PixelUtilities.medianAbsoluteDeviation( [ Double ](), around: 0 ) == nil )
     }
+
+    /// The `Double` median ignores non-finite (NaN / ±Inf) samples, so a stray
+    /// FITS blank cannot give the sort an undefined ordering.
+    @Test
+    func medianIgnoresNonFiniteSamples() throws
+    {
+        // NaN, +Inf and −Inf are all dropped before the median of the finite
+        // remainder is taken.
+        #expect( PixelUtilities.median( [ 1, 2, .nan, 3, 4 ] as [ Double ] )          == 2.5 )
+        #expect( PixelUtilities.median( [ 1, 2, .infinity, 3, 4 ] as [ Double ] )     == 2.5 )
+        #expect( PixelUtilities.median( [ -.infinity, 1, 2, 3 ] as [ Double ] )       == 2 )
+    }
+
+    /// A `Double` set with no finite samples has no median.
+    @Test
+    func medianOfAllNonFiniteIsNil() throws
+    {
+        #expect( PixelUtilities.median( [ .nan, .infinity, -.infinity ] as [ Double ] ) == nil )
+    }
+
+    /// The generic median ignores non-finite samples too, and yields `nil` when
+    /// none are finite.
+    @Test
+    func genericMedianIgnoresNonFiniteSamples() throws
+    {
+        #expect( PixelUtilities.median( [ 1, 2, .nan, 3, 4 ] as [ Float ] ) == Float( 2.5 ) )
+        #expect( PixelUtilities.median( [ .nan, .nan ] as [ Float ] )       == nil )
+    }
+
+    /// With non-finite samples present, the concrete `[Double]` overload and the
+    /// generic overload agree on the finite median (they no longer diverge on the
+    /// undefined NaN ordering).
+    @Test
+    func bothMedianOverloadsAgreeWithNonFiniteInput() throws
+    {
+        let concrete = PixelUtilities.median( [ 1, 2, .nan, 3, 4 ] as [ Double ] )
+        let generic  = PixelUtilities.median( [ 1, 2, .nan, 3, 4 ] as [ Float ] )
+
+        #expect( concrete == 2.5 )
+        #expect( generic == Float( 2.5 ) )
+    }
+
+    /// The median absolute deviation ignores non-finite samples, since the
+    /// deviation of a non-finite sample is itself non-finite and is dropped by the
+    /// median.
+    @Test
+    func medianAbsoluteDeviationIgnoresNonFiniteSamples() throws
+    {
+        // |[1,2,3,4] − 2.5| = [1.5,0.5,0.5,1.5] → median = 1.0; the NaN is dropped.
+        #expect( PixelUtilities.medianAbsoluteDeviation( [ 1, 2, .nan, 3, 4 ] as [ Double ], around: 2.5 ) == 1.0 )
+    }
 }

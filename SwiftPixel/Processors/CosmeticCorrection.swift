@@ -369,8 +369,18 @@ public extension Processors
 
                         if nx >= 0, nx < width, ny >= 0, ny < height
                         {
-                            scratch[ count ] = source[ ( ny * width + nx ) * channels + channel ]
-                            count           += 1
+                            let neighbour = source[ ( ny * width + nx ) * channels + channel ]
+
+                            // Treat a non-finite neighbour (NaN / ±Inf blank) as
+                            // absent: gathering it would wall the insertion sort and
+                            // make the neighbour median/min/max unreliable, so a
+                            // genuine hot/cold pixel next to a blank would go
+                            // uncorrected.
+                            if neighbour.isFinite
+                            {
+                                scratch[ count ] = neighbour
+                                count           += 1
+                            }
                         }
                     }
                 }

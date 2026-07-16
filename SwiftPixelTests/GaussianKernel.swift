@@ -96,4 +96,65 @@ struct Test_GaussianKernel
 
         #expect( center == max )
     }
+
+    /// A non-finite standard deviation clamps to the small positive minimum
+    /// instead of trapping in the `Int(sigma …)` conversion, yielding a valid
+    /// minimal kernel.
+    @Test
+    func nonFiniteSigmaClampsToMinimum() throws
+    {
+        // Before the fix, `.nan` and `+.infinity` crash in `Int(_:)`; all three
+        // must now degrade to the 1e-6 minimum and build a valid 3×3 kernel.
+        [ Double.nan, .infinity, -.infinity ].forEach
+        {
+            sigma in
+
+            let kernel = GaussianKernel( sigma: sigma )
+
+            #expect( kernel.sigma == 1e-6 )
+            #expect( kernel.radius == 1 )
+            #expect( kernel.size == 3 )
+            #expect( kernel.values.count == 9 )
+            #expect( kernel.values.allSatisfy { $0.isFinite } )
+            #expect( abs( kernel.values.reduce( 0, + ) - 1 ) < 1e-9 )
+        }
+    }
+
+    /// A non-finite `radiusInSigmas` does not trap either: the span becomes
+    /// non-finite and falls back to the minimal footprint.
+    @Test
+    func nonFiniteRadiusInSigmasClampsToMinimum() throws
+    {
+        // Before the fix, a finite sigma with a non-finite radiusInSigmas reached
+        // `Int(sigma · radiusInSigmas)` and crashed.
+        [ Double.nan, .infinity, -.infinity ].forEach
+        {
+            radiusInSigmas in
+
+            let kernel = GaussianKernel( sigma: 5, radiusInSigmas: radiusInSigmas )
+
+            #expect( kernel.radius == 1 )
+            #expect( kernel.size == 3 )
+            #expect( kernel.values.allSatisfy { $0.isFinite } )
+            #expect( abs( kernel.values.reduce( 0, + ) - 1 ) < 1e-9 )
+        }
+    }
+
+    /// A pathologically large but finite scale does not trap: the radius is
+    /// bounded so `Int(_:)` and the `(2·radius + 1)²` footprint arithmetic stay in
+    /// range, and the kernel is still valid.
+    @Test
+    func pathologicallyLargeScaleIsBounded() throws
+    {
+        // `Int((1e300 · 2).rounded(.up))` traps (out of Int range) without the
+        // bound; an in-range-but-enormous radius would also overflow the footprint.
+        let kernel = GaussianKernel( sigma: 1e300 )
+
+        #expect( kernel.radius >= 1 )
+        #expect( kernel.radius <= 4096 )
+        #expect( kernel.size == ( 2 * kernel.radius ) + 1 )
+        #expect( kernel.values.count == kernel.size * kernel.size )
+        #expect( kernel.values.allSatisfy { $0.isFinite } )
+        #expect( abs( kernel.values.reduce( 0, + ) - 1 ) < 1e-9 )
+    }
 }

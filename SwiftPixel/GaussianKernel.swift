@@ -57,20 +57,49 @@ public struct GaussianKernel: Sendable
     /// row-major order, summing to approximately zero.
     public let zeroSumValues: [ Double ]
 
+    /// An upper bound on the kernel radius. It guards against a pathological or
+    /// non-finite scale that would otherwise overflow the `(2·radius + 1)²`
+    /// footprint arithmetic or request an impossible allocation, and it sits far
+    /// above any realistic kernel size (star-detection PSFs span a handful of
+    /// pixels).
+    private static let maximumRadius = 512
+
     /// Builds a Gaussian kernel for the given scale.
     ///
     /// - Parameters:
     ///   - sigma:          The Gaussian standard deviation, in pixels. Clamped to
     ///                     a small positive minimum so the footprint is always
-    ///                     valid.
+    ///                     valid; a non-finite value (NaN / ±Inf) is treated as
+    ///                     that minimum rather than trapping in the radius
+    ///                     conversion.
     ///   - radiusInSigmas: How many standard deviations the truncated footprint
     ///                     spans on each side. The default of `2` captures the
     ///                     bulk of the profile while keeping the kernel compact.
+    ///                     A non-finite or pathologically large value is bounded
+    ///                     the same way, so no `Double` input can trap.
     public init( sigma: Double, radiusInSigmas: Double = 2 )
     {
-        let safeSigma = Swift.max( sigma, 1e-6 )
-        let radius    = Swift.max( 1, Int( ( safeSigma * radiusInSigmas ).rounded( .up ) ) )
-        let size      = ( 2 * radius ) + 1
+        // No `Double` input may reach a trapping conversion: `Int(_:)` traps on
+        // NaN / ±Inf and on values beyond `Int`, and an unbounded radius would
+        // overflow `(2·radius + 1)²` or request an impossible allocation. Clamp
+        // the scale to a small positive minimum, and bound the truncated radius
+        // to `[1, maximumRadius]` — computing it only when the span is finite, so
+        // a NaN/Inf span falls back to the minimal footprint.
+        let safeSigma = sigma.isFinite ? Swift.max( sigma, 1e-6 ) : 1e-6
+        let span      = safeSigma * radiusInSigmas
+        let radius: Int
+
+        if span.isFinite
+        {
+            let bounded = Swift.min( Swift.max( span.rounded( .up ), 1 ), Double( Self.maximumRadius ) )
+            radius      = Int( bounded )
+        }
+        else
+        {
+            radius = 1
+        }
+
+        let size = ( 2 * radius ) + 1
 
         // Sample the (unnormalized) Gaussian over the square footprint, then
         // divide by the total so the weights sum to one.

@@ -442,4 +442,49 @@ struct Test_Processors_CosmeticCorrection
         #expect( maximum < 1000.0 )
         #expect( minimum > 80.0 )
     }
+
+    // MARK: - Non-finite neighbours
+
+    @Test
+    func hotPixelAdjacentToNaNNeighbourStillRepaired() async throws
+    {
+        // A 3×3 flat field of 0.2 with a hot centre (0.9) and a NaN blank in the
+        // bottom-right corner. The NaN is gathered last, so before the fix it
+        // lands at the top of the neighbour sort and makes the neighbour maximum
+        // NaN — `value > maximum` is then false and the genuine hot pixel is left
+        // uncorrected. Non-finite neighbours must be treated as absent.
+        var buffer = try PixelBuffer(
+            width:        3,
+            height:       3,
+            channels:     1,
+            pixels:       [ 0.2, 0.2, 0.2, 0.2, 0.9, 0.2, 0.2, 0.2, .nan ],
+            isNormalized: false
+        )
+
+        try Processors.CosmeticCorrection( layout: .mono, parameters: .default ).process( buffer: &buffer )
+
+        // The hot centre is repaired to the finite-neighbour median …
+        #expect( buffer.pixels[ 4 ] == 0.2 )
+
+        // … and the NaN sample itself passes through unchanged (this stage repairs
+        // hot/cold outliers, not blanks).
+        #expect( buffer.pixels[ 8 ].isNaN )
+    }
+
+    @Test
+    func hotPixelAdjacentToInfinityNeighbourStillRepaired() async throws
+    {
+        // The same guarantee for an infinite blank neighbour.
+        var buffer = try PixelBuffer(
+            width:        3,
+            height:       3,
+            channels:     1,
+            pixels:       [ 0.2, 0.2, 0.2, 0.2, 0.9, 0.2, 0.2, 0.2, .infinity ],
+            isNormalized: false
+        )
+
+        try Processors.CosmeticCorrection( layout: .mono, parameters: .default ).process( buffer: &buffer )
+
+        #expect( buffer.pixels[ 4 ] == 0.2 )
+    }
 }

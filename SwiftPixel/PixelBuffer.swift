@@ -150,6 +150,47 @@ public struct PixelBuffer: CustomStringConvertible, Equatable, Sendable
         return try self.pixels.withUnsafeMutableBufferPointer { try body( $0 ) }
     }
 
+    /// Applies an in-place, whole-buffer value transform that must not disturb the
+    /// alpha channel of a 4-channel (premultiplied RGBA) buffer.
+    ///
+    /// For a 4-channel buffer the alpha samples — every 4th sample, the trailing
+    /// component of each pixel — are captured before `body` and written back after,
+    /// so a uniform per-sample tone transform (invert, brightness/contrast, gamma)
+    /// leaves alpha unchanged even though `body` sweeps the whole interleaved
+    /// buffer. For any other channel count `body` sees the samples unchanged, so a
+    /// mono or RGB buffer pays nothing. The normalization flag is left unchanged,
+    /// matching ``withUnsafeMutablePixels(_:)``.
+    ///
+    /// The sample count is fixed for the duration of `body`.
+    ///
+    /// - Parameter body: A closure receiving a mutable pointer to the samples.
+    ///
+    /// - Throws: Rethrows any error thrown by `body`; the alpha samples are
+    ///           restored only on a non-throwing return.
+    public mutating func withUnsafeMutablePixelsPreservingAlpha( _ body: ( UnsafeMutableBufferPointer< Double > ) throws -> Void ) rethrows
+    {
+        guard self.channels == 4
+        else
+        {
+            try self.withUnsafeMutablePixels( body )
+
+            return
+        }
+
+        let alpha = Swift.stride( from: 3, to: self.pixels.count, by: 4 ).map { self.pixels[ $0 ] }
+
+        try self.withUnsafeMutablePixels
+        {
+            pointer in
+
+            try body( pointer )
+
+            // Restore the captured alpha over whatever the whole-buffer transform
+            // wrote into it, so only the colour channels are affected.
+            alpha.indices.forEach { pointer[ $0 * 4 + 3 ] = alpha[ $0 ] }
+        }
+    }
+
     /// A human-readable summary of the buffer's geometry and state.
     public var description: String
     {

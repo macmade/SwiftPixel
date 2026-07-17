@@ -55,25 +55,26 @@ Sendable
 struct Test_PixelPipeline
 {
     private static func config(
-        scale:           ( scale: Double, offset: Double )?                                           = nil,
-        inputFormat:     PixelPipeline.Config.InputFormat                                              = .mono,
-        cosmeticCorrection: Processors.CosmeticCorrection.Parameters?                                  = nil,
-        normalize:       Processors.Normalize.Mode?                                                    = nil,
-        stretch:         Processors.Stretch.STFParameters?                                             = nil,
-        correctGamma:    Double?                                                                       = nil,
-        whiteBalance:       Processors.WhiteBalance.Mode?                                              = nil,
-        invert:             Bool                                                                       = false,
-        brightnessContrast: ( brightness: Double, contrast: Double )?                                  = nil,
-        levels:             Processors.Levels.Channels?                                                = nil,
-        curves:             Processors.Curves.Channels?                                                = nil,
-        colorBalance:       Processors.ColorBalance.Ranges?                                            = nil,
-        hue:                Double?                                                                    = nil,
-        saturation:         Double?                                                                    = nil,
-        orient:             Processors.Orient.Orientation?                                             = nil,
-        measure:            ( @Sendable ( String, () throws -> Void ) throws -> Void )?                = nil
+        scale:              ( scale: Double, offset: Double )?                          = nil,
+        inputFormat:        PixelPipeline.Config.InputFormat                            = .mono,
+        binFactor:          Int                                                         = 1,
+        cosmeticCorrection: Processors.CosmeticCorrection.Parameters?                   = nil,
+        normalize:          Processors.Normalize.Mode?                                  = nil,
+        stretch:            Processors.Stretch.STFParameters?                           = nil,
+        correctGamma:       Double?                                                     = nil,
+        whiteBalance:       Processors.WhiteBalance.Mode?                               = nil,
+        invert:             Bool                                                        = false,
+        brightnessContrast: ( brightness: Double, contrast: Double )?                   = nil,
+        levels:             Processors.Levels.Channels?                                 = nil,
+        curves:             Processors.Curves.Channels?                                 = nil,
+        colorBalance:       Processors.ColorBalance.Ranges?                             = nil,
+        hue:                Double?                                                     = nil,
+        saturation:         Double?                                                     = nil,
+        orient:             Processors.Orient.Orientation?                              = nil,
+        measure:            ( @Sendable ( String, () throws -> Void ) throws -> Void )? = nil
     ) -> PixelPipeline.Config
     {
-        PixelPipeline.Config( scale: scale, inputFormat: inputFormat, cosmeticCorrection: cosmeticCorrection, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, invert: invert, brightnessContrast: brightnessContrast, levels: levels, curves: curves, colorBalance: colorBalance, hue: hue, saturation: saturation, orient: orient, measure: measure )
+        PixelPipeline.Config( scale: scale, inputFormat: inputFormat, binFactor: binFactor, cosmeticCorrection: cosmeticCorrection, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, invert: invert, brightnessContrast: brightnessContrast, levels: levels, curves: curves, colorBalance: colorBalance, hue: hue, saturation: saturation, orient: orient, measure: measure )
     }
 
     @Test
@@ -149,6 +150,53 @@ struct Test_PixelPipeline
         #expect( result.pixels.count == 6 )
         #expect( result.isNormalized == true )
         #expect( result.pixels.allSatisfy { $0 >= 0.0 && $0 <= 1.0 } )
+    }
+
+    // MARK: - Binning
+
+    @Test
+    func monoMosaicWithBinFactorBinsBeforeForming() async throws
+    {
+        // A single-channel mosaic is binned before the channel-forming stage: a
+        // 4×4 frame binned by 2 yields a 2×2 mosaic, then debayers to 2×2 RGB.
+        let pipeline = PixelPipeline( config: Self.config( inputFormat: .cfa( pattern: .rggb, mode: .bilinear ), binFactor: 2, normalize: .minMax ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        #expect( names.contains { $0.hasPrefix( "Bin" ) } )
+
+        let result = try pipeline.run( pixels: ( 0 ..< 16 ).map { Double( $0 ) }, width: 4, height: 4, bitsPerPixel: .float32 )
+
+        #expect( result.width    == 2 )
+        #expect( result.height   == 2 )
+        #expect( result.channels == 3 )
+    }
+
+    @Test
+    func rgbInputWithBinFactorThrows() async throws
+    {
+        // Binning applies only to a single-channel mosaic; requesting it on RGB
+        // input is now surfaced via Bin's channel guard rather than silently
+        // ignored.
+        let pipeline = PixelPipeline( config: Self.config( inputFormat: .rgb, binFactor: 2 ) )
+
+        #expect( throws: PixelBufferError.unsupportedChannelCount( actual: 3, supported: [ 1 ] ) )
+        {
+            _ = try pipeline.run( pixels: [ 10, 20, 30, 40, 50, 60 ], width: 2, height: 1, bitsPerPixel: .uint8 )
+        }
+    }
+
+    @Test
+    func rgbInputWithNonPositiveBinFactorThrows() async throws
+    {
+        // A non-positive binFactor is rejected consistently regardless of input
+        // format (previously silently ignored for RGB), reporting nonPositiveFactor
+        // rather than the channel error.
+        let pipeline = PixelPipeline( config: Self.config( inputFormat: .rgb, binFactor: 0 ) )
+
+        #expect( throws: Processors.Bin.ValidationError.nonPositiveFactor( 0 ) )
+        {
+            _ = try pipeline.run( pixels: [ 10, 20, 30, 40, 50, 60 ], width: 2, height: 1, bitsPerPixel: .uint8 )
+        }
     }
 
     @Test
@@ -283,6 +331,42 @@ struct Test_PixelPipeline
     func autoInsertsNormalizeForBrightnessContrast() async throws
     {
         let pipeline = PixelPipeline( config: Self.config( brightnessContrast: ( brightness: 0.2, contrast: 1.5 ) ) )
+        let result   = try pipeline.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
+
+        #expect( result.isNormalized == true )
+        #expect( result.pixels.allSatisfy { $0 >= 0.0 && $0 <= 1.0 } )
+    }
+
+    @Test
+    func neutralGammaNotAppended() async throws
+    {
+        // A no-op gamma (1.0) is dropped like the other neutral stages, so it is
+        // not appended.
+        let pipeline = PixelPipeline( config: Self.config( normalize: .minMax, correctGamma: 1.0 ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        #expect( names.contains { $0.hasPrefix( "Gamma Correction" ) } == false )
+    }
+
+    @Test
+    func neutralGammaDoesNotForceNormalization() async throws
+    {
+        // A no-op gamma must not trip the auto-normalization the way a real
+        // adjustment does: with only a neutral gamma requested, neither a gamma
+        // stage nor an auto-inserted Normalize is added.
+        let pipeline = PixelPipeline( config: Self.config( correctGamma: 1.0 ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        #expect( names.contains { $0.hasPrefix( "Normalize" ) } == false )
+        #expect( names == [ "Mono to RGB" ] )
+    }
+
+    @Test
+    func autoInsertsNormalizeForGamma() async throws
+    {
+        // A real (non-neutral) gamma still forces normalization, as the other
+        // display stages do.
+        let pipeline = PixelPipeline( config: Self.config( correctGamma: 2.0 ) )
         let result   = try pipeline.run( pixels: [ 10, 20, 30, 40 ], width: 2, height: 2, bitsPerPixel: .uint8 )
 
         #expect( result.isNormalized == true )

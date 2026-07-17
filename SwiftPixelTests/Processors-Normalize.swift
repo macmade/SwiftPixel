@@ -48,6 +48,26 @@ struct Test_Processors_Normalize
     }
 
     @Test
+    func minMaxRangeSpansAllChannels() async throws
+    {
+        // The range is taken globally across all channels (preserving colour
+        // ratios), not per channel: the single global min (0) and max (100) map to
+        // 0 and 1, and every channel is scaled by that same affine map.
+        var buffer = try PixelBuffer(
+            width:        2,
+            height:       1,
+            channels:     3,
+            pixels:       [ 0, 50, 100, 25, 75, 50 ],
+            isNormalized: false
+        )
+
+        try Processors.Normalize( mode: .minMax ).process( buffer: &buffer )
+
+        #expect( buffer.isNormalized == true )
+        #expect( buffer.pixels       == [ 0.0, 0.5, 1.0, 0.25, 0.75, 0.5 ] )
+    }
+
+    @Test
     func percentile() async throws
     {
         var buffer = try PixelBuffer(

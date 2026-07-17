@@ -33,7 +33,8 @@ public extension Processors
     /// shifts it, with the result clipped back into `[0, 1]`:
     /// `clip((v - 0.5) · contrast + 0.5 + brightness)`. Neutral parameters
     /// (`brightness == 0`, `contrast == 1`) leave the image unchanged. Applies
-    /// uniformly to every channel and requires a normalized buffer.
+    /// uniformly to every colour channel and requires a normalized buffer; the
+    /// alpha channel of a 4-channel (premultiplied RGBA) buffer is left unchanged.
     struct BrightnessContrast: PixelProcessor
     {
         /// The additive brightness offset (`0` is neutral).
@@ -61,7 +62,7 @@ public extension Processors
         }
 
         /// Applies the brightness/contrast transform in place and clips to
-        /// `[0, 1]`.
+        /// `[0, 1]`, leaving a 4-channel buffer's alpha unchanged.
         ///
         /// - Parameter buffer: The normalized buffer to transform.
         ///
@@ -75,11 +76,13 @@ public extension Processors
                 throw PixelBufferError.notNormalized
             }
 
-            // (v - 0.5)·c + 0.5 + b  ==  v·c + (0.5·(1 - c) + b), then clip.
+            // (v - 0.5)·c + 0.5 + b  ==  v·c + (0.5·(1 - c) + b), then clip. A
+            // 4-channel buffer's alpha is restored afterwards, so only the colours
+            // are adjusted.
             var multiplier = self.contrast
             var offset     = 0.5 * ( 1.0 - self.contrast ) + self.brightness
 
-            try buffer.withUnsafeMutablePixels
+            try buffer.withUnsafeMutablePixelsPreservingAlpha
             {
                 guard let baseAddress = $0.baseAddress
                 else

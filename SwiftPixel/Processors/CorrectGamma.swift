@@ -30,7 +30,8 @@ public extension Processors
     /// Applies a power-law gamma curve, raising each sample to `1 / gamma`.
     ///
     /// Requires a normalized buffer (samples in `[0, 1]`). `gamma` must be
-    /// greater than zero.
+    /// greater than zero. The alpha channel of a 4-channel (premultiplied RGBA)
+    /// buffer is left unchanged.
     struct CorrectGamma: PixelProcessor
     {
         /// The gamma exponent. Must be `> 0`; each sample is raised to its
@@ -70,7 +71,8 @@ public extension Processors
             }
         }
 
-        /// Raises every sample to `1 / gamma`, in place.
+        /// Raises every colour sample to `1 / gamma`, in place, leaving a 4-channel
+        /// buffer's alpha unchanged.
         ///
         /// - Parameter buffer: The normalized buffer to transform.
         ///
@@ -95,7 +97,10 @@ public extension Processors
             let inverseGamma = 1.0 / self.gamma
             let exponents    = [ Double ]( repeating: inverseGamma, count: Swift.min( chunkSize, total ) )
 
-            try buffer.withUnsafeMutablePixels
+            // The power is raised over the whole interleaved buffer; a 4-channel
+            // buffer's alpha is restored afterwards, so only the colours are gamma-
+            // corrected.
+            try buffer.withUnsafeMutablePixelsPreservingAlpha
             {
                 guard let baseAddress = $0.baseAddress
                 else

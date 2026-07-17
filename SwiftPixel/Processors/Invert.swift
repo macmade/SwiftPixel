@@ -30,8 +30,10 @@ public extension Processors
     /// Inverts a normalized buffer, mapping each sample to `1 - sample` to
     /// produce a photographic negative.
     ///
-    /// Applies uniformly to every channel and leaves the samples normalized.
-    /// Requires a normalized buffer (samples in `[0, 1]`).
+    /// Applies uniformly to every colour channel, leaving the samples normalized.
+    /// The alpha channel of a 4-channel (premultiplied RGBA) buffer is left
+    /// unchanged, since inverting alpha would corrupt the colour. Requires a
+    /// normalized buffer (samples in `[0, 1]`).
     struct Invert: PixelProcessor
     {
         /// A human-readable name for the stage.
@@ -44,7 +46,8 @@ public extension Processors
         public init()
         {}
 
-        /// Maps every sample to `1 - sample`, in place.
+        /// Maps every colour sample to `1 - sample`, in place, leaving a 4-channel
+        /// buffer's alpha unchanged.
         ///
         /// - Parameter buffer: The normalized buffer to transform.
         ///
@@ -57,12 +60,13 @@ public extension Processors
                 throw PixelBufferError.notNormalized
             }
 
-            // 1 - x for each sample: a scalar multiply by -1 followed by a scalar
-            // add of 1, computed in place over the whole interleaved buffer.
+            // 1 - x for each colour sample: a scalar multiply by -1 followed by a
+            // scalar add of 1, over the whole interleaved buffer; a 4-channel
+            // buffer's alpha is restored afterwards, so only the colours invert.
             var multiplier = -1.0
             var addend     =  1.0
 
-            try buffer.withUnsafeMutablePixels
+            try buffer.withUnsafeMutablePixelsPreservingAlpha
             {
                 guard let baseAddress = $0.baseAddress
                 else

@@ -364,9 +364,11 @@ public struct PixelPipeline: Sendable
 
         // Binning reduces a raw single-channel mosaic before the demosaic, averaging
         // same-colour sites so the pattern survives, so the expensive debayer runs on
-        // a smaller mosaic. It applies only to a single-channel input (a mono or CFA
-        // frame); an already-RGB frame has no mosaic to bin.
-        if self.config.binFactor != 1, self.config.inputFormat.channels == 1
+        // a smaller mosaic. It is appended whenever a non-default factor is requested;
+        // binning applies only to a single-channel mosaic, so Bin's own guards reject
+        // an invalid factor or a multi-channel (e.g. already-RGB) buffer rather than
+        // the factor being silently ignored.
+        if self.config.binFactor != 1
         {
             processors.append( Processors.Bin( factor: self.config.binFactor ) )
         }
@@ -474,7 +476,20 @@ public struct PixelPipeline: Sendable
             colorBalance = nil
         }
 
-        let requiresNormalization = self.config.stretch != nil || self.config.correctGamma != nil || self.config.whiteBalance != nil || self.config.invert || brightnessContrast != nil || levels != nil || curves != nil || colorBalance != nil || hue != nil || saturation != nil
+        // A neutral gamma (1.0) is a no-op and is dropped here, so it neither runs
+        // nor forces a normalization — matching the other neutral stages.
+        let correctGamma: Double?
+
+        if let configured = self.config.correctGamma, configured != 1.0
+        {
+            correctGamma = configured
+        }
+        else
+        {
+            correctGamma = nil
+        }
+
+        let requiresNormalization = self.config.stretch != nil || correctGamma != nil || self.config.whiteBalance != nil || self.config.invert || brightnessContrast != nil || levels != nil || curves != nil || colorBalance != nil || hue != nil || saturation != nil
         let normalizeMode: Processors.Normalize.Mode?
 
         if let configured = self.config.normalize
@@ -519,7 +534,7 @@ public struct PixelPipeline: Sendable
             processors.append( Processors.BrightnessContrast( brightness: brightnessContrast.brightness, contrast: brightnessContrast.contrast ) )
         }
 
-        if let correctGamma = self.config.correctGamma
+        if let correctGamma
         {
             processors.append( Processors.CorrectGamma( gamma: correctGamma ) )
         }

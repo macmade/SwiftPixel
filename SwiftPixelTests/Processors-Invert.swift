@@ -104,6 +104,27 @@ struct Test_Processors_Invert
     }
 
     @Test
+    func preservesAlphaChannelForRGBA() async throws
+    {
+        // A 4-channel (premultiplied RGBA) buffer has its RGB inverted, but the
+        // alpha channel is left untouched — inverting premultiplied alpha would
+        // corrupt the colour.
+        var buffer = try PixelBuffer(
+            width:        1,
+            height:       1,
+            channels:     4,
+            pixels:       [ 0.2, 0.5, 0.8, 0.3 ],
+            isNormalized: true
+        )
+
+        try Processors.Invert().process( buffer: &buffer )
+
+        let expected = [ 0.8, 0.5, 0.2, 0.3 ]
+
+        #expect( zip( buffer.pixels, expected ).allSatisfy { abs( $0 - $1 ) < 1e-12 } )
+    }
+
+    @Test
     func name() async throws
     {
         #expect( Processors.Invert().name == "Invert" )

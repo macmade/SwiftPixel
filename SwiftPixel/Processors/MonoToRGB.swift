@@ -29,7 +29,9 @@ public extension Processors
     /// Expands a single-channel buffer to 3-channel RGB by replicating the gray
     /// value into each channel.
     ///
-    /// Requires a non-normalized, 1-channel buffer; the result has 3 channels.
+    /// Requires a 1-channel buffer; the result has 3 channels. Channel replication
+    /// is range-independent, so the buffer's `isNormalized` flag is preserved (a
+    /// normalized mono buffer yields a normalized RGB buffer).
     struct MonoToRGB: PixelProcessor
     {
         /// The fixed name `"Mono to RGB"`.
@@ -43,13 +45,12 @@ public extension Processors
         {}
 
         /// Replicates each gray sample into R, G and B, producing a 3-channel
-        /// buffer.
+        /// buffer and preserving the normalized flag.
         ///
-        /// - Parameter buffer: A non-normalized, 1-channel buffer.
+        /// - Parameter buffer: A 1-channel buffer.
         ///
-        /// - Throws: A `PixelBufferError` if the buffer is normalized, is not
-        ///           single-channel, or its sample count does not match its
-        ///           geometry.
+        /// - Throws: A `PixelBufferError` if the buffer is not single-channel or its
+        ///           sample count does not match its geometry.
         public func process( buffer: inout PixelBuffer ) throws
         {
             guard buffer.channels == 1
@@ -64,12 +65,6 @@ public extension Processors
             else
             {
                 throw PixelBufferError.dataSizeMismatch( expected: expected, actual: buffer.pixels.count )
-            }
-
-            guard buffer.isNormalized == false
-            else
-            {
-                throw PixelBufferError.mustNotBeNormalized
             }
 
             let count       = buffer.pixels.count

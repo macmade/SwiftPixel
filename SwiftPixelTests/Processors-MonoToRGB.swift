@@ -70,6 +70,26 @@ struct Test_Processors_MonoToRGB
     }
 
     @Test
+    func acceptsNormalizedInput() async throws
+    {
+        // Channel replication is range-independent, so a normalized mono buffer is
+        // accepted and produces a normalized RGB buffer (the flag is preserved).
+        var buffer = try PixelBuffer(
+            width:        2,
+            height:       1,
+            channels:     1,
+            pixels:       [ 0.25, 0.75 ],
+            isNormalized: true
+        )
+
+        try Processors.MonoToRGB().process( buffer: &buffer )
+
+        #expect( buffer.channels     == 3 )
+        #expect( buffer.isNormalized == true )
+        #expect( buffer.pixels       == [ 0.25, 0.25, 0.25, 0.75, 0.75, 0.75 ] )
+    }
+
+    @Test
     func invalidChannels() async throws
     {
         var buffer = try PixelBuffer(

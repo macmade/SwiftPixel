@@ -124,6 +124,19 @@ struct Test_Processors_BrightnessContrast
     }
 
     @Test
+    func preservesAlphaChannelForRGBA() async throws
+    {
+        // A 4-channel (premultiplied RGBA) buffer has brightness/contrast applied
+        // to its RGB, but the alpha channel is left untouched.
+        var buffer = try PixelBuffer( width: 1, height: 1, channels: 4, pixels: [ 0.25, 0.5, 0.75, 0.3 ], isNormalized: true )
+
+        try Processors.BrightnessContrast( brightness: 0.0, contrast: 2.0 ).process( buffer: &buffer )
+
+        // RGB scaled about the midpoint (0.25 -> 0, 0.5 -> 0.5, 0.75 -> 1); alpha unchanged.
+        self.expect( buffer, equals: [ 0.0, 0.5, 1.0, 0.3 ] )
+    }
+
+    @Test
     func name() async throws
     {
         #expect( Processors.BrightnessContrast( brightness: 0.0, contrast: 1.0 ).name.isEmpty == false )

@@ -166,6 +166,32 @@ struct Test_Processors_Levels
     }
 
     @Test
+    func outputWhiteBelowOutputBlackThrows() async throws
+    {
+        var buffer = try self.sample()
+
+        // An inverted output range (outputBlack > outputWhite) contradicts the
+        // darkest/brightest contract, so it is rejected — mirroring the enforced
+        // input range.
+        #expect( throws: Processors.Levels.ValidationError.self )
+        {
+            try Processors.Levels( channels: .uniform( Processors.Levels.Parameters( outputBlack: 0.8, outputWhite: 0.2 ) ) ).process( buffer: &buffer )
+        }
+    }
+
+    @Test
+    func equalOutputRangeMapsToConstant() async throws
+    {
+        var buffer = try self.sample()
+
+        // outputBlack == outputWhite is a valid constant output (no divide-by-zero,
+        // unlike the input window), so it is accepted rather than rejected.
+        try Processors.Levels( channels: .uniform( Processors.Levels.Parameters( outputBlack: 0.5, outputWhite: 0.5 ) ) ).process( buffer: &buffer )
+
+        self.expect( buffer, equals: [ 0.5, 0.5, 0.5, 0.5, 0.5 ] )
+    }
+
+    @Test
     func remainsNormalized() async throws
     {
         var buffer = try self.sample()

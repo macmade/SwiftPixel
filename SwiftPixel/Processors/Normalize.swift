@@ -32,6 +32,12 @@ public extension Processors
     ///
     /// A flat (constant) image has no dynamic range and is mapped to all-`0.0`.
     /// After processing, `isNormalized` is `true`.
+    ///
+    /// The `.minMax` and `.percentile` ranges are taken **globally across all
+    /// channels**, not per channel, so a single affine map is applied to every
+    /// sample. This preserves the colour ratios of a multi-channel buffer — an
+    /// intended, colour-preserving normalization; a fourth (alpha) channel, if
+    /// present, is included in the range like any other sample.
     struct Normalize: PixelProcessor
     {
         /// The strategy used to choose the input range that maps to `[0, 1]`.

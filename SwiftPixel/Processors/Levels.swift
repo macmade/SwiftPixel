@@ -46,6 +46,10 @@ public extension Processors
             /// The input white is not strictly greater than the input black.
             case invalidInputRange( black: Double, white: Double )
 
+            /// The output white is less than the output black, an inverted output
+            /// range.
+            case invalidOutputRange( black: Double, white: Double )
+
             /// A human-readable description of the failure.
             public var errorDescription: String?
             {
@@ -58,6 +62,10 @@ public extension Processors
                     case .invalidInputRange( let black, let white ):
 
                         return "Levels input white must be greater than input black: \( white ) <= \( black )"
+
+                    case .invalidOutputRange( let black, let white ):
+
+                        return "Levels output white must not be less than output black: \( white ) < \( black )"
                 }
             }
         }
@@ -86,7 +94,9 @@ public extension Processors
             /// The darkest output value (lets the blacks be lifted to gray).
             public let outputBlack: Double
 
-            /// The brightest output value (lets the highlights be capped).
+            /// The brightest output value (lets the highlights be capped). Must not
+            /// be less than ``outputBlack``; an equal value maps to a constant
+            /// output, while a smaller one (an inverted range) is rejected.
             public let outputWhite: Double
 
             /// The identity mapping: the full input window, neutral gamma and the
@@ -118,8 +128,9 @@ public extension Processors
 
             /// Validates that the parameters describe a usable mapping.
             ///
-            /// - Throws: A `Levels.ValidationError` if `gamma <= 0` or `inputWhite` is not
-            ///           greater than `inputBlack`.
+            /// - Throws: A `Levels.ValidationError` if `gamma <= 0`, `inputWhite` is not
+            ///           greater than `inputBlack`, or `outputWhite` is less than
+            ///           `outputBlack` (an inverted output range).
             func validate() throws
             {
                 guard self.gamma > 0
@@ -132,6 +143,15 @@ public extension Processors
                 else
                 {
                     throw Levels.ValidationError.invalidInputRange( black: self.inputBlack, white: self.inputWhite )
+                }
+
+                // Unlike the input window, an equal output range is valid — it maps
+                // to a constant output with no divide-by-zero — so only a strictly
+                // inverted range (white below black) is rejected.
+                guard self.outputWhite >= self.outputBlack
+                else
+                {
+                    throw Levels.ValidationError.invalidOutputRange( black: self.outputBlack, white: self.outputWhite )
                 }
             }
 
@@ -199,9 +219,9 @@ public extension Processors
         /// - Parameter buffer: The normalized buffer to transform.
         ///
         /// - Throws: A `PixelBufferError` or `Levels.ValidationError` if the buffer is not normalized, a
-        ///           parameter set is degenerate (`gamma <= 0` or `inputWhite <=
-        ///           inputBlack`), or per-channel parameters are used with a
-        ///           buffer that is not 3-channel.
+        ///           parameter set is degenerate (`gamma <= 0`, `inputWhite <=
+        ///           inputBlack`, or `outputWhite < outputBlack`), or per-channel
+        ///           parameters are used with a buffer that is not 3-channel.
         public func process( buffer: inout PixelBuffer ) throws
         {
             guard buffer.isNormalized

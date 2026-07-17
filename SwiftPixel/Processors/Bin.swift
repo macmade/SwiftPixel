@@ -39,6 +39,11 @@ public extension Processors
     /// average (``Resample`` in ``Resample/Mode/average``), which mixes adjacent
     /// colours and so may only run *after* channel-forming.
     ///
+    /// Because a single-channel buffer is *always* treated as a 2×2 mosaic, binning
+    /// a plain (non-mosaic) luminance image aliases it — same-parity sites two apart
+    /// are averaged rather than adjacent pixels — so this stage is intended only for
+    /// a colour-filter-array mosaic. Use ``Resample`` to downsample a plain image.
+    ///
     /// Each output sample at within-cell position `(dx, dy)` is the mean of the
     /// `factor × factor` block of input cells' `(dx, dy)` samples. Any trailing
     /// partial cell along an edge is dropped. The stage requires a single-channel
@@ -129,18 +134,22 @@ public extension Processors
         ///           too large for the image.
         public func process( buffer: inout PixelBuffer ) throws
         {
-            guard buffer.channels == 1
-            else
-            {
-                throw PixelBufferError.unsupportedChannelCount( actual: buffer.channels, supported: [ 1 ] )
-            }
-
             let factor = self.factor
 
+            // The factor is validated before the channel count, so an invalid factor
+            // is reported as nonPositiveFactor regardless of the buffer's channels,
+            // while a valid factor on a non-single-channel buffer reports the channel
+            // mismatch.
             guard factor > 0
             else
             {
                 throw ValidationError.nonPositiveFactor( factor )
+            }
+
+            guard buffer.channels == 1
+            else
+            {
+                throw PixelBufferError.unsupportedChannelCount( actual: buffer.channels, supported: [ 1 ] )
             }
 
             // A factor of one is the identity: nothing to bin.

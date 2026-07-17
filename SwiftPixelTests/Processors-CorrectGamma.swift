@@ -122,6 +122,20 @@ struct Test_Processors_CorrectGamma
     }
 
     @Test
+    func preservesAlphaChannelForRGBA() async throws
+    {
+        // A 4-channel (premultiplied RGBA) buffer has gamma applied to its RGB, but
+        // the alpha channel is left untouched.
+        var buffer = try PixelBuffer( width: 1, height: 1, channels: 4, pixels: [ 0.0, 0.25, 1.0, 0.16 ], isNormalized: true )
+
+        try Processors.CorrectGamma( gamma: 2.0 ).process( buffer: &buffer )
+
+        let expected = [ 0.0, 0.5, 1.0, 0.16 ]
+
+        #expect( zip( buffer.pixels, expected ).allSatisfy { abs( $0 - $1 ) < 1e-9 } )
+    }
+
+    @Test
     func name() async throws
     {
         #expect( Processors.CorrectGamma( gamma: 2.0 ).name == "Gamma Correction (2.00)" )

@@ -123,6 +123,20 @@ struct Test_Processors_Bin
     }
 
     @Test
+    func nonPositiveFactorThrowsRegardlessOfChannelCount() async throws
+    {
+        // A non-positive factor is invalid regardless of channel count: the factor
+        // guard runs before the channel guard, so even a multi-channel buffer
+        // reports nonPositiveFactor rather than unsupportedChannelCount.
+        var buffer = try PixelBuffer( width: 4, height: 4, channels: 3, pixels: [ Double ]( repeating: 0.5, count: 48 ), isNormalized: false )
+
+        #expect( throws: Processors.Bin.ValidationError.nonPositiveFactor( 0 ) )
+        {
+            try Processors.Bin( factor: 0 ).process( buffer: &buffer )
+        }
+    }
+
+    @Test
     func throwsWhenFactorIsTooLargeForTheImage() async throws
     {
         var buffer = try PixelBuffer( width: 4, height: 4, channels: 1, pixels: ( 0 ..< 16 ).map { Double( $0 ) }, isNormalized: false )

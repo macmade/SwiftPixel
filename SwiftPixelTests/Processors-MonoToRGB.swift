@@ -82,7 +82,7 @@ struct Test_Processors_MonoToRGB
 
         let monoToRGB = Processors.MonoToRGB()
 
-        #expect( throws: PixelBufferError.self )
+        #expect( throws: PixelBufferError.unsupportedChannelCount( actual: 3, supported: [ 1 ] ) )
         {
             try monoToRGB.process( buffer: &buffer )
         }

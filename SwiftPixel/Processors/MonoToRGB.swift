@@ -52,18 +52,18 @@ public extension Processors
         ///           geometry.
         public func process( buffer: inout PixelBuffer ) throws
         {
+            guard buffer.channels == 1
+            else
+            {
+                throw PixelBufferError.unsupportedChannelCount( actual: buffer.channels, supported: [ 1 ] )
+            }
+
             let expected = try PixelUtilities.checkedSampleCount( width: buffer.width, height: buffer.height, channels: 1 )
 
             guard buffer.pixels.count == expected
             else
             {
                 throw PixelBufferError.dataSizeMismatch( expected: expected, actual: buffer.pixels.count )
-            }
-
-            guard buffer.channels == 1
-            else
-            {
-                throw PixelBufferError.unsupportedChannelCount( actual: buffer.channels, supported: [ 1 ] )
             }
 
             guard buffer.isNormalized == false

@@ -71,7 +71,7 @@ struct Test_Processors_Debayer
 
         let debayer = Processors.Debayer( mode: .bilinear, pattern: .bggr )
 
-        #expect( throws: PixelBufferError.self )
+        #expect( throws: PixelBufferError.unsupportedChannelCount( actual: 3, supported: [ 1 ] ) )
         {
             try debayer.process( buffer: &buffer )
         }

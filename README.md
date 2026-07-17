@@ -46,7 +46,7 @@ to a `CGImage`.
 - **Built-in processors** (the `Processors` namespace, all conforming to
   `PixelProcessor`):
   - `Scale` — affine scaling of raw samples.
-  - `Debayer` — demosaicing of `BGGR`/`RGBG`/`GRBG`/`RGGB` Bayer patterns,
+  - `Debayer` — demosaicing of `BGGR`/`GRBG`/`RGGB`/`GBRG` Bayer patterns,
     `Bilinear` or `VNG`.
   - `MonoToRGB` — expand single-channel data to RGB.
   - `Normalize` — min/max or percentile normalization to `[0, 1]`.

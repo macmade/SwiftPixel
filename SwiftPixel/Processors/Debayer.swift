@@ -42,9 +42,6 @@ public extension Processors
             /// Blue, Green / Green, Red.
             case bggr
 
-            /// Red, Green / Blue, Green.
-            case rgbg
-
             /// Green, Red / Blue, Green.
             case grbg
 
@@ -60,7 +57,6 @@ public extension Processors
                 switch self
                 {
                     case .bggr: return "BGGR"
-                    case .rgbg: return "RGBG"
                     case .grbg: return "GRBG"
                     case .rggb: return "RGGB"
                     case .gbrg: return "GBRG"
@@ -237,16 +233,6 @@ public extension Processors
                         case ( true,  false ): return .green
                         case ( false, true  ): return .green
                         case ( false, false ): return .red
-                    }
-
-                case .rgbg:
-
-                    switch ( evenRow, evenCol )
-                    {
-                        case ( true,  true  ): return .red
-                        case ( true,  false ): return .green
-                        case ( false, true  ): return .blue
-                        case ( false, false ): return .green
                     }
 
                 case .grbg:

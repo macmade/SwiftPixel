@@ -35,7 +35,7 @@ struct Test_Processors_Debayer_Deinterleave
     private let tile: [ Double ] = [ 0, 1, 2, 3 ]
 
     /// Every supported Bayer arrangement, so a test can sweep them all.
-    private let patterns: [ Debayer.Pattern ] = [ .bggr, .rgbg, .grbg, .rggb, .gbrg ]
+    private let patterns: [ Debayer.Pattern ] = [ .bggr, .grbg, .rggb, .gbrg ]
 
     @Test
     func deinterleaveRGGB() async throws
@@ -79,17 +79,6 @@ struct Test_Processors_Debayer_Deinterleave
         #expect( result.red   == [ 2 ] )
         #expect( result.green == [ 0, 3 ] )
         #expect( result.blue  == [ 1 ] )
-    }
-
-    @Test
-    func deinterleaveRGBG() async throws
-    {
-        // R G / B G
-        let result = try Debayer.deinterleave( mosaic: self.tile, width: 2, height: 2, pattern: .rgbg )
-
-        #expect( result.red   == [ 0 ] )
-        #expect( result.green == [ 1, 3 ] )
-        #expect( result.blue  == [ 2 ] )
     }
 
     @Test

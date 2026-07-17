@@ -44,7 +44,6 @@ struct Test_Processors_Debayer
     {
         #expect( Processors.Debayer( mode: .bilinear, pattern: .bggr ).name == "Debayer (Bilinear BGGR)" )
         #expect( Processors.Debayer( mode: .bilinear, pattern: .grbg ).name == "Debayer (Bilinear GRBG)" )
-        #expect( Processors.Debayer( mode: .bilinear, pattern: .rgbg ).name == "Debayer (Bilinear RGBG)" )
         #expect( Processors.Debayer( mode: .bilinear, pattern: .rggb ).name == "Debayer (Bilinear RGGB)" )
         #expect( Processors.Debayer( mode: .bilinear, pattern: .gbrg ).name == "Debayer (Bilinear GBRG)" )
     }

@@ -131,43 +131,6 @@ struct Test_Processors_Debayer_Bilinear
     }
 
     @Test
-    func testBilinear_RGBG_2x2() async throws
-    {
-        // Simulated 2x2 Bayer pattern (RGBG):
-        // [ R, G ]
-        // [ B, G ]
-        var buffer = try PixelBuffer(
-            width:        2,
-            height:       2,
-            channels:     1,
-            pixels:       [ 10, 20, 30, 40 ],
-            isNormalized: false
-        )
-
-        let debayer = Processors.Debayer( mode: .bilinear, pattern: .rgbg )
-
-        try debayer.process( buffer: &buffer )
-
-        try #require( buffer.channels     == 3 )
-        try #require( buffer.pixels.count == 12 )
-
-        buffer.pixels.forEach
-        {
-            #expect( $0 > 0 )
-        }
-
-        let pix1 = ( r: buffer.pixels[ 0 ], g: buffer.pixels[  1 ], b: buffer.pixels[  2 ] )
-        let pix2 = ( r: buffer.pixels[ 3 ], g: buffer.pixels[  4 ], b: buffer.pixels[  5 ] )
-        let pix3 = ( r: buffer.pixels[ 6 ], g: buffer.pixels[  7 ], b: buffer.pixels[  8 ] )
-        let pix4 = ( r: buffer.pixels[ 9 ], g: buffer.pixels[ 10 ], b: buffer.pixels[ 11 ] )
-
-        #expect( pix1.r == 10 )
-        #expect( pix2.g == 20 )
-        #expect( pix3.b == 30 )
-        #expect( pix4.g == 40 )
-    }
-
-    @Test
     func testBilinear_RGGB_2x2() async throws
     {
         // Simulated 2x2 Bayer pattern (RGGB):

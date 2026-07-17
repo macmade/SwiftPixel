@@ -69,7 +69,11 @@ struct Test_Processors_STFParameters
         let mad     = 0.05
         let channel = Channel.computed( median: median, mad: mad, shadowClipFactor: 2.8, targetBackground: 0.25 )
 
-        #expect( abs( channel.shadows - ( median - 2.8 * mad ) ) < 1e-12 )
+        // The shadow clip is measured in normalized MAD (MADN = 1.4826 · MAD),
+        // matching the PixInsight display-function model the STF cites.
+        let expectedShadows = median - 2.8 * PixelUtilities.madStandardDeviationScale * mad
+
+        #expect( abs( channel.shadows - expectedShadows ) < 1e-12 )
         #expect( channel.highlights == 1.0 )
         #expect( channel.low == 0.0 )
         #expect( channel.high == 1.0 )
@@ -81,6 +85,25 @@ struct Test_Processors_STFParameters
         let channel = Channel.computed( median: 0.4, mad: 0.0, shadowClipFactor: 2.8, targetBackground: 0.25 )
 
         #expect( channel.isIdentity )
+    }
+
+    @Test
+    func computedFromStatsIsIdentityForADegenerateMedian() async throws
+    {
+        // A median pinned at the black point (m0 == 0) — or at the white point
+        // (m0 == 1) — cannot be lifted by an MTF that fixes those endpoints, so
+        // the derivation degrades to the identity instead of collapsing to a hard
+        // threshold (midtones 0 → every interior sample maps to white; midtones 1
+        // → to black).
+        #expect( Channel.computed( median: 0.0, mad: 0.1, shadowClipFactor: 2.8, targetBackground: 0.25 ).isIdentity )
+        #expect( Channel.computed( median: 1.0, mad: 0.1, shadowClipFactor: 2.8, targetBackground: 0.25 ).isIdentity )
+
+        // The same guard covers the reachable non-endpoint triggers: an
+        // out-of-range median (a normalized-flagged buffer may hold negatives) and
+        // a zero shadow-clip factor (the Auto Clip slider's minimum), which pins
+        // the median onto the shadow point (m0 == 0) for any channel.
+        #expect( Channel.computed( median: -0.2, mad: 0.1,  shadowClipFactor: 2.8, targetBackground: 0.25 ).isIdentity )
+        #expect( Channel.computed( median:  0.3, mad: 0.05, shadowClipFactor: 0.0, targetBackground: 0.25 ).isIdentity )
     }
 
     @Test

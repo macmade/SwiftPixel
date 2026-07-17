@@ -387,6 +387,15 @@ public enum PixelUtilities
         self.median( values.map { abs( $0 - center ) } )
     }
 
+    /// The scale factor that converts a median absolute deviation (MAD) into a
+    /// robust estimate of the standard deviation for normally distributed data —
+    /// the *normalized* MAD, `MADN = 1.4826 · MAD`.
+    ///
+    /// Robust image pipelines (notably PixInsight's Screen Transfer Function)
+    /// express their clip thresholds in units of this normalized deviation, not
+    /// the raw MAD, so a `k`-sigma clip is `k · MADN` rather than `k · MAD`.
+    public static let madStandardDeviationScale = 1.4826
+
     /// The PixInsight-style midtones transfer function (MTF),
     /// `mtf(m, x) = ((m − 1)·x) / ((2m − 1)·x − m)`.
     ///

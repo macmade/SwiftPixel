@@ -198,21 +198,22 @@ public extension Processors.Stretch
             /// Derives an auto-STF channel mapping from a channel's robust
             /// statistics.
             ///
-            /// The shadows are clipped a few median-absolute-deviations below the
-            /// median, and the midtones balance is solved so the clipped median
-            /// lands on `targetBackground`. Because the MTF satisfies
-            /// `mtf(m, x0) = t  ⇔  m = mtf(t, x0)`, the balance is simply
-            /// `mtf(targetBackground, m0)`, where `m0` is the median renormalized
-            /// into the post-clip window. A channel with no spread (`mad <= 0`) or
-            /// no post-clip range yields the identity, since it cannot be
-            /// meaningfully stretched.
+            /// The shadows are clipped a few normalized median-absolute-deviations
+            /// (MADN = 1.4826 · MAD) below the median, and the midtones balance is
+            /// solved so the clipped median lands on `targetBackground`. Because the
+            /// MTF satisfies `mtf(m, x0) = t  ⇔  m = mtf(t, x0)`, the balance is
+            /// simply `mtf(targetBackground, m0)`, where `m0` is the median
+            /// renormalized into the post-clip window. A channel that cannot be
+            /// meaningfully stretched yields the identity: one with no spread
+            /// (`mad <= 0`), no post-clip range, or a median pinned at the black or
+            /// white point (`m0 <= 0` or `m0 >= 1`) that no MTF can lift.
             ///
             /// - Parameters:
             ///   - median:           The channel's median (normalized).
             ///   - mad:              The channel's median absolute deviation about
             ///                       the median.
-            ///   - shadowClipFactor: How many MADs below the median to clip the
-            ///                       shadows (typically `2.8`).
+            ///   - shadowClipFactor: How many normalized MADs (MADN) below the
+            ///                       median to clip the shadows (typically `2.8`).
             ///   - targetBackground: The value the median should map to (typically
             ///                       `0.25`).
             /// - Returns: The derived channel mapping, or the identity when the
@@ -225,7 +226,10 @@ public extension Processors.Stretch
                     return .identity
                 }
 
-                let shadows = Swift.min( 1.0, Swift.max( 0.0, median - shadowClipFactor * mad ) )
+                // Clip the shadows in normalized-MAD units (MADN = 1.4826 · MAD),
+                // so shadowClipFactor matches the PixInsight display-function
+                // convention.
+                let shadows = Swift.min( 1.0, Swift.max( 0.0, median - shadowClipFactor * PixelUtilities.madStandardDeviationScale * mad ) )
                 let range   = 1.0 - shadows
 
                 guard range > 0
@@ -234,7 +238,18 @@ public extension Processors.Stretch
                     return .identity
                 }
 
-                let m0       = ( median - shadows ) / range
+                let m0 = ( median - shadows ) / range
+
+                // A median at or below the shadow clip (m0 <= 0), or at or above
+                // the highlight (m0 >= 1), has no MTF that can lift it — the
+                // transfer fixes both endpoints — so degrade to the identity rather
+                // than collapsing to a hard black/white threshold.
+                guard m0 > 0, m0 < 1
+                else
+                {
+                    return .identity
+                }
+
                 let midtones = PixelUtilities.mtf( targetBackground, m0 )
 
                 return Channel( shadows: shadows, midtones: midtones, highlights: 1.0, low: 0.0, high: 1.0 )
@@ -273,8 +288,8 @@ public extension Processors.Stretch
         ///
         /// - Parameters:
         ///   - buffer:           The normalized buffer to analyze.
-        ///   - shadowClipFactor: How many MADs below the median to clip the
-        ///                       shadows. Defaults to `2.8`.
+        ///   - shadowClipFactor: How many normalized MADs (MADN) below the
+        ///                       median to clip the shadows. Defaults to `2.8`.
         ///   - targetBackground: The value the median should map to. Defaults to
         ///                       `0.25`.
         /// - Returns: The derived STF parameters.
@@ -326,8 +341,8 @@ public extension Processors.Stretch
         ///   - buffer:           The buffer to analyze (normalized or not).
         ///   - mode:             The normalization mode to apply when the buffer is
         ///                       not yet normalized. Defaults to ``Processors/Normalize/Mode/minMax``.
-        ///   - shadowClipFactor: How many MADs below the median to clip the
-        ///                       shadows. Defaults to `2.8`.
+        ///   - shadowClipFactor: How many normalized MADs (MADN) below the
+        ///                       median to clip the shadows. Defaults to `2.8`.
         ///   - targetBackground: The value the median should map to. Defaults to
         ///                       `0.25`.
         /// - Returns: The derived STF parameters.
@@ -361,8 +376,8 @@ public extension Processors.Stretch
         /// - Parameters:
         ///   - buffer:           The normalized, single-channel mosaic buffer.
         ///   - pattern:          The Bayer color-filter arrangement of the mosaic.
-        ///   - shadowClipFactor: How many MADs below the median to clip the
-        ///                       shadows. Defaults to `2.8`.
+        ///   - shadowClipFactor: How many normalized MADs (MADN) below the
+        ///                       median to clip the shadows. Defaults to `2.8`.
         ///   - targetBackground: The value the median should map to. Defaults to
         ///                       `0.25`.
         /// - Returns: The derived per-channel STF parameters.
@@ -402,7 +417,7 @@ public extension Processors.Stretch
         ///
         /// - Parameters:
         ///   - samples:          The channel's samples.
-        ///   - shadowClipFactor: How many MADs below the median to clip the shadows.
+        ///   - shadowClipFactor: How many normalized MADs (MADN) below the median to clip the shadows.
         ///   - targetBackground: The value the median should map to.
         /// - Returns: The derived channel mapping.
         ///
@@ -427,7 +442,7 @@ public extension Processors.Stretch
         ///
         /// - Parameters:
         ///   - samples:          The channel's samples (possibly empty).
-        ///   - shadowClipFactor: How many MADs below the median to clip the shadows.
+        ///   - shadowClipFactor: How many normalized MADs (MADN) below the median to clip the shadows.
         ///   - targetBackground: The value the median should map to.
         /// - Returns: The derived channel mapping, or the identity for an empty
         ///            channel.

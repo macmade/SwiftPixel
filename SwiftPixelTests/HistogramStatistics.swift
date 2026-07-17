@@ -125,4 +125,43 @@ struct Test_HistogramStatistics
         #expect( stats.percentile1  == 10 )
         #expect( stats.percentile99 == 20 )
     }
+
+    @Test
+    func smallTotalPercentilesDoNotCollapseToBinZero() async throws
+    {
+        // Total < 100: Int( total · 0.01 ) truncates to 0, so the pre-fix scan
+        // matched bin 0 immediately (cumulative >= 0 is always true) and reported
+        // the 1st percentile as bin 0 regardless of where the data lie. Clamping
+        // the threshold to >= 1 resolves it to a real, occupied bin.
+        var data    = [ Int ]( repeating: 0, count: 256 )
+        data[ 100 ] = 25
+        data[ 150 ] = 25
+        let stats   = HistogramStatistics( data: data )
+
+        #expect( stats.count        == 50 )
+        #expect( stats.min          == 100 )
+        #expect( stats.max          == 150 )
+        #expect( stats.median       == 100 ) // lower-median convention (D4)
+        #expect( stats.percentile1  == 100 ) // was 0 before the clamp
+        #expect( stats.percentile99 == 150 )
+    }
+
+    @Test
+    func singleSampleIsInternallyConsistent() async throws
+    {
+        // total == 1: total / 2 and Int( 1 · 0.99 ) both truncate to 0, so the
+        // pre-fix median and percentile99 collapsed to bin 0 while min == max were
+        // the real bin — an internally inconsistent result. Clamping the crossings
+        // to >= 1 makes every index-valued statistic agree on the single bin.
+        var data    = [ Int ]( repeating: 0, count: 256 )
+        data[ 200 ] = 1
+        let stats   = HistogramStatistics( data: data )
+
+        #expect( stats.count        == 1 )
+        #expect( stats.min          == 200 )
+        #expect( stats.max          == 200 )
+        #expect( stats.median       == 200 )
+        #expect( stats.percentile1  == 200 )
+        #expect( stats.percentile99 == 200 )
+    }
 }

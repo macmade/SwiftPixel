@@ -38,6 +38,10 @@ public struct HistogramStatistics: Equatable, Hashable
     public let mean: Double
 
     /// The bin index at which the cumulative count reaches half the total.
+    ///
+    /// This is the *lower-median* bin — the first bin whose cumulative count
+    /// reaches half the total — a deliberate, bin-indexed convention that is
+    /// biased low compared with an interpolated median.
     public let median: Int
 
     /// The standard deviation of the intensities.
@@ -110,7 +114,12 @@ public struct HistogramStatistics: Equatable, Hashable
             {
                 cumulative += value
 
-                if cumulative >= total / 2
+                // The crossing is clamped to at least one sample, so a single-
+                // sample histogram (where total / 2 == 0) resolves to the occupied
+                // bin rather than collapsing to bin 0. For total >= 2 this is a
+                // no-op that keeps the lower-median convention (the first bin whose
+                // cumulative count reaches half the total).
+                if cumulative >= Swift.max( 1, total / 2 )
                 {
                     median      = index
                     medianFound = true
@@ -164,11 +173,18 @@ public struct HistogramStatistics: Equatable, Hashable
     ///   - p2:    The upper cumulative fraction (e.g. `0.99` for the 99th percentile).
     ///
     /// - Returns: The bin indices at which the cumulative count first reaches
-    ///            `p1·total` and `p2·total`.
+    ///            `p1·total` and `p2·total`. Each threshold is taken as at least
+    ///            one sample, so a small total resolves to a real occupied bin
+    ///            rather than collapsing to bin 0.
     public static func percentiles( data: [ Int ], total: Int, p1: Double, p2: Double ) -> ( p1: Int, p2: Int )
     {
-        let t1         = Int( Double( total ) * p1 )
-        let t2         = Int( Double( total ) * p2 )
+        // Clamp each threshold to at least one sample: Int( total · p ) truncates
+        // to 0 for small totals (every total < 100 for p1 = 0.01), which the
+        // `cumulative >= t` scan would then match at bin 0 immediately, collapsing
+        // the percentile onto bin 0 regardless of where the data lie. For a large
+        // total (e.g. the real image histogram) the clamp is a no-op.
+        let t1         = Swift.max( 1, Int( Double( total ) * p1 ) )
+        let t2         = Swift.max( 1, Int( Double( total ) * p2 ) )
         var cumulative = 0
         var r1:          Int?
         var r2:          Int?

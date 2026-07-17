@@ -239,6 +239,11 @@ public struct PixelBuffer: CustomStringConvertible, Equatable, Sendable
 
             case 4:
 
+                // 4-channel input is interpreted as premultiplied RGBA: the RGB
+                // samples are read as already multiplied by alpha. A straight-alpha
+                // caller would instead need `.noneSkipLast` (or a premultiply
+                // conversion); the pipeline only emits 1- or 3-channel data, so this
+                // path is reached only by direct 4-channel construction.
                 colorSpace = CGColorSpaceCreateDeviceRGB()
                 bitmapInfo = CGBitmapInfo( rawValue: CGImageAlphaInfo.premultipliedLast.rawValue )
 

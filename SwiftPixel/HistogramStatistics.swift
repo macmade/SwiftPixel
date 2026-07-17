@@ -173,18 +173,20 @@ public struct HistogramStatistics: Equatable, Hashable
     ///   - p2:    The upper cumulative fraction (e.g. `0.99` for the 99th percentile).
     ///
     /// - Returns: The bin indices at which the cumulative count first reaches
-    ///            `p1·total` and `p2·total`. Each threshold is taken as at least
-    ///            one sample, so a small total resolves to a real occupied bin
-    ///            rather than collapsing to bin 0.
+    ///            `p1·total` and `p2·total`. Each threshold is clamped into
+    ///            `[1, total]`, so an extreme fraction or a small total resolves to
+    ///            a real occupied bin rather than collapsing to bin 0.
     public static func percentiles( data: [ Int ], total: Int, p1: Double, p2: Double ) -> ( p1: Int, p2: Int )
     {
-        // Clamp each threshold to at least one sample: Int( total · p ) truncates
-        // to 0 for small totals (every total < 100 for p1 = 0.01), which the
-        // `cumulative >= t` scan would then match at bin 0 immediately, collapsing
-        // the percentile onto bin 0 regardless of where the data lie. For a large
+        // Clamp each threshold into [1, total]. Int( total · p ) truncates to 0
+        // for small totals (every total < 100 for p1 = 0.01), which the
+        // `cumulative >= t` scan would match at bin 0 immediately, collapsing the
+        // percentile onto bin 0; and a fraction above 1 makes t exceed total,
+        // which the scan never reaches, collapsing r to the 0 fallback. Both ends
+        // now resolve to a real occupied bin. For an in-range fraction and a large
         // total (e.g. the real image histogram) the clamp is a no-op.
-        let t1         = Swift.max( 1, Int( Double( total ) * p1 ) )
-        let t2         = Swift.max( 1, Int( Double( total ) * p2 ) )
+        let t1         = Swift.min( total, Swift.max( 1, Int( Double( total ) * p1 ) ) )
+        let t2         = Swift.min( total, Swift.max( 1, Int( Double( total ) * p2 ) ) )
         var cumulative = 0
         var r1:          Int?
         var r2:          Int?

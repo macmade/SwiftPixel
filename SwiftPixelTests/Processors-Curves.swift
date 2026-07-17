@@ -257,4 +257,24 @@ struct Test_Processors_Curves
         #expect( Processors.Curves( channels: .uniform( .identity ) ).name.isEmpty == false )
         #expect( Processors.Curves( channels: .perChannel( red: .identity, green: .identity, blue: .identity ) ).name.isEmpty == false )
     }
+
+    @Test
+    func valueOnAMalformedCurveStaysFiniteAndInRange() async throws
+    {
+        typealias Curve = Processors.Curves.Curve
+
+        // A duplicate-x (zero-width) segment must not divide by zero: value(at:)
+        // stays finite and in [0, 1] across the range.
+        let duplicate = Curve( points: [ .init( x: 0, y: 0 ), .init( x: 0.5, y: 0.3 ), .init( x: 0.5, y: 0.9 ), .init( x: 1, y: 1 ) ] )
+        let sampled   = stride( from: 0.0, through: 1.0, by: 0.05 ).map { duplicate.value( at: $0 ) }
+
+        #expect( sampled.allSatisfy { $0.isFinite && $0 >= 0.0 && $0 <= 1.0 } )
+
+        // An out-of-range control point is clipped on the flat extrapolation paths,
+        // honouring value(at:)'s documented [0, 1] result.
+        let outOfRange = Curve( points: [ .init( x: 0, y: 1.8 ), .init( x: 1, y: -0.5 ) ] )
+
+        #expect( outOfRange.value( at: -0.2 ) == 1.0 )
+        #expect( outOfRange.value( at:  1.2 ) == 0.0 )
+    }
 }

@@ -84,6 +84,9 @@ public enum PixelBufferError: LocalizedError, Equatable, Sendable
     /// The `width × height × channels` product overflows `Int`.
     case geometryOverflow( width: Int, height: Int, channels: Int )
 
+    /// The byte size (`sampleCount × bytes-per-sample`) overflows `Int`.
+    case sizeOverflow( sampleCount: Int )
+
     /// The buffer's channel count is not one the operation supports. `supported`
     /// lists the accepted channel counts.
     case unsupportedChannelCount( actual: Int, supported: [ Int ] )
@@ -124,6 +127,10 @@ public enum PixelBufferError: LocalizedError, Equatable, Sendable
             case .geometryOverflow( let width, let height, let channels ):
 
                 return "Image geometry overflows Int: \( width ) x \( height ) x \( channels )"
+
+            case .sizeOverflow( let sampleCount ):
+
+                return "Byte size overflows Int for \( sampleCount ) samples"
 
             case .unsupportedChannelCount( let actual, let supported ):
 

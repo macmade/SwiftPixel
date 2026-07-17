@@ -110,7 +110,15 @@ public extension Processors
 
             /// Creates a curve from its control points.
             ///
-            /// - Parameter points: The control points, ordered by increasing `x`.
+            /// The initializer does not validate its input. ``value(at:)`` and the
+            /// apply path assume the points are ordered by strictly increasing `x`
+            /// with each coordinate in `[0, 1]` (enforced by ``validate()``, which
+            /// the apply path runs). ``value(at:)`` clips its result to `[0, 1]` and
+            /// stays finite even for a malformed curve, but the mapping is only
+            /// meaningful for a validated one.
+            ///
+            /// - Parameter points: The control points, ordered by strictly
+            ///                     increasing `x`, each in `[0, 1]`.
             public init( points: [ Point ] )
             {
                 self.points = points
@@ -178,12 +186,12 @@ public extension Processors
 
                 if x <= first.x
                 {
-                    return first.y
+                    return Swift.min( 1.0, Swift.max( 0.0, first.y ) )
                 }
 
                 if x >= last.x
                 {
-                    return last.y
+                    return Swift.min( 1.0, Swift.max( 0.0, last.y ) )
                 }
 
                 var index = 0
@@ -229,7 +237,13 @@ public extension Processors
 
                 for i in 0 ..< count - 1
                 {
-                    secants[ i ] = ( self.points[ i + 1 ].y - self.points[ i ].y ) / ( self.points[ i + 1 ].x - self.points[ i ].x )
+                    let dx = self.points[ i + 1 ].x - self.points[ i ].x
+
+                    // A validated curve has strictly increasing x; a malformed one
+                    // (duplicate / non-increasing x) would divide by zero here, so a
+                    // non-positive gap yields a flat (zero) secant instead of an
+                    // Inf/NaN that would poison the tangents.
+                    secants[ i ] = dx > 0 ? ( self.points[ i + 1 ].y - self.points[ i ].y ) / dx : 0
                 }
 
                 var tangents = [ Double ]( repeating: 0, count: count )

@@ -147,6 +147,21 @@ struct Test_HistogramStatistics
     }
 
     @Test
+    func percentilesClampAnExtremeUpperFraction() async throws
+    {
+        // A fraction above 1 makes Int( total · p ) exceed total, which the scan
+        // never reaches; clamping the threshold to total resolves it to the top
+        // occupied bin (max) instead of collapsing to the bin-0 fallback.
+        var data    = [ Int ]( repeating: 0, count: 256 )
+        data[ 100 ] = 25
+        data[ 150 ] = 25
+        let result  = HistogramStatistics.percentiles( data: data, total: 50, p1: 0.5, p2: 1.5 )
+
+        #expect( result.p1 == 100 )
+        #expect( result.p2 == 150 )
+    }
+
+    @Test
     func singleSampleIsInternallyConsistent() async throws
     {
         // total == 1: total / 2 and Int( 1 · 0.99 ) both truncate to 0, so the

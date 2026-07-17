@@ -55,6 +55,19 @@ struct Test_BitsPerPixel
     }
 
     @Test
+    func sizeReturnsNilOnOverflow() async throws
+    {
+        // The byte count is a checked multiply: an overflowing product returns nil
+        // rather than trapping.
+        #expect( BitsPerPixel.float64.size( numberOfPixels: Int.max ) == nil )
+        #expect( BitsPerPixel.int16.size(   numberOfPixels: Int.max ) == nil )
+
+        // A 1-byte format never overflows, and ordinary counts are unaffected.
+        #expect( BitsPerPixel.uint8.size(   numberOfPixels: Int.max ) == Int.max )
+        #expect( BitsPerPixel.float64.size( numberOfPixels: 1_000 )   == 8_000 )
+    }
+
+    @Test
     func description() async throws
     {
         #expect( BitsPerPixel.uint8.description   == "UInt8" )

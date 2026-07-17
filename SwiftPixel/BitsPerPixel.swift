@@ -81,21 +81,29 @@ public enum BitsPerPixel: Sendable, CustomStringConvertible
     }
 
     /// Returns the byte count needed to store `numberOfPixels` samples in this
-    /// format.
+    /// format, using a checked multiply so an overflowing product is reported
+    /// rather than trapping.
     ///
     /// - Parameter numberOfPixels: The number of samples.
     ///
-    /// - Returns: The total size in bytes (`numberOfPixels × bytes-per-sample`).
-    public func size( numberOfPixels: Int ) -> Int
+    /// - Returns: The total size in bytes (`numberOfPixels × bytes-per-sample`),
+    ///            or `nil` if that product overflows `Int`.
+    public func size( numberOfPixels: Int ) -> Int?
     {
+        let bytesPerSample: Int
+
         switch self
         {
-            case .uint8:   return numberOfPixels * 1
-            case .int16:   return numberOfPixels * 2
-            case .int32:   return numberOfPixels * 4
-            case .float32: return numberOfPixels * 4
-            case .float64: return numberOfPixels * 8
+            case .uint8:   bytesPerSample = 1
+            case .int16:   bytesPerSample = 2
+            case .int32:   bytesPerSample = 4
+            case .float32: bytesPerSample = 4
+            case .float64: bytesPerSample = 8
         }
+
+        let ( product, overflow ) = numberOfPixels.multipliedReportingOverflow( by: bytesPerSample )
+
+        return overflow ? nil : product
     }
 
     /// A human-readable name for the sample format (e.g. `"UInt8"`, `"Int16"`).

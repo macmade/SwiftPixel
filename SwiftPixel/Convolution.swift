@@ -44,11 +44,17 @@ public enum Convolution
     /// - Parameters:
     ///   - image:  The single-channel image whose `pixels` are convolved.
     ///   - kernel: The Gaussian kernel providing the filter scale.
-    /// - Returns: The response map, one value per pixel in row-major order
-    ///   (same geometry as `image`).
+    /// - Returns: The response map, one value per pixel in row-major order (same
+    ///   geometry as `image`), or an empty array if `image` is not single-channel.
     public static func zeroSumResponse( of image: PixelBuffer, kernel: GaussianKernel ) -> [ Double ]
     {
-        self.convolve( image.pixels, width: image.width, height: image.height, kernel: kernel.zeroSumValues, radius: kernel.radius )
+        guard image.channels == 1
+        else
+        {
+            return []
+        }
+
+        return self.convolve( image.pixels, width: image.width, height: image.height, kernel: kernel.zeroSumValues, radius: kernel.radius )
     }
 
     /// Convolves a row-major sample grid with a square, centred kernel, extending
@@ -65,16 +71,29 @@ public enum Convolution
     ///   - kernel: The kernel weights, row-major, of length `(2·radius + 1)²`.
     ///   - radius: The kernel radius, in pixels.
     /// - Returns: The convolved samples, same length and geometry as `values`; an
-    ///   empty array for a degenerate (zero-size) grid.
+    ///   empty array for a degenerate grid (non-positive `width`/`height`, or
+    ///   negative `radius`) or a precondition violation (`values.count` not
+    ///   `width·height`, or `kernel.count` not `(2·radius + 1)²`).
     public static func convolve( _ values: [ Double ], width: Int, height: Int, kernel: [ Double ], radius: Int ) -> [ Double ]
     {
-        guard width > 0, height > 0
+        guard width > 0, height > 0, radius >= 0
         else
         {
             return []
         }
 
-        let size         = ( 2 * radius ) + 1
+        let size = ( 2 * radius ) + 1
+
+        // Validate the caller's preconditions rather than trusting them: a short
+        // `values` array would trap on an out-of-bounds read, and a wrong-sized
+        // kernel would make vDSP.convolve over-read. A violated precondition
+        // returns [], matching the degenerate-grid result.
+        guard values.count == width * height, kernel.count == size * size
+        else
+        {
+            return []
+        }
+
         let paddedWidth  = width  + ( 2 * radius )
         let paddedHeight = height + ( 2 * radius )
 

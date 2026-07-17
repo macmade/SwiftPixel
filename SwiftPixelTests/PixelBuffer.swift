@@ -320,6 +320,26 @@ struct Test_PixelBuffer
     }
 
     @Test
+    func createCGImageFourChannelUsesPremultipliedAlpha() async throws
+    {
+        // Pin the 4-channel contract: CoreGraphics reads the RGB samples as already
+        // multiplied by alpha (premultipliedLast). The alpha < 1 sample is what
+        // makes premultiplied versus straight alpha observable — a straight-alpha
+        // caller would get wrong colours through this path.
+        let buffer = try PixelBuffer(
+            width:        1,
+            height:       1,
+            channels:     4,
+            pixels:       [ 0.25, 0.0, 0.0, 0.5 ], // premultiplied red at half alpha
+            isNormalized: true
+        )
+
+        let image = try buffer.createCGImage()
+
+        #expect( image.alphaInfo == .premultipliedLast )
+    }
+
+    @Test
     func createCGImageUnsupportedChannels() async throws
     {
         let buffer = try PixelBuffer(

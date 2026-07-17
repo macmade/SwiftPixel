@@ -103,11 +103,17 @@ public enum PixelUtilities
     /// - Returns: `width × height` samples as `Double`s, in row-major order.
     ///
     /// - Throws: A `PixelBufferError` if `data`'s length does not match the expected
-    ///           size for the given geometry and format.
+    ///           size for the given geometry and format, or the byte size overflows
+    ///           `Int`.
     public static func readRawPixels( data: Data, width: Int, height: Int, bitsPerPixel: BitsPerPixel ) throws -> [ Double ]
     {
         let count = try Self.checkedSampleCount( width: width, height: height, channels: 1 )
-        let size  = bitsPerPixel.size( numberOfPixels: count )
+
+        guard let size = bitsPerPixel.size( numberOfPixels: count )
+        else
+        {
+            throw PixelBufferError.sizeOverflow( sampleCount: count )
+        }
 
         guard data.count == size
         else

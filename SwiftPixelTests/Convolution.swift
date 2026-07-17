@@ -132,4 +132,27 @@ struct Test_Convolution
         #expect( centerValue > 0 )
         #expect( peakIndex == centerIndex )
     }
+
+    /// A multi-channel image returns an empty response rather than convolving a
+    /// geometrically incoherent channel mix (CR-12).
+    @Test
+    func zeroSumResponseRejectsMultiChannelInput() throws
+    {
+        let image = try PixelBuffer( width: 2, height: 2, channels: 3, pixels: [ Double ]( repeating: 1, count: 12 ), isNormalized: false )
+
+        #expect( Convolution.zeroSumResponse( of: image, kernel: GaussianKernel( sigma: 1 ) ).isEmpty )
+    }
+
+    /// The public `convolve` validates its preconditions, returning [] instead of
+    /// trapping on a short sample array, over-reading a wrong-sized kernel, or
+    /// mishandling a negative radius (CR-11).
+    @Test
+    func convolveRejectsInconsistentArguments() throws
+    {
+        let kernel3x3 = [ Double ]( repeating: 1.0 / 9.0, count: 9 ) // A radius-1 (3×3) kernel.
+
+        #expect( Convolution.convolve( [ 1, 2, 3 ], width: 2, height: 2, kernel: kernel3x3, radius: 1 ).isEmpty )      // values.count 3 ≠ 4
+        #expect( Convolution.convolve( [ 1, 2, 3, 4 ], width: 2, height: 2, kernel: [ 1, 2, 3 ], radius: 1 ).isEmpty ) // kernel.count 3 ≠ 9
+        #expect( Convolution.convolve( [ 1, 2, 3, 4 ], width: 2, height: 2, kernel: kernel3x3, radius: -1 ).isEmpty )  // radius < 0
+    }
 }

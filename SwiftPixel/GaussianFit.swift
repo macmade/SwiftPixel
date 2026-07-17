@@ -388,6 +388,13 @@ public enum GaussianFit
         {
             let candidate = ( pivot ..< n ).max { abs( matrix[ $0 ][ pivot ] ) < abs( matrix[ $1 ][ pivot ] ) } ?? pivot
 
+            // The singularity floor is absolute rather than scaled to the matrix
+            // norm. That is safe for this caller: the Levenberg–Marquardt loop
+            // damps the diagonal of JᵀJ by (1 + λ), keeping the solved system
+            // well-conditioned, and a marginally-conditioned solve that slips past
+            // the floor still produces a step that the strict candidateCost <
+            // currentCost acceptance gate rejects — so an ill-conditioned system
+            // cannot drive an accepted update.
             guard abs( matrix[ candidate ][ pivot ] ) > 1e-12
             else
             {

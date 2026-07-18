@@ -38,6 +38,13 @@ struct Test_PixelUtilities_Interleave
     }
 
     @Test
+    func errorDescriptions() throws
+    {
+        #expect( PixelInterleaveError.noNonEmptyPlane.errorDescription == "Cannot interleave: at least one non-empty plane is required." )
+        #expect( PixelInterleaveError.unequalPlaneLengths.errorDescription == "Cannot interleave planes of unequal length." )
+    }
+
+    @Test
     func interleavesArbitraryChannelCount() throws
     {
         // Two channels, three samples each -> [ c0s0 c1s0 c0s1 c1s1 c0s2 c1s2 ].

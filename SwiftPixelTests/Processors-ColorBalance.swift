@@ -109,6 +109,37 @@ struct Test_Processors_ColorBalance
     }
 
     @Test
+    func nonPivotLuminanceBlendsShadowsAndMidtonesCubically() async throws
+    {
+        // A dark gray at luminance 0.125 sits between the shadow and midtone ranges.
+        // The cubic smoothstep gives wShadow = 1 − 0.25²·(3 − 0.5) = 0.84375 and
+        // wMidtone = 0.15625 — a linear ramp would give 0.75 / 0.25 — so this pins
+        // the curve's shape, which the black/mid-gray/white pivot tests cannot.
+        var buffer = try PixelBuffer( width: 1, height: 1, channels: 3, pixels: [ 0.125, 0.125, 0.125 ], isNormalized: true )
+
+        try Processors.ColorBalance( ranges: self.ranges( shadows: .init( red: 1.0 ), midtones: .init( green: 1.0 ) ) ).process( buffer: &buffer )
+
+        // out_r = 0.125 + 1.0·0.84375, out_g = 0.125 + 1.0·0.15625, out_b unchanged.
+        #expect( abs( buffer.pixels[ 0 ] - 0.96875 ) < self.tolerance )
+        #expect( abs( buffer.pixels[ 1 ] - 0.28125 ) < self.tolerance )
+        #expect( abs( buffer.pixels[ 2 ] - 0.125   ) < self.tolerance )
+    }
+
+    @Test
+    func nonPivotLuminanceBlendsMidtonesAndHighlightsCubically() async throws
+    {
+        // A light gray at luminance 0.875 sits between the midtone and highlight
+        // ranges: wHighlight = 0.75²·(3 − 1.5) = 0.84375, wMidtone = 0.15625.
+        var buffer = try PixelBuffer( width: 1, height: 1, channels: 3, pixels: [ 0.875, 0.875, 0.875 ], isNormalized: true )
+
+        try Processors.ColorBalance( ranges: self.ranges( midtones: .init( blue: 0.1 ), highlights: .init( red: 0.1 ) ) ).process( buffer: &buffer )
+
+        #expect( abs( buffer.pixels[ 0 ] - 0.959375 ) < self.tolerance )
+        #expect( abs( buffer.pixels[ 1 ] - 0.875    ) < self.tolerance )
+        #expect( abs( buffer.pixels[ 2 ] - 0.890625 ) < self.tolerance )
+    }
+
+    @Test
     func clipsToUnitRange() async throws
     {
         // A large positive highlight shift saturates white; a large negative

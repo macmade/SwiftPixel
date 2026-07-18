@@ -102,6 +102,26 @@ struct Test_PixelBuffer
     }
 
     @Test
+    func equatableDistinguishesTheFlagAndGeometry() throws
+    {
+        let base = try PixelBuffer( width: 2, height: 1, channels: 1, pixels: [ 1.0, 2.0 ], isNormalized: false )
+
+        // isNormalized participates in the synthesized ==, so two buffers identical
+        // in every other respect but for the flag are not equal.
+        let flagged = try PixelBuffer( width: 2, height: 1, channels: 1, pixels: [ 1.0, 2.0 ], isNormalized: true )
+
+        #expect( base != flagged )
+
+        // The same samples under a different geometry — reshaped, or a different
+        // channel count — are likewise unequal.
+        let reshaped   = try PixelBuffer( width: 1, height: 2, channels: 1, pixels: [ 1.0, 2.0 ], isNormalized: false )
+        let threeChans = try PixelBuffer( width: 2, height: 1, channels: 3, pixels: [ 1.0, 2.0, 3.0, 4.0, 5.0, 6.0 ], isNormalized: false )
+
+        #expect( base != reshaped )
+        #expect( base != threeChans )
+    }
+
+    @Test
     func sendableHandoff() async throws
     {
         let buffer = try PixelBuffer( width: 2, height: 1, channels: 1, pixels: [ 1.0, 2.0 ], isNormalized: true )
@@ -139,6 +159,60 @@ struct Test_PixelBuffer
 
         #expect( sum                 == 7.0 )
         #expect( buffer.isNormalized == false )
+    }
+
+    @Test
+    func withUnsafeMutablePixelsLeavesFlagUnchangedWhenBodyThrows() throws
+    {
+        struct SampleError: Error {}
+
+        var buffer = try PixelBuffer( width: 2, height: 1, channels: 1, pixels: [ 1.0, 2.0 ], isNormalized: false )
+
+        // The flag is applied only on a non-throwing return: when the body throws
+        // after a partial write, the flag stays false, the write persists (the
+        // pointer aliases the array's own storage, so nothing is rolled back), and
+        // the original error is rethrown.
+        #expect( throws: SampleError.self )
+        {
+            try buffer.withUnsafeMutablePixels( isNormalized: true )
+            {
+                $0[ 0 ] = 99.0
+
+                throw SampleError()
+            }
+        }
+
+        #expect( buffer.isNormalized == false )
+        #expect( buffer.pixels       == [ 99.0, 2.0 ] )
+    }
+
+    @Test
+    func pixelBufferErrorDescriptions() throws
+    {
+        #expect( PixelBufferError.notNormalized.errorDescription == "Buffer needs to be normalized" )
+        #expect( PixelBufferError.mustNotBeNormalized.errorDescription == "Input buffer must not be normalized" )
+        #expect( PixelBufferError.bufferAccessFailed( role: .data ).errorDescription == "Failed to access data buffer" )
+        #expect( PixelBufferError.bufferAccessFailed( role: .input ).errorDescription == "Failed to access input data buffer" )
+        #expect( PixelBufferError.bufferAccessFailed( role: .output ).errorDescription == "Failed to access output data buffer" )
+        #expect( PixelBufferError.dataSizeMismatch( expected: 8, actual: 6 ).errorDescription == "Data size does not match expected size: 6 != 8" )
+        #expect( PixelBufferError.pixelCountMismatch( expected: 4, actual: 3 ).errorDescription == "Pixel count does not match geometry: 3 != 4" )
+        #expect( PixelBufferError.invalidChannelCount( 0 ).errorDescription == "Channel count must be at least 1: 0" )
+        #expect( PixelBufferError.negativeDimensions( width: -1, height: 2 ).errorDescription == "Dimensions must not be negative: -1x2" )
+        #expect( PixelBufferError.geometryOverflow( width: 9, height: 9, channels: 3 ).errorDescription == "Image geometry overflows Int: 9 x 9 x 3" )
+        #expect( PixelBufferError.sizeOverflow( sampleCount: 42 ).errorDescription == "Byte size overflows Int for 42 samples" )
+
+        // `supported` is sorted before rendering: [ 1 ] collapses to the single-
+        // channel phrasing, and a multi-element list is joined as "1- or 3-channel".
+        #expect( PixelBufferError.unsupportedChannelCount( actual: 3, supported: [ 1 ] ).errorDescription == "Requires a single-channel buffer: 3" )
+        #expect( PixelBufferError.unsupportedChannelCount( actual: 2, supported: [ 3, 1 ] ).errorDescription == "Requires a 1- or 3-channel buffer: 2" )
+    }
+
+    @Test
+    func pixelImageErrorDescriptions() throws
+    {
+        #expect( PixelImageError.unsupportedChannelConfiguration( 2 ).errorDescription == "Unsupported channel configuration: 2" )
+        #expect( PixelImageError.dataProviderCreationFailed.errorDescription == "Failed to create CGDataProvider" )
+        #expect( PixelImageError.imageCreationFailed.errorDescription == "Failed to create CGImage" )
     }
 
     @Test

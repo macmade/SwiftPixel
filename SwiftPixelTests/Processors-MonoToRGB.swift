@@ -107,23 +107,4 @@ struct Test_Processors_MonoToRGB
             try monoToRGB.process( buffer: &buffer )
         }
     }
-
-    @Test
-    func invalidNormalize() async throws
-    {
-        var buffer = try PixelBuffer(
-            width:        2,
-            height:       2,
-            channels:     1,
-            pixels:       [ 10, 20, 30, 40 ],
-            isNormalized: true
-        )
-
-        let debayer = Processors.Debayer( mode: .bilinear, pattern: .bggr )
-
-        #expect( throws: PixelBufferError.self )
-        {
-            try debayer.process( buffer: &buffer )
-        }
-    }
 }

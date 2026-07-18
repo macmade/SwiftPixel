@@ -201,6 +201,30 @@ struct Test_Processors_Orient
         #expect( buffer.pixels == [ 0, 2, 4, 1, 3, 5 ] )
     }
 
+    /// A stored Orientation that is *both* mirrored and rotated, driven through
+    /// `process` and checked against an independently hand-derived buffer — a
+    /// stronger guarantee than `sourceCoordinateInvertsTheTransform`, which only
+    /// checks that `map` and its inverse agree (a matched pair of bugs in the two
+    /// would slip past that self-consistency check).
+    @Test
+    func mirroredThenRotatedPermutesPixels() async throws
+    {
+        // 3 wide, 2 tall:
+        //   0 1 2
+        //   3 4 5
+        var buffer = try PixelBuffer( width: 3, height: 2, channels: 1, pixels: [ 0, 1, 2, 3, 4, 5 ], isNormalized: false )
+
+        try Processors.Orient( orientation: .init( rotation: .clockwise90, mirroredHorizontally: true ) ).process( buffer: &buffer )
+
+        // Mirror first (2 1 0 / 5 4 3), then rotate clockwise 90° → 2 wide, 3 tall:
+        //   5 2
+        //   4 1
+        //   3 0
+        #expect( buffer.width  == 2 )
+        #expect( buffer.height == 3 )
+        #expect( buffer.pixels == [ 5, 2, 4, 1, 3, 0 ] )
+    }
+
     @Test
     func outputSizeSwapsForQuarterTurns() async throws
     {

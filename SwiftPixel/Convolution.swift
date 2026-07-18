@@ -111,8 +111,13 @@ public enum Convolution
 
         let convolved = vDSP.convolve( padded, rowCount: paddedHeight, columnCount: paddedWidth, withKernel: kernel, kernelRowCount: size, kernelColumnCount: size )
 
-        // Crop the central region back to the original geometry; the padded
-        // border, where the kernel reached into the padding, is discarded.
+        // Crop the central width×height block back out at offset (radius, radius).
+        // This pins the border convention relied on from vDSP.convolve: it returns a
+        // full, padded-size output whose outer radius-wide ring is where the kernel
+        // overhangs the padded edge, so the valid, fully-overlapped result sits in
+        // the central block — exactly the ring that was replicated above. Were that
+        // convention ever to shift, the edge and corner samples would stop matching a
+        // replicated-border filter; `convolveExtendsBordersByReplication` guards it.
         return ( 0 ..< ( width * height ) ).map
         {
             index in

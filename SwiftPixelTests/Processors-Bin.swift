@@ -73,6 +73,40 @@ struct Test_Processors_Bin
     }
 
     @Test
+    func binsNonSquareFrameDroppingPartialEdgeCells() async throws
+    {
+        // A 6×5 mosaic binned by 2 drops the odd trailing row (5 / 2 = 2 cells) and
+        // the trailing indivisible cell block on X (3 cells / 2 = 1 output cell), so
+        // only rows 0–3, cols 0–3 survive — the documented "trailing partial cell is
+        // dropped" behaviour, on a non-square frame, exercising both axes at once.
+        var buffer = try PixelBuffer( width: 6, height: 5, channels: 1, pixels: ( 0 ..< 30 ).map { Double( $0 ) }, isNormalized: false )
+
+        try Processors.Bin( factor: 2 ).process( buffer: &buffer )
+
+        #expect( buffer.width  == 2 )
+        #expect( buffer.height == 2 )
+        // Each site is the mean of its factor² = 4 same-parity samples, e.g. the red
+        // site = mean(0,2,12,14) = 7.
+        #expect( buffer.pixels == [ 7, 8, 13, 14 ] )
+    }
+
+    @Test
+    func binsByFactorThreeDroppingIndivisibleCells() async throws
+    {
+        // An 8×8 mosaic is a 4×4 cell grid; binning by 3 keeps 4 / 3 = 1 output cell
+        // per axis (cols/rows 6–7 dropped) and averages factor² = 9 same-parity
+        // samples per output site.
+        var buffer = try PixelBuffer( width: 8, height: 8, channels: 1, pixels: ( 0 ..< 64 ).map { Double( $0 ) }, isNormalized: false )
+
+        try Processors.Bin( factor: 3 ).process( buffer: &buffer )
+
+        #expect( buffer.width  == 2 )
+        #expect( buffer.height == 2 )
+        // Red site = mean(0,2,4,16,18,20,32,34,36) = 18.
+        #expect( buffer.pixels == [ 18, 19, 26, 27 ] )
+    }
+
+    @Test
     func noOpForUnitFactor() async throws
     {
         let pixels = ( 0 ..< 16 ).map { Double( $0 ) }

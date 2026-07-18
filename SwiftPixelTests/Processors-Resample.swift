@@ -124,6 +124,51 @@ struct Test_Processors_Resample
     }
 
     @Test
+    func averageNonSquareWithPartialColumnAndRow() async throws
+    {
+        // A 5×3 frame downsampled by factor 2 (maxDimension 3, taken from the long
+        // side 5) yields 3×2: an interior full block, a partial-X column, a partial-Y
+        // row and a both-axes-partial corner all in one image, each divided by its
+        // actual sample count. A square frame cannot separate the X and Y extents.
+        var buffer = try PixelBuffer(
+            width:        5,
+            height:       3,
+            channels:     1,
+            pixels:       ( 0 ..< 15 ).map { Double( $0 ) },
+            isNormalized: false
+        )
+
+        try Processors.Resample( maxDimension: 3 ).process( buffer: &buffer )
+
+        #expect( buffer.width  == 3 )
+        #expect( buffer.height == 2 )
+        // Row 0: mean(0,1,5,6)=3, mean(2,3,7,8)=5, mean(4,9)=6.5 (partial X).
+        // Row 1: mean(10,11)=10.5, mean(12,13)=12.5 (partial Y), mean(14)=14 (corner).
+        #expect( buffer.pixels == [ 3, 5, 6.5, 10.5, 12.5, 14 ] )
+    }
+
+    @Test
+    func averageNonSquareCollapsesToASingleRow() async throws
+    {
+        // A 3×2 frame downsampled by factor 2 (long side 3 > maxDimension 2) yields
+        // 2×1, with the second column a partial-X block over a single column.
+        var buffer = try PixelBuffer(
+            width:        3,
+            height:       2,
+            channels:     1,
+            pixels:       ( 0 ..< 6 ).map { Double( $0 ) },
+            isNormalized: false
+        )
+
+        try Processors.Resample( maxDimension: 2 ).process( buffer: &buffer )
+
+        #expect( buffer.width  == 2 )
+        #expect( buffer.height == 1 )
+        // mean(0,1,3,4)=2 ; mean(2,5)=3.5.
+        #expect( buffer.pixels == [ 2, 3.5 ] )
+    }
+
+    @Test
     func averageChannelsIndependently() async throws
     {
         // A 2x2 RGB image averaged to a single pixel: each channel is the mean of

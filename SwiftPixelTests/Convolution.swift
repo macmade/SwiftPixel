@@ -143,6 +143,33 @@ struct Test_Convolution
         #expect( Convolution.zeroSumResponse( of: image, kernel: GaussianKernel( sigma: 1 ) ).isEmpty )
     }
 
+    /// Border samples come from extending the image with replicated edge pixels,
+    /// and the central block is cropped back at exactly the padding offset. A 3×3
+    /// box mean over a ramp has hand-computable edge and corner values, so a wrong
+    /// vDSP valid-region offset would surface here (IMP-8).
+    @Test
+    func convolveExtendsBordersByReplication() throws
+    {
+        // A 3×3 ramp and a 3×3 box-mean kernel (radius 1).
+        let values = [ 1.0, 2, 3, 4, 5, 6, 7, 8, 9 ]
+        let kernel = [ Double ]( repeating: 1.0 / 9.0, count: 9 )
+
+        let result = Convolution.convolve( values, width: 3, height: 3, kernel: kernel, radius: 1 )
+
+        // Each output is the mean of the 3×3 window centred on it, with out-of-image
+        // neighbours replicated from the nearest edge pixel — e.g. the top-left
+        // window is { 1, 1, 2 / 1, 1, 2 / 4, 4, 5 } = 21/9, and the centre is the
+        // full-image mean 45/9 = 5.
+        let expected = [ 21.0, 27, 33, 39, 45, 51, 57, 63, 69 ].map { $0 / 9.0 }
+
+        try #require( result.count == expected.count )
+
+        result.indices.forEach
+        {
+            #expect( abs( result[ $0 ] - expected[ $0 ] ) < 1e-9 )
+        }
+    }
+
     /// The public `convolve` validates its preconditions, returning [] instead of
     /// trapping on a short sample array, over-reading a wrong-sized kernel, or
     /// mishandling a negative radius (CR-11).

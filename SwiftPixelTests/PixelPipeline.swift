@@ -57,6 +57,7 @@ struct Test_PixelPipeline
     private static func config(
         scale:              ( scale: Double, offset: Double )?                          = nil,
         inputFormat:        PixelPipeline.Config.InputFormat                            = .mono,
+        maxDimension:       Int?                                                        = nil,
         binFactor:          Int                                                         = 1,
         cosmeticCorrection: Processors.CosmeticCorrection.Parameters?                   = nil,
         normalize:          Processors.Normalize.Mode?                                  = nil,
@@ -74,7 +75,7 @@ struct Test_PixelPipeline
         measure:            ( @Sendable ( String, () throws -> Void ) throws -> Void )? = nil
     ) -> PixelPipeline.Config
     {
-        PixelPipeline.Config( scale: scale, inputFormat: inputFormat, binFactor: binFactor, cosmeticCorrection: cosmeticCorrection, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, invert: invert, brightnessContrast: brightnessContrast, levels: levels, curves: curves, colorBalance: colorBalance, hue: hue, saturation: saturation, orient: orient, measure: measure )
+        PixelPipeline.Config( scale: scale, inputFormat: inputFormat, maxDimension: maxDimension, binFactor: binFactor, cosmeticCorrection: cosmeticCorrection, normalize: normalize, stretch: stretch, correctGamma: correctGamma, whiteBalance: whiteBalance, invert: invert, brightnessContrast: brightnessContrast, levels: levels, curves: curves, colorBalance: colorBalance, hue: hue, saturation: saturation, orient: orient, measure: measure )
     }
 
     @Test
@@ -197,6 +198,76 @@ struct Test_PixelPipeline
         {
             _ = try pipeline.run( pixels: [ 10, 20, 30, 40, 50, 60 ], width: 2, height: 1, bitsPerPixel: .uint8 )
         }
+    }
+
+    // MARK: - Downsampling
+
+    @Test
+    func maxDimensionInsertsResampleAfterMonoForming() async throws
+    {
+        // A maxDimension cap inserts a Resample stage, and it runs after the
+        // channel-forming stage — on co-located RGB, never on the raw mono input.
+        let pipeline = PixelPipeline( config: Self.config( inputFormat: .mono, maxDimension: 2 ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        let formingIndex  = try #require( names.firstIndex { $0.hasPrefix( "Mono to RGB" ) } )
+        let resampleIndex = try #require( names.firstIndex { $0.hasPrefix( "Resample" ) } )
+
+        #expect( formingIndex < resampleIndex )
+    }
+
+    @Test
+    func maxDimensionResampleRunsAfterDebayer() async throws
+    {
+        // For a colour-filter-array source the Resample must follow the demosaic, so
+        // box averaging runs on co-located RGB rather than blending mosaic colours.
+        let pipeline = PixelPipeline( config: Self.config( inputFormat: .cfa( pattern: .rggb, mode: .bilinear ), maxDimension: 2 ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        let debayerIndex  = try #require( names.firstIndex { $0.hasPrefix( "Debayer" ) } )
+        let resampleIndex = try #require( names.firstIndex { $0.hasPrefix( "Resample" ) } )
+
+        #expect( debayerIndex < resampleIndex )
+    }
+
+    @Test
+    func noMaxDimensionSkipsResample() async throws
+    {
+        // With no cap the Resample stage is absent.
+        let pipeline = PixelPipeline( config: Self.config( inputFormat: .mono ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        #expect( names.contains { $0.hasPrefix( "Resample" ) } == false )
+    }
+
+    @Test
+    func maxDimensionDownsamplesTheRenderedImage() async throws
+    {
+        // A 4×4 mono frame capped at 2 px is formed to 4×4 RGB, then box-averaged
+        // down to 2×2 RGB — the downsample runs end to end.
+        let pipeline = PixelPipeline( config: Self.config( inputFormat: .mono, maxDimension: 2 ) )
+        let result   = try pipeline.run( pixels: ( 0 ..< 16 ).map { Double( $0 ) }, width: 4, height: 4, bitsPerPixel: .float32 )
+
+        #expect( result.width    == 2 )
+        #expect( result.height   == 2 )
+        #expect( result.channels == 3 )
+    }
+
+    @Test
+    func binPrecedesFormingAndResampleFollowsIt() async throws
+    {
+        // The full raw-to-RGB order for a mosaic: Bin the raw mosaic first (so the
+        // debayer runs on a smaller frame), demosaic, then Resample the co-located
+        // RGB — binning before channel-forming, downsampling after.
+        let pipeline = PixelPipeline( config: Self.config( inputFormat: .cfa( pattern: .rggb, mode: .bilinear ), maxDimension: 2, binFactor: 2 ) )
+        let names    = pipeline.processors().map { $0.name }
+
+        let binIndex      = try #require( names.firstIndex { $0.hasPrefix( "Bin" ) } )
+        let debayerIndex  = try #require( names.firstIndex { $0.hasPrefix( "Debayer" ) } )
+        let resampleIndex = try #require( names.firstIndex { $0.hasPrefix( "Resample" ) } )
+
+        #expect( binIndex     < debayerIndex )
+        #expect( debayerIndex < resampleIndex )
     }
 
     @Test
@@ -678,6 +749,12 @@ struct Test_PixelPipeline
         {
             _ = try pipeline.run( planes: [ [ 10, 40 ], [ 20, 50 ] ], width: 2, height: 1, bitsPerPixel: .uint8 )
         }
+    }
+
+    @Test
+    func pipelineErrorDescription() async throws
+    {
+        #expect( PixelPipelineError.planeCountMismatch( expected: 3, actual: 2 ).errorDescription == "Plane count 2 does not match the input format's channel count 3." )
     }
 
     // MARK: - Cosmetic correction

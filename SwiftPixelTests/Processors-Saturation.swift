@@ -74,6 +74,40 @@ struct Test_Processors_Saturation
     }
 
     @Test
+    func fractionalSaturationMovesPartwayTowardGray() async throws
+    {
+        // At s = 0.5 the lerp toward luminance reduces to the midpoint between each
+        // channel and the luminance — an independent form of the production
+        // `l + (c − l)·s` — pinning partial desaturation, which only the s = 0 and
+        // s = 1 endpoints otherwise cover.
+        let input  = [ 0.2, 0.5, 0.9 ]
+        var buffer = try PixelBuffer( width: 1, height: 1, channels: 3, pixels: input, isNormalized: true )
+
+        try Processors.Saturation( saturation: 0.5 ).process( buffer: &buffer )
+
+        let l = self.luminance( 0.2, 0.5, 0.9 )
+
+        #expect( abs( buffer.pixels[ 0 ] - ( input[ 0 ] + l ) / 2 ) < 1e-12 )
+        #expect( abs( buffer.pixels[ 1 ] - ( input[ 1 ] + l ) / 2 ) < 1e-12 )
+        #expect( abs( buffer.pixels[ 2 ] - ( input[ 2 ] + l ) / 2 ) < 1e-12 )
+    }
+
+    @Test
+    func boostedSaturationStaysInRangeForLowContrast() async throws
+    {
+        // A low-contrast pixel boosted at s = 1.5 spreads around its luminance
+        // (0.48596) without clipping — an interior boost the existing s = 2 test,
+        // which clips two of three channels, never reaches. Values hand-computed.
+        var buffer = try PixelBuffer( width: 1, height: 1, channels: 3, pixels: [ 0.4, 0.5, 0.6 ], isNormalized: true )
+
+        try Processors.Saturation( saturation: 1.5 ).process( buffer: &buffer )
+
+        #expect( abs( buffer.pixels[ 0 ] - 0.35702 ) < 1e-9 )
+        #expect( abs( buffer.pixels[ 1 ] - 0.50702 ) < 1e-9 )
+        #expect( abs( buffer.pixels[ 2 ] - 0.65702 ) < 1e-9 )
+    }
+
+    @Test
     func appliesPerPixel() async throws
     {
         // Two distinct pixels: each desaturates to its own luminance at s = 0.

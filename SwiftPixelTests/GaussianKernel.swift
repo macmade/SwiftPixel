@@ -157,4 +157,70 @@ struct Test_GaussianKernel
         #expect( kernel.values.allSatisfy { $0.isFinite } )
         #expect( abs( kernel.values.reduce( 0, + ) - 1 ) < 1e-9 )
     }
+
+    /// The weight values match the sampled Gaussian: the centre is `1 / Σ` and each
+    /// ring is the centre scaled by `exp(-(x²+y²)/(2σ²))`, pinning the exponent and
+    /// the normalization that the sum/symmetry invariants leave open.
+    @Test
+    func weightsMatchTheSampledGaussian() throws
+    {
+        // sigma 0.5, radiusInSigmas 2 → span 1 → radius 1: a 3×3 kernel with
+        // 2σ² = 0.5, so the ring ratios are exp(-2) (edge) and exp(-4) (corner).
+        let kernel = GaussianKernel( sigma: 0.5 )
+
+        try #require( kernel.radius == 1 )
+        try #require( kernel.size   == 3 )
+
+        let center = kernel.values[ 4 ]
+        let edge   = kernel.values[ 1 ]
+        let corner = kernel.values[ 0 ]
+
+        // The centre weight is 1 / Σ of the raw samples over the 3×3 footprint.
+        #expect( abs( center - 0.6193470305571772 ) < 1e-12 )
+        #expect( abs( edge   - center * Foundation.exp( -2.0 ) ) < 1e-12 )
+        #expect( abs( corner - center * Foundation.exp( -4.0 ) ) < 1e-12 )
+
+        // zeroSumValues subtract the mean weight, which is 1 / count because the
+        // values already sum to one.
+        #expect( abs( kernel.zeroSumValues[ 4 ] - ( center - 1.0 / 9.0 ) ) < 1e-12 )
+        #expect( abs( kernel.zeroSumValues[ 1 ] - ( edge   - 1.0 / 9.0 ) ) < 1e-12 )
+    }
+
+    /// A finite, non-positive or sub-minimum sigma clamps up to the 1e-6 floor via
+    /// the `max(sigma, 1e-6)` branch — distinct from the non-finite path.
+    @Test
+    func finiteSubMinimumSigmaClampsToFloor() throws
+    {
+        [ 0.0, -5.0, 1e-9 ].forEach
+        {
+            sigma in
+
+            let kernel = GaussianKernel( sigma: sigma )
+
+            #expect( kernel.sigma == 1e-6 )
+            #expect( kernel.radius == 1 )
+            #expect( kernel.size == 3 )
+            #expect( abs( kernel.values.reduce( 0, + ) - 1 ) < 1e-9 )
+        }
+    }
+
+    /// The radius is pinned at both ends of the finite branch, plus the
+    /// finite-sigma / overflowing-span fallback.
+    @Test
+    func radiusIsClampedToItsBounds() throws
+    {
+        // Lower floor via the finite branch: a tiny span rounds up to radius 1.
+        #expect( GaussianKernel( sigma: 0.1 ).radius == 1 )
+
+        // Upper cap: an enormous but finite span saturates at maximumRadius (512).
+        #expect( GaussianKernel( sigma: 1e300 ).radius == 512 )
+
+        // A finite sigma whose span overflows to non-finite falls to radius 1 — a
+        // different branch from the finite upper cap above.
+        let overflow = GaussianKernel( sigma: .greatestFiniteMagnitude )
+
+        #expect( overflow.radius == 1 )
+        #expect( overflow.values.allSatisfy { $0.isFinite } )
+        #expect( abs( overflow.values.reduce( 0, + ) - 1 ) < 1e-9 )
+    }
 }

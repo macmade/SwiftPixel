@@ -103,6 +103,53 @@ struct Test_Processors_WhiteBalance
     }
 
     @Test
+    func autoGainAppliesGrayWorldMeans() async throws
+    {
+        // Gray-world sets each gain to gray / channelMean, driving every channel's
+        // mean to the overall gray. Here avgR = 0.2, avgG = 0.4, avgB = 0.6 and
+        // gray = 0.4, so the gains are (2, 1, ⅔) and every output channel mean is
+        // 0.4 — pinning the auto path's actual values, not just their range.
+        var buffer = try PixelBuffer(
+            width:        2,
+            height:       1,
+            channels:     3,
+            pixels:       [ 0.1, 0.4, 0.6, 0.3, 0.4, 0.6 ],
+            isNormalized: true
+        )
+
+        try Processors.WhiteBalance( mode: .auto ).process( buffer: &buffer )
+
+        let expected = [ 0.2, 0.4, 0.4, 0.6, 0.4, 0.4 ]
+
+        #expect( zip( buffer.pixels, expected ).allSatisfy { abs( $0 - $1 ) < 1e-12 }, "got \( buffer.pixels )" )
+    }
+
+    @Test
+    func autoGainLeavesADeadChannelUntouched() async throws
+    {
+        // A channel whose mean is zero would divide by zero; the guard forces its
+        // gain to 1.0, so the dead (blue) channel stays 0 while the live channels
+        // scale toward gray = ⅓. Asserting blue == 0 exactly pins the guard —
+        // without it the gain is gray / 0 = +inf and 0 · inf = NaN.
+        var buffer = try PixelBuffer(
+            width:        2,
+            height:       1,
+            channels:     3,
+            pixels:       [ 0.5, 0.5, 0.0, 0.5, 0.5, 0.0 ],
+            isNormalized: true
+        )
+
+        try Processors.WhiteBalance( mode: .auto ).process( buffer: &buffer )
+
+        let third = 1.0 / 3.0
+
+        #expect( abs( buffer.pixels[ 0 ] - third ) < 1e-12 )
+        #expect( abs( buffer.pixels[ 1 ] - third ) < 1e-12 )
+        #expect( buffer.pixels[ 2 ] == 0.0 )
+        #expect( buffer.pixels[ 5 ] == 0.0 )
+    }
+
+    @Test
     func notNormalizedThrows() async throws
     {
         var buffer = try PixelBuffer(

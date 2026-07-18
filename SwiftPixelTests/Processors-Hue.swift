@@ -129,6 +129,37 @@ struct Test_Processors_Hue
     }
 
     @Test
+    func arbitraryAngleRoundTrips() async throws
+    {
+        // Rotating a chromatic, non-primary pixel by +37° then −37° returns the
+        // original: for a normalized pixel the intermediate RGB never clips (its
+        // channels stay within [match, v] ⊆ [0, 1]), so no information is lost and
+        // wrap(wrap(h + 37) − 37) = h. This is the full HSV round trip at an angle
+        // that is not a multiple of 60/120°, which the primary-only tests skip.
+        let input  = [ 0.8, 0.4, 0.2 ]
+        var buffer = try PixelBuffer( width: 1, height: 1, channels: 3, pixels: input, isNormalized: true )
+
+        try Processors.Hue( angle:  37.0 ).process( buffer: &buffer )
+        try Processors.Hue( angle: -37.0 ).process( buffer: &buffer )
+
+        #expect( zip( buffer.pixels, input ).allSatisfy { abs( $0 - $1 ) < self.tolerance }, "got \( buffer.pixels ), expected \( input )" )
+    }
+
+    @Test
+    func eightFortyFiveDegreeStepsReturnToStart() async throws
+    {
+        // Eight successive 45° rotations sum to a full turn, returning the pixel to
+        // where it started — a stronger check of the 45° step than the flag-only
+        // `remainsNormalized` test.
+        let input  = [ 0.8, 0.4, 0.2 ]
+        var buffer = try PixelBuffer( width: 1, height: 1, channels: 3, pixels: input, isNormalized: true )
+
+        try ( 0 ..< 8 ).forEach { _ in try Processors.Hue( angle: 45.0 ).process( buffer: &buffer ) }
+
+        #expect( zip( buffer.pixels, input ).allSatisfy { abs( $0 - $1 ) < self.tolerance }, "got \( buffer.pixels ), expected \( input )" )
+    }
+
+    @Test
     func remainsNormalized() async throws
     {
         var buffer = try PixelBuffer( width: 1, height: 1, channels: 3, pixels: [ 0.2, 0.5, 0.9 ], isNormalized: true )

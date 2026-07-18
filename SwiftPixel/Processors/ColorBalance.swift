@@ -30,7 +30,7 @@ public extension Processors
     /// shifting the red, green and blue channels independently within the
     /// shadows, midtones and highlights.
     ///
-    /// Each pixel's Rec. 709 luminance selects how strongly it belongs to each
+    /// Each pixel's Rec. 709 luma selects how strongly it belongs to each
     /// tonal range, via smooth weights that peak at black (shadows), mid-gray
     /// (midtones) and white (highlights) and always sum to `1`. The matching
     /// per-channel shifts, scaled by those weights, are added to the channels and
@@ -164,10 +164,10 @@ public extension Processors
                     let g    = pixels[ base + 1 ]
                     let b    = pixels[ base + 2 ]
 
-                    // Rec. 709 luminance, matching the Saturation stage's channel.
-                    let luminance       = 0.2126 * r + 0.7152 * g + 0.0722 * b
-                    let shadowWeight    = 1.0 - Self.smoothstep( 0.0, 0.5, luminance )
-                    let highlightWeight = Self.smoothstep( 0.5, 1.0, luminance )
+                    // Rec. 709 luma, matching the Saturation stage's channel.
+                    let luma            = 0.2126 * r + 0.7152 * g + 0.0722 * b
+                    let shadowWeight    = 1.0 - Self.smoothstep( 0.0, 0.5, luma )
+                    let highlightWeight = Self.smoothstep( 0.5, 1.0, luma )
                     let midtoneWeight   = 1.0 - shadowWeight - highlightWeight
 
                     pixels[ base + 0 ] = min( 1.0, max( 0.0, r + shadows.red   * shadowWeight + midtones.red   * midtoneWeight + highlights.red   * highlightWeight ) )

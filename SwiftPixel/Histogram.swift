@@ -33,8 +33,9 @@ public struct Histogram: Equatable
         /// Three separate histograms, one per color channel.
         case rgb
 
-        /// A single luminance histogram (Rec. 709 weighted).
-        case luminance
+        /// A single luma histogram (the Rec. 709 weighted sum of the display-
+        /// encoded samples — technically luma, Y′, not linear luminance).
+        case luma
 
         /// A single-channel histogram of the first sample of each pixel, for
         /// genuinely monochrome (1-channel) data.
@@ -51,11 +52,11 @@ public struct Histogram: Equatable
     public let mode: Mode
 
     /// The computed bins: three arrays (R, G, B) in `.rgb` mode, or one
-    /// (luminance in `.luminance` mode, the first channel in `.mono` mode); each
+    /// (luma in `.luma` mode, the first channel in `.mono` mode); each
     /// array has 256 entries.
     public let data: [ [ Int ] ]
 
-    /// Builds per-channel (or luminance) histograms from interleaved 8-bit pixel
+    /// Builds per-channel (or luma) histograms from interleaved 8-bit pixel
     /// data.
     ///
     /// - Parameters:
@@ -64,7 +65,7 @@ public struct Histogram: Equatable
     ///               read stride: 1 (grayscale, replicated into R/G/B), 3 (RGB),
     ///               or 4 (RGBA, the alpha sample is ignored). Trailing bytes
     ///               that don't form a complete pixel are skipped.
-    ///   - mode:     Whether to compute per-channel, luminance or single-channel
+    ///   - mode:     Whether to compute per-channel, luma or single-channel
     ///               (mono) histograms.
     public init( bytes: [ UInt8 ], channels: Int, mode: Mode )
     {
@@ -72,12 +73,15 @@ public struct Histogram: Equatable
         self.channels = channels
         self.mode     = mode
 
-        let bins      = 256
-        var red       = [ Int ]( repeating: 0, count: bins )
-        var green     = [ Int ]( repeating: 0, count: bins )
-        var blue      = [ Int ]( repeating: 0, count: bins )
-        var luminance = [ Int ]( repeating: 0, count: bins )
-        var mono      = [ Int ]( repeating: 0, count: bins )
+        let bins = 256
+
+        // Allocate only the accumulator(s) the active mode uses; the others stay
+        // empty and are never indexed.
+        var red   = [ Int ]( repeating: 0, count: mode == .rgb  ? bins : 0 )
+        var green = [ Int ]( repeating: 0, count: mode == .rgb  ? bins : 0 )
+        var blue  = [ Int ]( repeating: 0, count: mode == .rgb  ? bins : 0 )
+        var luma  = [ Int ]( repeating: 0, count: mode == .luma ? bins : 0 )
+        var mono  = [ Int ]( repeating: 0, count: mode == .mono ? bins : 0 )
 
         if channels >= 1
         {
@@ -110,11 +114,11 @@ public struct Histogram: Equatable
                         green[ g ] += 1
                         blue[  b ] += 1
 
-                    case .luminance:
+                    case .luma:
 
                         let y = ( 2126 * r + 7152 * g + 722 * b ) / 10000
 
-                        luminance[ y ] += 1
+                        luma[ y ] += 1
 
                     case .mono:
 
@@ -125,9 +129,9 @@ public struct Histogram: Equatable
 
         switch mode
         {
-            case .rgb:       self.data = [ red, green, blue ]
-            case .luminance: self.data = [ luminance ]
-            case .mono:      self.data = [ mono ]
+            case .rgb:  self.data = [ red, green, blue ]
+            case .luma: self.data = [ luma ]
+            case .mono: self.data = [ mono ]
         }
     }
 }

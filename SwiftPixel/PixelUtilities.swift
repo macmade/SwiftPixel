@@ -100,7 +100,8 @@ public enum PixelUtilities
     ///   - height:       The image height in pixels.
     ///   - bitsPerPixel: The sample format of `data`.
     ///
-    /// - Returns: `width × height` samples as `Double`s, in row-major order.
+    /// - Returns: `width × height` samples as `Double`s, in row-major order, or an
+    ///            empty array for a zero-area image.
     ///
     /// - Throws: A `PixelBufferError` if `data`'s length does not match the expected
     ///           size for the given geometry and format, or the byte size overflows
@@ -119,6 +120,15 @@ public enum PixelUtilities
         else
         {
             throw PixelBufferError.dataSizeMismatch( expected: size, actual: data.count )
+        }
+
+        guard count > 0
+        else
+        {
+            // A zero-area image has no samples to read; return an empty array rather
+            // than reaching the nil-baseAddress guard on empty `data`, which some
+            // platforms trip.
+            return []
         }
 
         var result = [ Double ]( repeating: 0.0, count: count )
@@ -237,7 +247,7 @@ public enum PixelUtilities
                         return
                     }
 
-                    // Copy `count` samples as an N=1 column, M=count row "matrix" from
+                    // Copy `count` samples as an M=1 column, N=count rows "matrix" from
                     // the contiguous plane (row stride 1) into the output starting at
                     // `channel` with a row stride of `channels`, i.e. every channels-th
                     // slot. `vDSP_mmovD` is the non-deprecated Accelerate strided move.
@@ -440,11 +450,6 @@ public enum PixelUtilities
         if m >= 1
         {
             return 0
-        }
-
-        if m == 0.5
-        {
-            return x
         }
 
         return ( ( m - 1.0 ) * x ) / ( ( 2.0 * m - 1.0 ) * x - m )

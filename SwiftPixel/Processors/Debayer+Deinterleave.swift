@@ -41,8 +41,8 @@ public extension Processors.Debayer
     ///
     /// - Parameters:
     ///   - pixels:  The row-major mosaic samples, one per pixel.
-    ///   - width:   The mosaic width in pixels. Must be positive.
-    ///   - height:  The mosaic height in pixels. Must be positive.
+    ///   - width:   The mosaic width in pixels. A zero dimension yields empty sets.
+    ///   - height:  The mosaic height in pixels. A zero dimension yields empty sets.
     ///   - pattern: The Bayer color-filter arrangement of the mosaic.
     /// - Returns: The red, green and blue sample sets, each in row-major order.
     ///

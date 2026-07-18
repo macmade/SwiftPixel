@@ -39,6 +39,16 @@ struct Test_PixelUtilities_ReadRawPixels
     }
 
     @Test
+    func zeroAreaReturnsEmpty() async throws
+    {
+        // A zero-area image has no samples; readRawPixels returns [] rather than
+        // reaching the nil-baseAddress guard on empty data and throwing.
+        let result = try PixelUtilities.readRawPixels( data: Data(), width: 0, height: 0, bitsPerPixel: .uint8 )
+
+        #expect( result.isEmpty )
+    }
+
+    @Test
     func readRawPixels_UInt16() async throws
     {
         let values: [ UInt8 ] = [ 0x00, 0x0A, 0x00, 0x14, 0x00, 0x1E, 0x00, 0x28 ]

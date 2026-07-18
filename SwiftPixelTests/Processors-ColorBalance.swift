@@ -109,9 +109,9 @@ struct Test_Processors_ColorBalance
     }
 
     @Test
-    func nonPivotLuminanceBlendsShadowsAndMidtonesCubically() async throws
+    func nonPivotLumaBlendsShadowsAndMidtonesCubically() async throws
     {
-        // A dark gray at luminance 0.125 sits between the shadow and midtone ranges.
+        // A dark gray at luma 0.125 sits between the shadow and midtone ranges.
         // The cubic smoothstep gives wShadow = 1 − 0.25²·(3 − 0.5) = 0.84375 and
         // wMidtone = 0.15625 — a linear ramp would give 0.75 / 0.25 — so this pins
         // the curve's shape, which the black/mid-gray/white pivot tests cannot.
@@ -126,9 +126,9 @@ struct Test_Processors_ColorBalance
     }
 
     @Test
-    func nonPivotLuminanceBlendsMidtonesAndHighlightsCubically() async throws
+    func nonPivotLumaBlendsMidtonesAndHighlightsCubically() async throws
     {
-        // A light gray at luminance 0.875 sits between the midtone and highlight
+        // A light gray at luma 0.875 sits between the midtone and highlight
         // ranges: wHighlight = 0.75²·(3 − 1.5) = 0.84375, wMidtone = 0.15625.
         var buffer = try PixelBuffer( width: 1, height: 1, channels: 3, pixels: [ 0.875, 0.875, 0.875 ], isNormalized: true )
 

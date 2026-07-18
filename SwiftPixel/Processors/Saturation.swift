@@ -26,11 +26,11 @@ import Foundation
 
 public extension Processors
 {
-    /// Scales colour saturation about each pixel's luminance on a 3-channel
+    /// Scales colour saturation about each pixel's luma on a 3-channel
     /// normalized buffer.
     ///
-    /// Each channel is moved toward or away from the pixel's Rec. 709 luminance:
-    /// `out = luminance + (channel − luminance) · saturation`, clipped to
+    /// Each channel is moved toward or away from the pixel's Rec. 709 luma:
+    /// `out = luma + (channel − luma) · saturation`, clipped to
     /// `[0, 1]`. A factor of `0` desaturates to gray, `1` is an identity, and
     /// values above `1` boost saturation. Requires a normalized, 3-channel
     /// buffer.
@@ -87,12 +87,12 @@ public extension Processors
                     let g    = pixels[ base + 1 ]
                     let b    = pixels[ base + 2 ]
 
-                    // Rec. 709 luminance, matching Histogram's luminance channel.
-                    let luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+                    // Rec. 709 luma, matching Histogram's luma channel.
+                    let luma = 0.2126 * r + 0.7152 * g + 0.0722 * b
 
-                    pixels[ base + 0 ] = min( 1.0, max( 0.0, luminance + ( r - luminance ) * factor ) )
-                    pixels[ base + 1 ] = min( 1.0, max( 0.0, luminance + ( g - luminance ) * factor ) )
-                    pixels[ base + 2 ] = min( 1.0, max( 0.0, luminance + ( b - luminance ) * factor ) )
+                    pixels[ base + 0 ] = min( 1.0, max( 0.0, luma + ( r - luma ) * factor ) )
+                    pixels[ base + 1 ] = min( 1.0, max( 0.0, luma + ( g - luma ) * factor ) )
+                    pixels[ base + 2 ] = min( 1.0, max( 0.0, luma + ( b - luma ) * factor ) )
                 }
             }
         }

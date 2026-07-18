@@ -64,7 +64,7 @@ struct Test_Histogram
     }
 
     @Test
-    func luminance() async throws
+    func luma() async throws
     {
         let bytes = [
             UInt8( 10 ), UInt8( 20 ), UInt8( 30 ),
@@ -72,7 +72,7 @@ struct Test_Histogram
             UInt8( 70 ), UInt8( 80 ), UInt8( 90 ),
         ]
 
-        let histogram = Histogram( bytes: bytes, channels: 3, mode: .luminance )
+        let histogram = Histogram( bytes: bytes, channels: 3, mode: .luma )
 
         try #require( histogram.data.count == 1 )
 
@@ -101,9 +101,9 @@ struct Test_Histogram
     }
 
     @Test
-    func emptyLuminance() async throws
+    func emptyLuma() async throws
     {
-        let histogram = Histogram( bytes: [], channels: 3, mode: .luminance )
+        let histogram = Histogram( bytes: [], channels: 3, mode: .luma )
 
         try #require( histogram.data.count == 1 )
 
@@ -130,14 +130,14 @@ struct Test_Histogram
     }
 
     @Test
-    func incompleteLuminance() async throws
+    func incompleteLuma() async throws
     {
         let bytes = [
             UInt8( 10 ), UInt8( 20 ), UInt8( 30 ),
             UInt8( 40 ), UInt8( 50 ),
         ]
 
-        let histogram = Histogram( bytes: bytes, channels: 3, mode: .luminance )
+        let histogram = Histogram( bytes: bytes, channels: 3, mode: .luma )
 
         try #require( histogram.data.count == 1 )
 
@@ -166,11 +166,11 @@ struct Test_Histogram
     }
 
     @Test
-    func grayscaleLuminance() async throws
+    func grayscaleLuma() async throws
     {
         let bytes = [ UInt8( 10 ), UInt8( 20 ), UInt8( 30 ) ]
 
-        let histogram = Histogram( bytes: bytes, channels: 1, mode: .luminance )
+        let histogram = Histogram( bytes: bytes, channels: 1, mode: .luma )
 
         try #require( histogram.data.count == 1 )
 

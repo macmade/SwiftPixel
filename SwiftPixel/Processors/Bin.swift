@@ -105,6 +105,12 @@ public extension Processors
         /// (`width / 2 × height / 2`) reduced by `factor` and expanded back to pixels,
         /// dropping any partial edge cell.
         ///
+        /// A `factor` too large for the image — one that leaves an axis with no whole
+        /// output cell — yields a zero-area size (a zero width and/or height);
+        /// ``process(buffer:)`` rejects such a factor with a ``ValidationError``, so a
+        /// consumer that pre-sizes from this value still hits the failure when the
+        /// stage runs.
+        ///
         /// - Parameters:
         ///   - width:  The image width in pixels.
         ///   - height: The image height in pixels.

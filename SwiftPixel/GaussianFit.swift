@@ -33,10 +33,10 @@ import Foundation
 /// giving an accurate sub-pixel centre and shape for a blob-like feature even
 /// when it is noisy.
 ///
-/// The fit uses a numerical (finite-difference) Jacobian rather than analytic
-/// derivatives: the seven-parameter rotated model makes hand-coded derivatives
-/// error-prone, while a central-difference Jacobian over a small window is both
-/// cheap and robust. A non-converged, non-physical, or no-better-than-flat fit is
+/// The fit uses the rotated model's analytic Jacobian: its seven partials are
+/// known in closed form, so a single pass computes the model and all derivatives
+/// together, avoiding the extra `exp`-laden passes a finite-difference Jacobian
+/// would cost. A non-converged, non-physical, or no-better-than-flat fit is
 /// reported as `nil` so callers can drop it.
 public enum GaussianFit
 {
@@ -227,10 +227,9 @@ public enum GaussianFit
     /// evaluated vectorised on Accelerate.
     ///
     /// This is the fit's hot path — the Levenberg–Marquardt loop calls it for every
-    /// cost evaluation and every finite-difference Jacobian column — and it is
-    /// dominated by a per-sample `exp`, so the whole model is built with `vDSP`
-    /// element-wise math and a single batched `vForce.exp`, rather than a scalar
-    /// per-pixel loop.
+    /// cost evaluation — and it is dominated by a per-sample `exp`, so the whole
+    /// model is built with `vDSP` element-wise math and a single batched
+    /// `vForce.exp`, rather than a scalar per-pixel loop.
     ///
     /// - Parameters:
     ///   - vector: The parameter vector, in fitting order.

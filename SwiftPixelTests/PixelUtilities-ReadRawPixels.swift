@@ -251,4 +251,88 @@ struct Test_PixelUtilities_ReadRawPixels
             #expect( output == ( 0 ..< count ).map { $0 * 2 } )
         }
     }
+
+    // MARK: - Integer BLANK masking
+
+    /// An integer `BLANK` sentinel is mapped to NaN, so undefined pixels read as
+    /// non-finite (the same way a float image's blanks already do) and the robust
+    /// statistics downstream drop them; the other samples are unchanged.
+    @Test
+    func masksIntegerBlankToNaN_Int16() async throws
+    {
+        let values: [ Int16 ] = [ 10, -1000, 30, -1000 ]
+        let data              = Data( values.flatMap { withUnsafeBytes( of: $0.bigEndian, Array.init ) } )
+        let result            = try PixelUtilities.readRawPixels( data: data, width: 2, height: 2, bitsPerPixel: .int16, blank: -1000 )
+
+        #expect( result[ 0 ] == 10 )
+        #expect( result[ 1 ].isNaN )
+        #expect( result[ 2 ] == 30 )
+        #expect( result[ 3 ].isNaN )
+    }
+
+    /// The `BLANK` sentinel is matched against the raw 32-bit sample value.
+    @Test
+    func masksIntegerBlankToNaN_Int32() async throws
+    {
+        let values: [ Int32 ] = [ 5, 65_535, 5 ]
+        let data              = Data( values.flatMap { withUnsafeBytes( of: $0.bigEndian, Array.init ) } )
+        let result            = try PixelUtilities.readRawPixels( data: data, width: 3, height: 1, bitsPerPixel: .int32, blank: 65_535 )
+
+        #expect( result[ 0 ] == 5 )
+        #expect( result[ 1 ].isNaN )
+        #expect( result[ 2 ] == 5 )
+    }
+
+    /// The `BLANK` sentinel is matched against the raw 8-bit sample value.
+    @Test
+    func masksIntegerBlankToNaN_UInt8() async throws
+    {
+        let values: [ UInt8 ] = [ 10, 255, 30, 40 ]
+        let data              = Data( values )
+        let result            = try PixelUtilities.readRawPixels( data: data, width: 2, height: 2, bitsPerPixel: .uint8, blank: 255 )
+
+        #expect( result[ 0 ] == 10 )
+        #expect( result[ 1 ].isNaN )
+        #expect( result[ 2 ] == 30 )
+        #expect( result[ 3 ] == 40 )
+    }
+
+    /// `BLANK` applies only to integer images: a floating-point sample equal to
+    /// the sentinel is left untouched, since a float image marks blanks with NaN.
+    @Test
+    func ignoresBlankForFloatImages() async throws
+    {
+        let values: [ Float32 ] = [ 10.0, 20.0, 30.0, 40.0 ]
+        let data                = Data( values.flatMap { withUnsafeBytes( of: $0.bitPattern.bigEndian, Array.init ) } )
+        let result              = try PixelUtilities.readRawPixels( data: data, width: 2, height: 2, bitsPerPixel: .float32, blank: 20 )
+
+        #expect( result == [ 10.0, 20.0, 30.0, 40.0 ] )
+    }
+
+    /// With no `BLANK` (the default), a value that could be a sentinel is left as
+    /// its ordinary sample.
+    @Test
+    func noBlankLeavesValuesUnchanged() async throws
+    {
+        let values: [ Int16 ] = [ 10, -1000, 30 ]
+        let data              = Data( values.flatMap { withUnsafeBytes( of: $0.bigEndian, Array.init ) } )
+        let result            = try PixelUtilities.readRawPixels( data: data, width: 3, height: 1, bitsPerPixel: .int16 )
+
+        #expect( result == [ 10.0, -1000.0, 30.0 ] )
+    }
+
+    /// The concurrent masking branch (an array past the parallel threshold) maps
+    /// every sentinel occurrence to NaN and leaves the rest intact.
+    @Test
+    func masksIntegerBlankToNaN_Concurrent() async throws
+    {
+        let count             = 10_000
+        let blank             = Int16( -32_768 )
+        let values: [ Int16 ] = ( 0 ..< count ).map { $0 % 7 == 0 ? blank : Int16( $0 % 1000 ) }
+        let data              = Data( values.flatMap { withUnsafeBytes( of: $0.bigEndian, Array.init ) } )
+        let result            = try PixelUtilities.readRawPixels( data: data, width: count, height: 1, bitsPerPixel: .int16, blank: Int64( blank ) )
+
+        #expect( result.count == count )
+        #expect( zip( result, values ).allSatisfy { decoded, original in original == blank ? decoded.isNaN : decoded == Double( original ) } )
+    }
 }

@@ -99,6 +99,11 @@ public enum PixelUtilities
     ///   - width:        The image width in pixels.
     ///   - height:       The image height in pixels.
     ///   - bitsPerPixel: The sample format of `data`.
+    ///   - blank:        The FITS `BLANK` sentinel raw value for an integer image
+    ///                   (FITS 4.0 §5.4.2.2): a sample equal to it is an undefined
+    ///                   pixel and decodes to NaN, as a float image's blanks
+    ///                   already do. `nil` (the default) masks nothing, and it is
+    ///                   ignored for floating-point formats.
     ///
     /// - Returns: `width × height` samples as `Double`s, in row-major order, or an
     ///            empty array for a zero-area image.
@@ -106,7 +111,7 @@ public enum PixelUtilities
     /// - Throws: A `PixelBufferError` if `data`'s length does not match the expected
     ///           size for the given geometry and format, or the byte size overflows
     ///           `Int`.
-    public static func readRawPixels( data: Data, width: Int, height: Int, bitsPerPixel: BitsPerPixel ) throws -> [ Double ]
+    public static func readRawPixels( data: Data, width: Int, height: Int, bitsPerPixel: BitsPerPixel, blank: Int64? = nil ) throws -> [ Double ]
     {
         let count = try Self.checkedSampleCount( width: width, height: height, channels: 1 )
 
@@ -183,6 +188,26 @@ public enum PixelUtilities
                         {
                             resultBuffer[ $0 ] = Double( bitPattern: UInt64( bigEndian: base.loadUnaligned( fromByteOffset: $0 * 8, as: UInt64.self ) ) )
                         }
+                }
+            }
+        }
+
+        // FITS marks undefined pixels in an integer image with a BLANK sentinel
+        // raw value (FITS 4.0 §5.4.2.2); map them to NaN — the same read step that
+        // already yields NaN for a float image's blanks — so the non-finite
+        // filtering statistics downstream skip them. A float image marks blanks
+        // with NaN directly, so BLANK does not apply to .float32 / .float64.
+        if let blank, bitsPerPixel.isInteger
+        {
+            let sentinel = Double( blank )
+
+            result.withUnsafeMutableBufferPointer
+            {
+                nonisolated( unsafe ) let buffer = $0
+
+                Self.parallelOrSerial( iterations: count )
+                {
+                    if buffer[ $0 ] == sentinel { buffer[ $0 ] = Double.nan }
                 }
             }
         }

@@ -106,6 +106,24 @@ public enum BitsPerPixel: Sendable, CustomStringConvertible
         return overflow ? nil : product
     }
 
+    /// Whether this format stores integer samples rather than floating-point ones.
+    ///
+    /// Integer formats (`uint8`, `int16`, `int32`) can carry a FITS `BLANK`
+    /// undefined-pixel sentinel, which otherwise reads as a plain value;
+    /// floating-point formats (`float32`, `float64`) represent undefined pixels
+    /// with NaN directly and so have no `BLANK`.
+    public var isInteger: Bool
+    {
+        switch self
+        {
+            case .uint8:   return true
+            case .int16:   return true
+            case .int32:   return true
+            case .float32: return false
+            case .float64: return false
+        }
+    }
+
     /// A human-readable name for the sample format (e.g. `"UInt8"`, `"Int16"`).
     public var description: String
     {

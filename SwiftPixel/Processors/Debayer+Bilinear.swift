@@ -26,14 +26,28 @@ import Foundation
 
 extension Processors.Debayer
 {
+    /// The four orthogonal neighbour offsets (left, right, up, down).
+    private static let orthogonalOffsets: [ ( dx: Int, dy: Int ) ] = [ ( -1, 0 ), ( 1, 0 ), ( 0, -1 ), ( 0, 1 ) ]
+
+    /// The four diagonal neighbour offsets.
+    private static let diagonalOffsets: [ ( dx: Int, dy: Int ) ] = [ ( -1, -1 ), ( 1, -1 ), ( -1, 1 ), ( 1, 1 ) ]
+
+    /// The two horizontal neighbour offsets (left, right).
+    private static let horizontalOffsets: [ ( dx: Int, dy: Int ) ] = [ ( -1, 0 ), ( 1, 0 ) ]
+
+    /// The two vertical neighbour offsets (up, down).
+    private static let verticalOffsets: [ ( dx: Int, dy: Int ) ] = [ ( 0, -1 ), ( 0, 1 ) ]
+
     /// Reconstructs a 3-channel RGB image from a Bayer mosaic using bilinear
     /// interpolation.
     ///
     /// At each site the present color is taken directly and the two missing
     /// colors are the equal-weight average of their nearest same-color
     /// neighbors (a 4-neighbor cross or 4-corner set at red/blue sites, a
-    /// 2-neighbor pair at green sites). Interpolation runs in parallel over
-    /// rows. Out-of-bounds neighbors are clamped to the image edge.
+    /// 2-neighbor pair at green sites). At the border only the same-color
+    /// neighbors that actually lie inside the image are averaged, so a border
+    /// pixel never mixes in an edge-clamped wrong-color sample. Interpolation
+    /// runs in parallel over rows.
     ///
     /// - Parameters:
     ///   - pixels:  The single-channel mosaic samples, row-major.
@@ -87,36 +101,21 @@ extension Processors.Debayer
                         {
                             case .red:
 
-                                let left  = self.safeRead( x: x - 1, y: y,     width: width, height: height, data: input )
-                                let right = self.safeRead( x: x + 1, y: y,     width: width, height: height, data: input )
-                                let up    = self.safeRead( x: x,     y: y - 1, width: width, height: height, data: input )
-                                let down  = self.safeRead( x: x,     y: y + 1, width: width, height: height, data: input )
-                                let ul    = self.safeRead( x: x - 1, y: y - 1, width: width, height: height, data: input )
-                                let ur    = self.safeRead( x: x + 1, y: y - 1, width: width, height: height, data: input )
-                                let ll    = self.safeRead( x: x - 1, y: y + 1, width: width, height: height, data: input )
-                                let lr    = self.safeRead( x: x + 1, y: y + 1, width: width, height: height, data: input )
-
                                 r = val
-                                g = ( left + right + up + down ) * 0.25
-                                b = ( ul + ur + ll + lr ) * 0.25
+                                g = self.averageInBounds( offsets: Self.orthogonalOffsets, x: x, y: y, width: width, height: height, data: input, fallback: val )
+                                b = self.averageInBounds( offsets: Self.diagonalOffsets,   x: x, y: y, width: width, height: height, data: input, fallback: val )
 
                             case .green:
 
-                                let left  = self.colorAt( x: x - 1, y: y, width: width, height: height, pattern: pattern )
-                                let right = self.colorAt( x: x + 1, y: y, width: width, height: height, pattern: pattern )
+                                let leftColor  = self.colorAt( x: x - 1, y: y, width: width, height: height, pattern: pattern )
+                                let rightColor = self.colorAt( x: x + 1, y: y, width: width, height: height, pattern: pattern )
 
-                                let horizontal = (
-                                    self.safeRead( x: x - 1, y: y, width: width, height: height, data: input )
-                                        + self.safeRead( x: x + 1, y: y, width: width, height: height, data: input )
-                                ) * 0.5
-                                let vertical = (
-                                    self.safeRead( x: x, y: y - 1, width: width, height: height, data: input )
-                                        + self.safeRead( x: x, y: y + 1, width: width, height: height, data: input )
-                                ) * 0.5
+                                let horizontal = self.averageInBounds( offsets: Self.horizontalOffsets, x: x, y: y, width: width, height: height, data: input, fallback: val )
+                                let vertical   = self.averageInBounds( offsets: Self.verticalOffsets,   x: x, y: y, width: width, height: height, data: input, fallback: val )
 
                                 g = val
 
-                                if left == .red || right == .red
+                                if leftColor == .red || rightColor == .red
                                 {
                                     r = horizontal
                                     b = vertical
@@ -129,21 +128,12 @@ extension Processors.Debayer
 
                             case .blue:
 
-                                let left  = self.safeRead( x: x - 1, y: y,     width: width, height: height, data: input )
-                                let right = self.safeRead( x: x + 1, y: y,     width: width, height: height, data: input )
-                                let up    = self.safeRead( x: x,     y: y - 1, width: width, height: height, data: input )
-                                let down  = self.safeRead( x: x,     y: y + 1, width: width, height: height, data: input )
-                                let ul    = self.safeRead( x: x - 1, y: y - 1, width: width, height: height, data: input )
-                                let ur    = self.safeRead( x: x + 1, y: y - 1, width: width, height: height, data: input )
-                                let ll    = self.safeRead( x: x - 1, y: y + 1, width: width, height: height, data: input )
-                                let lr    = self.safeRead( x: x + 1, y: y + 1, width: width, height: height, data: input )
-
-                                r = ( ul + ur + ll + lr ) * 0.25
-                                g = ( left + right + up + down ) * 0.25
+                                r = self.averageInBounds( offsets: Self.diagonalOffsets,   x: x, y: y, width: width, height: height, data: input, fallback: val )
+                                g = self.averageInBounds( offsets: Self.orthogonalOffsets, x: x, y: y, width: width, height: height, data: input, fallback: val )
                                 b = val
                         }
 
-                        let index                 = i * 3
+                        let index           = i * 3
                         output[ index + 0 ] = r
                         output[ index + 1 ] = g
                         output[ index + 2 ] = b
@@ -155,22 +145,42 @@ extension Processors.Debayer
         return output
     }
 
-    /// Reads sample `(x, y)`, clamping coordinates to the image edge so
-    /// neighbor reads near the border stay in bounds.
+    /// Averages `data` over the neighbour `offsets` that fall inside the image,
+    /// so a border pixel never folds in an edge-clamped (wrong-color) sample.
     ///
     /// - Parameters:
-    ///   - x:      The column (may be out of range).
-    ///   - y:      The row (may be out of range).
-    ///   - width:  The image width in pixels.
-    ///   - height: The image height in pixels.
-    ///   - data:   The single-channel sample buffer.
+    ///   - offsets:  The neighbour offsets to consider.
+    ///   - x:        The column of the site.
+    ///   - y:        The row of the site.
+    ///   - width:    The image width in pixels.
+    ///   - height:   The image height in pixels.
+    ///   - data:     The single-channel sample buffer.
+    ///   - fallback: The value to return if no offset is in bounds.
     ///
-    /// - Returns: The sample at the clamped coordinate.
-    private static func safeRead( x: Int, y: Int, width: Int, height: Int, data: UnsafePointer< Double > ) -> Double
+    /// - Returns: The mean of the in-bounds neighbours, or `fallback` if none is
+    ///            in bounds.
+    private static func averageInBounds( offsets: [ ( dx: Int, dy: Int ) ], x: Int, y: Int, width: Int, height: Int, data: UnsafePointer< Double >, fallback: Double ) -> Double
     {
-        let clampedX = min( max( x, 0 ), width  - 1 )
-        let clampedY = min( max( y, 0 ), height - 1 )
+        var sum   = 0.0
+        var count = 0
 
-        return data[ self.index( x: clampedX, y: clampedY, width: width ) ]
+        offsets.forEach
+        {
+            offset in
+
+            let nx = x + offset.dx
+            let ny = y + offset.dy
+
+            guard nx >= 0, nx < width, ny >= 0, ny < height
+            else
+            {
+                return
+            }
+
+            sum   += data[ self.index( x: nx, y: ny, width: width ) ]
+            count += 1
+        }
+
+        return count == 0 ? fallback : sum / Double( count )
     }
 }

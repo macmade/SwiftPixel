@@ -46,12 +46,17 @@ struct Test_Processors_Debayer_Bilinear
 
         try debayer.process( buffer: &buffer )
 
+        // Every pixel is on the border, so each missing colour averages only the
+        // in-bounds same-colour neighbours (CR-17: no edge-clamped wrong-colour
+        // contamination). The 2x2 has a single red site (10) and a single blue
+        // site (40), so red and blue are constant across the image and only the
+        // green varies.
         #expect( buffer.pixels ==
             [
-                10.0, 17.5, 25.0,
-                15.0, 20.0, 30.0,
-                20.0, 30.0, 35.0,
-                25.0, 32.5, 40.0,
+                10.0, 25.0, 40.0,
+                10.0, 20.0, 40.0,
+                10.0, 30.0, 40.0,
+                10.0, 25.0, 40.0,
             ]
         )
     }

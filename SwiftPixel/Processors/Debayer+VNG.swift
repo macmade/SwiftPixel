@@ -26,20 +26,44 @@ import Foundation
 
 extension Processors.Debayer
 {
-    /// The four orthogonal neighbour offsets (left, right, up, down).
-    private static let orthogonalOffsets: [ ( dx: Int, dy: Int ) ] = [ ( -1, 0 ), ( 1, 0 ), ( 0, -1 ), ( 0, 1 ) ]
-
-    /// The four diagonal neighbour offsets.
-    private static let diagonalOffsets: [ ( dx: Int, dy: Int ) ] = [ ( -1, -1 ), ( 1, -1 ), ( -1, 1 ), ( 1, 1 ) ]
-
-    /// Reconstructs a 3-channel RGB image from a Bayer mosaic using Variable
-    /// Number of Gradients (VNG) demosaicing.
+    /// The channel index (`R = 0`, `G = 1`, `B = 2`) of a mosaic color. The VNG
+    /// gradient formulas and color-difference tables assume this ordering.
     ///
-    /// The green channel is reconstructed first — directly at green sites and
-    /// via `interpolateGreen` (gradient-weighted) at red/blue sites — then red
-    /// and blue follow as a color difference against that green plane. The
-    /// present color at each site is preserved exactly. Both passes run in
-    /// parallel over rows; out-of-bounds neighbors are clamped to the edge.
+    /// - Parameter color: The color sampled at a site.
+    ///
+    /// - Returns: `0` for red, `1` for green, `2` for blue.
+    private static func channelIndex( _ color: ColorType ) -> Int
+    {
+        switch color
+        {
+            case .red:   return 0
+            case .green: return 1
+            case .blue:  return 2
+        }
+    }
+
+    /// Reconstructs a 3-channel RGB image from a Bayer mosaic using canonical
+    /// Variable Number of Gradients (VNG) demosaicing.
+    ///
+    /// This is a faithful port of the Chang–Cheng–Cok VNG algorithm as
+    /// implemented in PixInsight's `Debayer` process (the reference used by most
+    /// astronomy software). For each interior pixel it computes eight
+    /// like-colored directional gradients over the surrounding 5×5 window,
+    /// keeps the directions whose gradient is at or below
+    /// `k1·min + k2·(max − min)` (with `k1 = 1.5`, `k2 = 0.5`), and reconstructs
+    /// the two missing colors as color differences averaged over those kept
+    /// directions. The present color at each site is preserved exactly.
+    ///
+    /// The 5×5 stencil needs a two-pixel inset, so VNG only refines the interior
+    /// (sites at least two pixels from every edge); the two-pixel border
+    /// replicates the nearest interior pixel, exactly as PixInsight does, so no
+    /// edge-clamped wrong-color sample is ever mixed in. An image smaller than
+    /// 5×5 has no interior and falls back to bilinear (which handles the border
+    /// with same-color-only averaging).
+    ///
+    /// Unlike PixInsight — which normalizes to `[0, 1]` and clamps — this runs in
+    /// raw sample space and does not clamp, matching the non-normalized Debayer
+    /// contract and the downstream pipeline's own normalization.
     ///
     /// - Parameters:
     ///   - pixels:  The single-channel mosaic samples, row-major.
@@ -52,378 +76,364 @@ extension Processors.Debayer
     /// - Throws: A `PixelBufferError` if the output buffer cannot be accessed.
     internal static func vng( pixels: [ Double ], pattern: Pattern, width: Int, height: Int ) throws -> [ Double ]
     {
-        let colorMap = self.colorMap( width: width, height: height, pattern: pattern )
-        let green    = self.greenPlane( pixels: pixels, colorMap: colorMap, width: width, height: height )
-        var output   = [ Double ]( repeating: 0.0, count: width * height * 3 )
+        guard width >= 5, height >= 5
+        else
+        {
+            return try self.bilinear( pixels: pixels, pattern: pattern, width: width, height: height )
+        }
+
+        let channelMap = self.colorMap( width: width, height: height, pattern: pattern ).map { self.channelIndex( $0 ) }
+        var output     = [ Double ]( repeating: 0.0, count: width * height * 3 )
 
         try output.withUnsafeMutableBufferPointer
         {
-            guard let baseAddress = $0.baseAddress
+            guard let outputBase = $0.baseAddress
             else
             {
                 throw PixelBufferError.bufferAccessFailed( role: .output )
             }
 
-            nonisolated( unsafe ) let output = baseAddress
+            nonisolated( unsafe ) let output = outputBase
 
-            PixelUtilities.parallelOrSerial( iterations: height, threshold: 64 )
+            PixelUtilities.parallelOrSerial( iterations: height - 4, threshold: 64 )
             {
-                y in ( 0 ..< width ).forEach
-                {
-                    x in
-
-                    let i   = self.index( x: x, y: y, width: width )
-                    let rgb = self.interpolateColor( pixels: pixels, green: green, colorMap: colorMap, pattern: pattern, x: x, y: y, width: width, height: height )
-
-                    output[ i * 3 + 0 ] = rgb.r
-                    output[ i * 3 + 1 ] = rgb.g
-                    output[ i * 3 + 2 ] = rgb.b
-                }
+                row in self.interpolateRow( y: row + 2, input: pixels, channels: channelMap, output: output, width: width )
             }
+
+            self.replicateBorder( output: output, width: width, height: height )
         }
 
         return output
     }
 
-    /// Reconstructs the full green plane: green sites keep their value, red/blue
-    /// sites use the gradient-weighted `interpolateGreen`.
+    /// Reconstructs every interior pixel of row `y` (columns `2 ..< width − 2`),
+    /// writing the interleaved RGB result into `output`.
+    ///
+    /// The 5×5 sample and channel windows and the eight-gradient buffer are
+    /// allocated once for the whole row and reused across columns, so the
+    /// per-pixel work does no allocation.
     ///
     /// - Parameters:
-    ///   - pixels:   The single-channel mosaic samples, row-major.
-    ///   - colorMap: The per-site color map.
+    ///   - y:        The interior row (`2 ..< height − 2`).
+    ///   - input:    The single-channel mosaic samples, row-major.
+    ///   - channels: The per-site channel index (`0/1/2`), row-major.
+    ///   - output:   The interleaved RGB destination.
     ///   - width:    The image width in pixels.
-    ///   - height:   The image height in pixels.
-    ///
-    /// - Returns: A row-major green value per site.
-    private static func greenPlane( pixels: [ Double ], colorMap: [ ColorType ], width: Int, height: Int ) -> [ Double ]
+    private static func interpolateRow( y: Int, input: [ Double ], channels: [ Int ], output: UnsafeMutablePointer< Double >, width: Int )
     {
-        var green = [ Double ]( repeating: 0.0, count: width * height )
+        var v             = [ Double ]( repeating: 0.0, count: 25 )
+        var channelWindow = [ Int ]( repeating: 0, count: 25 )
+        var gradients     = [ Double ]( repeating: 0.0, count: 8 )
 
-        green.withUnsafeMutableBufferPointer
+        ( 2 ..< width - 2 ).forEach
         {
-            nonisolated( unsafe ) let buffer = $0
+            x in
 
-            PixelUtilities.parallelOrSerial( iterations: height, threshold: 64 )
+            // Cache the 5×5 sample and channel windows centered on (x, y).
+            ( 0 ..< 5 ).forEach
             {
-                y in ( 0 ..< width ).forEach
+                wy in
+
+                let sourceRow = ( y + wy - 2 ) * width + ( x - 2 )
+                let target    = wy * 5
+
+                ( 0 ..< 5 ).forEach
                 {
-                    x in
+                    wx in
 
-                    let i = self.index( x: x, y: y, width: width )
-
-                    buffer[ i ] = colorMap[ i ] == .green ? pixels[ i ] : self.interpolateGreen( pixels: pixels, x: x, y: y, width: width, height: height )
+                    v[ target + wx ]             = input[ sourceRow + wx ]
+                    channelWindow[ target + wx ] = channels[ sourceRow + wx ]
                 }
             }
-        }
 
-        return green
+            let currentChannel = channelWindow[ 12 ]
+
+            self.computeGradients( v: v, currentChannel: currentChannel, into: &gradients )
+
+            let keep               = self.threshold( gradients )
+            let sums               = self.colorSums( v: v, channels: channelWindow, gradients: gradients, threshold: keep )
+            let center             = v[ 12 ]
+            let currentSum         = sums.value( currentChannel )
+            let ( other1, other2 ) = self.otherChannels( currentChannel )
+            let base               = ( y * width + x ) * 3
+
+            output[ base + currentChannel ] = center
+            output[ base + other1 ]         = center + ( sums.value( other1 ) - currentSum ) / Double( sums.count )
+            output[ base + other2 ]         = center + ( sums.value( other2 ) - currentSum ) / Double( sums.count )
+        }
     }
 
-    /// Computes the red, green and blue values at site `(x, y)`.
+    /// The two channel indices other than `channel`, in ascending (R, G, B)
+    /// order.
     ///
-    /// Green comes from the reconstructed plane. Red and blue are a color
-    /// difference (chroma) against green, averaged over the same-color
-    /// neighbours: diagonal neighbours at a red/blue site, and the orthogonal
-    /// neighbours of the matching color at a green site.
+    /// - Parameter channel: The present channel (`0`, `1`, or `2`).
     ///
-    /// - Parameters:
-    ///   - pixels:   The single-channel mosaic samples, row-major.
-    ///   - green:    The reconstructed green plane.
-    ///   - colorMap: The per-site color map.
-    ///   - pattern:  The Bayer arrangement.
-    ///   - x:        The column of the site.
-    ///   - y:        The row of the site.
-    ///   - width:    The image width in pixels.
-    ///   - height:   The image height in pixels.
-    ///
-    /// - Returns: The interpolated `(r, g, b)` at the site.
-    private static func interpolateColor( pixels: [ Double ], green: [ Double ], colorMap: [ ColorType ], pattern: Pattern, x: Int, y: Int, width: Int, height: Int ) -> ( r: Double, g: Double, b: Double )
+    /// - Returns: The other two channel indices.
+    private static func otherChannels( _ channel: Int ) -> ( Int, Int )
     {
-        let i = self.index( x: x, y: y, width: width )
-        let g = green[ i ]
-
-        switch colorMap[ i ]
+        switch channel
         {
-            case .red:
-
-                let b = g + self.chromaDifference( pixels: pixels, green: green, offsets: Self.diagonalOffsets, x: x, y: y, width: width, height: height )
-
-                return ( r: pixels[ i ], g: g, b: b )
-
-            case .blue:
-
-                let r = g + self.chromaDifference( pixels: pixels, green: green, offsets: Self.diagonalOffsets, x: x, y: y, width: width, height: height )
-
-                return ( r: r, g: g, b: pixels[ i ] )
-
-            case .green:
-
-                let r = g + self.chromaDifference( for: .red,  pixels: pixels, green: green, pattern: pattern, x: x, y: y, width: width, height: height )
-                let b = g + self.chromaDifference( for: .blue, pixels: pixels, green: green, pattern: pattern, x: x, y: y, width: width, height: height )
-
-                return ( r: r, g: g, b: b )
+            case 0:  return ( 1, 2 )
+            case 1:  return ( 0, 2 )
+            default: return ( 0, 1 )
         }
     }
 
-    /// Averages the color difference `sample − green` over the given neighbour
-    /// offsets, using edge-clamped reads.
+    /// Replicates the two-pixel border of the RGB `output` from the nearest
+    /// fully-computed interior pixel, mirroring PixInsight's border handling.
+    ///
+    /// The two outer columns of every interior row copy column 2 (left) and
+    /// column `width − 3` (right); the two outer rows then copy row 2 (top) and
+    /// row `height − 3` (bottom) across the full width, which also fills the four
+    /// corners.
     ///
     /// - Parameters:
-    ///   - pixels:  The single-channel mosaic samples, row-major.
-    ///   - green:   The reconstructed green plane.
-    ///   - offsets: The neighbour offsets to average over.
-    ///   - x:       The column of the site.
-    ///   - y:       The row of the site.
-    ///   - width:   The image width in pixels.
-    ///   - height:  The image height in pixels.
-    ///
-    /// - Returns: The mean neighbour color difference, or `0` if `offsets` is empty.
-    private static func chromaDifference( pixels: [ Double ], green: [ Double ], offsets: [ ( dx: Int, dy: Int ) ], x: Int, y: Int, width: Int, height: Int ) -> Double
+    ///   - output: The interleaved RGB buffer to patch in place.
+    ///   - width:  The image width in pixels.
+    ///   - height: The image height in pixels.
+    private static func replicateBorder( output: UnsafeMutablePointer< Double >, width: Int, height: Int )
     {
-        guard offsets.isEmpty == false
+        func copyPixel( from source: Int, to destination: Int )
+        {
+            output[ destination * 3 + 0 ] = output[ source * 3 + 0 ]
+            output[ destination * 3 + 1 ] = output[ source * 3 + 1 ]
+            output[ destination * 3 + 2 ] = output[ source * 3 + 2 ]
+        }
+
+        ( 2 ..< height - 2 ).forEach
+        {
+            y in
+
+            let left  = y * width + 2
+            let right = y * width + ( width - 3 )
+
+            copyPixel( from: left,  to: y * width )
+            copyPixel( from: left,  to: y * width + 1 )
+            copyPixel( from: right, to: y * width + ( width - 1 ) )
+            copyPixel( from: right, to: y * width + ( width - 2 ) )
+        }
+
+        ( 0 ..< width ).forEach
+        {
+            x in
+
+            let top    = 2 * width + x
+            let bottom = ( height - 3 ) * width + x
+
+            copyPixel( from: top,    to: x )
+            copyPixel( from: top,    to: width + x )
+            copyPixel( from: bottom, to: ( height - 1 ) * width + x )
+            copyPixel( from: bottom, to: ( height - 2 ) * width + x )
+        }
+    }
+
+    /// Computes the eight like-colored directional gradients over a 5×5 window,
+    /// in the order N, E, S, W, NE, SE, NW, SW.
+    ///
+    /// Each gradient sums the absolute differences of *same-color* sample pairs
+    /// along its direction (with the diagonal terms weighted a half), following
+    /// the VNG paper. The diagonal gradients use a different pair set for a green
+    /// center than for a red/blue center. This mirrors PixInsight's
+    /// `ComputeGradients` exactly — including the two full-weight south-diagonal
+    /// terms (`v19 − v13`, `v15 − v11`) that read asymmetrically against their
+    /// north counterparts in the reference source.
+    ///
+    /// - Parameters:
+    ///   - v:              The 5×5 sample window (row-major, center at index 12).
+    ///   - currentChannel: The center's channel (`1` = green, else red/blue).
+    ///   - gradients:      The eight-element destination.
+    private static func computeGradients( v: [ Double ], currentChannel: Int, into gradients: inout [ Double ] )
+    {
+        // Absolute difference of two like-colored window samples, by index.
+        func d( _ a: Int, _ b: Int ) -> Double { return abs( v[ a ] - v[ b ] ) }
+
+        gradients[ 0 ] = d( 7, 17 )  + d( 2, 12 )  + d( 6, 16 ) * 0.5 + d( 8, 18 ) * 0.5 + d( 1, 11 ) * 0.5 + d( 3, 13 ) * 0.5
+        gradients[ 1 ] = d( 13, 11 ) + d( 14, 12 ) + d( 8, 6 ) * 0.5 + d( 18, 16 ) * 0.5 + d( 9, 7 ) * 0.5 + d( 19, 17 ) * 0.5
+        gradients[ 2 ] = d( 17, 7 )  + d( 22, 12 ) + d( 16, 6 ) * 0.5 + d( 18, 8 ) * 0.5 + d( 21, 11 ) * 0.5 + d( 23, 13 ) * 0.5
+        gradients[ 3 ] = d( 11, 13 ) + d( 10, 12 ) + d( 6, 8 ) * 0.5 + d( 16, 18 ) * 0.5 + d( 5, 7 ) * 0.5 + d( 15, 17 ) * 0.5
+
+        if currentChannel == 1
+        {
+            gradients[ 4 ] = d( 8, 16 )  + d( 4, 12 )  + d( 3, 11 )  + d( 9, 17 )
+            gradients[ 5 ] = d( 18, 6 )  + d( 24, 12 ) + d( 23, 11 ) + d( 19, 7 )
+            gradients[ 6 ] = d( 6, 18 )  + d( 0, 12 )  + d( 1, 13 )  + d( 5, 17 )
+            gradients[ 7 ] = d( 16, 8 )  + d( 20, 12 ) + d( 21, 13 ) + d( 15, 7 )
+        }
         else
         {
-            return 0
+            gradients[ 4 ] = d( 8, 16 )  + d( 4, 12 )  + d( 7, 11 ) * 0.5 + d( 13, 17 ) * 0.5 + d( 3, 7 ) * 0.5 + d( 9, 13 ) * 0.5
+            gradients[ 5 ] = d( 18, 6 )  + d( 24, 12 ) + d( 13, 7 ) * 0.5 + d( 17, 11 ) * 0.5 + d( 19, 13 )     + d( 23, 17 ) * 0.5
+            gradients[ 6 ] = d( 6, 18 )  + d( 0, 12 )  + d( 7, 13 ) * 0.5 + d( 11, 17 ) * 0.5 + d( 1, 7 ) * 0.5 + d( 5, 11 ) * 0.5
+            gradients[ 7 ] = d( 16, 8 )  + d( 20, 12 ) + d( 11, 7 ) * 0.5 + d( 17, 13 ) * 0.5 + d( 15, 11 )     + d( 21, 17 ) * 0.5
         }
-
-        var sum = 0.0
-
-        for offset in offsets
-        {
-            sum += self.sample( pixels: pixels, x: x + offset.dx, y: y + offset.dy, width: width, height: height )
-                - self.sample( pixels: green,  x: x + offset.dx, y: y + offset.dy, width: width, height: height )
-        }
-
-        return sum / Double( offsets.count )
     }
 
-    /// Averages the color difference `sample − green` over the orthogonal
-    /// neighbours whose Bayer site is `color`, using edge-clamped reads. This is
-    /// the green-site equivalent of `chromaDifference` without materializing a
-    /// filtered offset array per pixel.
+    /// The VNG threshold below which a direction is kept: `k1·min + k2·(max − min)`
+    /// over the eight gradients, with `k1 = 1.5`, `k2 = 0.5` (the paper's
+    /// empirically-tuned constants, matching PixInsight and the value used
+    /// throughout SwiftPixel).
+    ///
+    /// - Parameter gradients: The eight directional gradients.
+    ///
+    /// - Returns: The keep threshold.
+    private static func threshold( _ gradients: [ Double ] ) -> Double
+    {
+        let minimum = gradients.min() ?? 0
+        let maximum = gradients.max() ?? 0
+
+        return 1.5 * minimum + 0.5 * ( maximum - minimum )
+    }
+
+    /// The per-channel color-coefficient sums over the kept directions, plus the
+    /// number of directions kept.
+    private struct ColorSums
+    {
+        /// The summed red coefficient.
+        let red: Double
+
+        /// The summed green coefficient.
+        let green: Double
+
+        /// The summed blue coefficient.
+        let blue: Double
+
+        /// The number of kept directions (always at least one).
+        let count: Int
+
+        /// The summed coefficient for a channel index (`0` red, `1` green, else
+        /// blue).
+        ///
+        /// - Parameter channel: The channel index.
+        ///
+        /// - Returns: The matching per-channel sum.
+        func value( _ channel: Int ) -> Double
+        {
+            switch channel
+            {
+                case 0:  return self.red
+                case 1:  return self.green
+                default: return self.blue
+            }
+        }
+    }
+
+    /// The 5×5 window indices whose samples feed each direction's color sum, for
+    /// a green center. Aligned with the N, E, S, W, NE, SE, NW, SW gradient
+    /// order; copied verbatim from PixInsight.
+    private static let greenCenterSumIndices: [ [ Int ] ] =
+        [
+            [  1,  2,  3,  7, 11, 12, 13 ],
+            [  7,  9, 12, 13, 14, 17, 19 ],
+            [ 11, 12, 13, 17, 21, 22, 23 ],
+            [  5,  7, 10, 11, 12, 15, 17 ],
+            [  3,  7,  8,  9, 13 ],
+            [ 13, 17, 18, 19, 23 ],
+            [  1,  5,  6,  7, 11 ],
+            [ 11, 15, 16, 17, 21 ],
+        ]
+
+    /// The 5×5 window indices whose samples feed each direction's color sum, for
+    /// a red or blue center. Aligned with the N, E, S, W, NE, SE, NW, SW gradient
+    /// order; copied verbatim from PixInsight.
+    private static let otherCenterSumIndices: [ [ Int ] ] =
+        [
+            [  2,  6,  7,  8, 12 ],
+            [  8, 12, 13, 14, 18 ],
+            [ 12, 16, 17, 18, 22 ],
+            [  6, 10, 11, 12, 16 ],
+            [  3,  4,  7,  8,  9, 12, 13 ],
+            [ 12, 13, 17, 18, 19, 23, 24 ],
+            [  0,  1,  5,  6,  7, 11, 12 ],
+            [ 11, 12, 15, 16, 17, 20, 21 ],
+        ]
+
+    /// Accumulates, over the directions kept by the threshold, the per-channel
+    /// average of the same-direction 5×5 samples — the color coefficients the
+    /// reconstruction differences against.
+    ///
+    /// For each kept direction the samples in its footprint are grouped by
+    /// channel and averaged, and those per-channel averages are summed across
+    /// directions. Mirrors PixInsight's `ComputeSums`, with the keep test folded
+    /// in. At least the minimum-gradient direction always qualifies, so `count`
+    /// is never zero. A small tolerance keeps exact ties (notably flat regions).
     ///
     /// - Parameters:
-    ///   - color:   The neighbour color to average over (`.red` or `.blue`).
-    ///   - pixels:  The single-channel mosaic samples, row-major.
-    ///   - green:   The reconstructed green plane.
-    ///   - pattern: The Bayer arrangement.
-    ///   - x:       The column of the green site.
-    ///   - y:       The row of the green site.
-    ///   - width:   The image width in pixels.
-    ///   - height:  The image height in pixels.
+    ///   - v:         The 5×5 sample window.
+    ///   - channels:  The 5×5 channel-index window.
+    ///   - gradients: The eight directional gradients.
+    ///   - threshold: The keep threshold.
     ///
-    /// - Returns: The mean neighbour color difference, or `0` if no orthogonal
-    ///            neighbour has the requested color.
-    private static func chromaDifference( for color: ColorType, pixels: [ Double ], green: [ Double ], pattern: Pattern, x: Int, y: Int, width: Int, height: Int ) -> Double
+    /// - Returns: The per-channel coefficient sums and the kept-direction count.
+    private static func colorSums( v: [ Double ], channels: [ Int ], gradients: [ Double ], threshold: Double ) -> ColorSums
     {
-        var sum   = 0.0
-        var count = 0
+        let indexTable = channels[ 12 ] == 1 ? self.greenCenterSumIndices : self.otherCenterSumIndices
+        let keep       = threshold + 1e-10
 
-        for offset in Self.orthogonalOffsets
+        var sumRed   = 0.0
+        var sumGreen = 0.0
+        var sumBlue  = 0.0
+        var count    = 0
+
+        for direction in 0 ..< 8 where gradients[ direction ] <= keep
         {
-            guard self.colorAt( x: x + offset.dx, y: y + offset.dy, width: width, height: height, pattern: pattern ) == color
-            else
+            var partialRed   = 0.0
+            var partialGreen = 0.0
+            var partialBlue  = 0.0
+            var countRed     = 0
+            var countGreen   = 0
+            var countBlue    = 0
+
+            indexTable[ direction ].forEach
             {
-                continue
+                index in
+
+                switch channels[ index ]
+                {
+                    case 0:  partialRed   += v[ index ]
+                        countRed   += 1
+                    case 1:  partialGreen += v[ index ]
+                        countGreen += 1
+                    default: partialBlue  += v[ index ]
+                        countBlue  += 1
+                }
             }
 
-            sum += self.sample( pixels: pixels, x: x + offset.dx, y: y + offset.dy, width: width, height: height )
-                - self.sample( pixels: green,  x: x + offset.dx, y: y + offset.dy, width: width, height: height )
+            if countRed   > 0 { sumRed   += partialRed   / Double( countRed ) }
+            if countGreen > 0 { sumGreen += partialGreen / Double( countGreen ) }
+            if countBlue  > 0 { sumBlue  += partialBlue  / Double( countBlue ) }
+
             count += 1
         }
 
-        return count == 0 ? 0 : sum / Double( count )
+        return ColorSums( red: sumRed, green: sumGreen, blue: sumBlue, count: count )
     }
 
-    /// The eight neighbour directions used for VNG gradient analysis, ordered
-    /// clockwise from north: N, NE, E, SE, S, SW, W, NW.
-    ///
-    /// Arrays returned by `gradients(pixels:x:y:width:height:)` and
-    /// `goodGradients(_:k1:k2:)` are aligned with this order.
-    internal static let gradientDirections: [ ( dx: Int, dy: Int ) ] =
-        [
-            (  0, -1 ), (  1, -1 ), (  1, 0 ), (  1, 1 ),
-            (  0,  1 ), ( -1,  1 ), ( -1, 0 ), ( -1, -1 ),
-        ]
-
-    /// Computes the eight directional gradients at site `(x, y)` over the
-    /// mosaic.
-    ///
-    /// Each gradient sums the one-step and two-step absolute differences along
-    /// its direction (see `gradientDirections`), so it is zero in a flat region
-    /// and grows across an edge. Coordinates are clamped to the image edge.
+    /// Computes the eight VNG directional gradients for a 5×5 window — the
+    /// testable entry point over the private implementation.
     ///
     /// - Parameters:
-    ///   - pixels: The single-channel mosaic samples, row-major.
-    ///   - x:      The column of the site.
-    ///   - y:      The row of the site.
-    ///   - width:  The image width in pixels.
-    ///   - height: The image height in pixels.
+    ///   - v:              The 5×5 sample window (row-major, center at index 12);
+    ///                     must hold at least 25 samples.
+    ///   - currentChannel: The center's channel (`0` red, `1` green, `2` blue).
     ///
-    /// - Returns: Eight gradient magnitudes, aligned with `gradientDirections`.
-    internal static func gradients( pixels: [ Double ], x: Int, y: Int, width: Int, height: Int ) -> [ Double ]
+    /// - Returns: The eight gradients in N, E, S, W, NE, SE, NW, SW order.
+    internal static func vngGradients( _ v: [ Double ], currentChannel: Int ) -> [ Double ]
     {
-        var result = [ Double ]( repeating: 0.0, count: self.gradientDirections.count )
+        var gradients = [ Double ]( repeating: 0.0, count: 8 )
 
-        result.withUnsafeMutableBufferPointer
-        {
-            self.fillGradients( pixels: pixels, x: x, y: y, width: width, height: height, into: $0 )
-        }
+        self.computeGradients( v: v, currentChannel: currentChannel, into: &gradients )
 
-        return result
+        return gradients
     }
 
-    /// Computes the eight directional gradients at site `(x, y)` into `buffer`,
-    /// avoiding a per-call heap allocation in the green-plane hot loop.
+    /// The VNG keep threshold `k1·min + k2·(max − min)` for a set of gradients —
+    /// the testable entry point over the private implementation.
     ///
-    /// - Parameters:
-    ///   - pixels: The single-channel mosaic samples, row-major.
-    ///   - x:      The column of the site.
-    ///   - y:      The row of the site.
-    ///   - width:  The image width in pixels.
-    ///   - height: The image height in pixels.
-    ///   - buffer: A destination of at least `gradientDirections.count` elements,
-    ///             filled in `gradientDirections` order.
-    private static func fillGradients( pixels: [ Double ], x: Int, y: Int, width: Int, height: Int, into buffer: UnsafeMutableBufferPointer< Double > )
+    /// - Parameter gradients: The eight directional gradients.
+    ///
+    /// - Returns: The keep threshold.
+    internal static func vngThreshold( _ gradients: [ Double ] ) -> Double
     {
-        let center = self.sample( pixels: pixels, x: x, y: y, width: width, height: height )
-
-        for index in self.gradientDirections.indices
-        {
-            let direction = self.gradientDirections[ index ]
-            let one       = self.sample( pixels: pixels, x: x + direction.dx,     y: y + direction.dy,     width: width, height: height )
-            let two       = self.sample( pixels: pixels, x: x + 2 * direction.dx, y: y + 2 * direction.dy, width: width, height: height )
-
-            buffer[ index ] = abs( center - one ) + abs( center - two )
-        }
-    }
-
-    /// Interpolates the green value at a red or blue site, using the
-    /// gradient-selected directions.
-    ///
-    /// The orthogonal neighbours of a red/blue site are green. Only those lying
-    /// in a retained (low-variation) direction are averaged, so green neighbours
-    /// across an edge are dropped — reducing zippering. In a flat region all
-    /// four are retained, matching the bilinear green. If the gradient selection
-    /// retains no orthogonal direction, all four green neighbours are averaged
-    /// as a fallback.
-    ///
-    /// - Parameters:
-    ///   - pixels: The single-channel mosaic samples, row-major.
-    ///   - x:      The column of the red/blue site.
-    ///   - y:      The row of the red/blue site.
-    ///   - width:  The image width in pixels.
-    ///   - height: The image height in pixels.
-    ///
-    /// - Returns: The interpolated green value at `(x, y)`.
-    internal static func interpolateGreen( pixels: [ Double ], x: Int, y: Int, width: Int, height: Int ) -> Double
-    {
-        // The orthogonal directions (N, E, S, W) are the even indices of
-        // gradientDirections.
-        let orthogonal = stride( from: 0, to: self.gradientDirections.count, by: 2 )
-
-        return withUnsafeTemporaryAllocation( of: Double.self, capacity: self.gradientDirections.count )
-        {
-            gradients in
-
-            self.fillGradients( pixels: pixels, x: x, y: y, width: width, height: height, into: gradients )
-
-            let threshold = self.gradientThreshold( UnsafeBufferPointer( gradients ) )
-            var sum       = 0.0
-            var count     = 0
-
-            for index in orthogonal where gradients[ index ] <= threshold
-            {
-                let direction = self.gradientDirections[ index ]
-
-                sum   += self.sample( pixels: pixels, x: x + direction.dx, y: y + direction.dy, width: width, height: height )
-                count += 1
-            }
-
-            if count == 0
-            {
-                for index in orthogonal
-                {
-                    let direction = self.gradientDirections[ index ]
-
-                    sum   += self.sample( pixels: pixels, x: x + direction.dx, y: y + direction.dy, width: width, height: height )
-                    count += 1
-                }
-            }
-
-            return sum / Double( count )
-        }
-    }
-
-    /// Reads sample `(x, y)`, clamping coordinates to the image edge.
-    ///
-    /// - Parameters:
-    ///   - pixels: The single-channel mosaic samples, row-major.
-    ///   - x:      The column (may be out of range).
-    ///   - y:      The row (may be out of range).
-    ///   - width:  The image width in pixels.
-    ///   - height: The image height in pixels.
-    ///
-    /// - Returns: The sample at the clamped coordinate.
-    private static func sample( pixels: [ Double ], x: Int, y: Int, width: Int, height: Int ) -> Double
-    {
-        let clampedX = Swift.min( Swift.max( x, 0 ), width  - 1 )
-        let clampedY = Swift.min( Swift.max( y, 0 ), height - 1 )
-
-        return pixels[ self.index( x: clampedX, y: clampedY, width: width ) ]
-    }
-
-    /// Computes the VNG gradient threshold `k1·min + k2·(max − min)`.
-    ///
-    /// Gradients at or below the threshold identify the low-variation directions
-    /// that are good to interpolate along.
-    ///
-    /// - Parameters:
-    ///   - gradients: The directional gradients (see `gradients(...)`).
-    ///   - k1:        The weight on the minimum gradient.
-    ///   - k2:        The weight on the gradient range.
-    ///
-    /// - Returns: The threshold value, or `0` for an empty input.
-    internal static func gradientThreshold( _ gradients: [ Double ], k1: Double = 1.5, k2: Double = 0.5 ) -> Double
-    {
-        return gradients.withUnsafeBufferPointer { self.gradientThreshold( $0, k1: k1, k2: k2 ) }
-    }
-
-    /// Computes the VNG gradient threshold over a buffer of gradients, avoiding
-    /// an intermediate array in the green-plane hot loop. See
-    /// `gradientThreshold(_:k1:k2:)`.
-    ///
-    /// - Parameters:
-    ///   - gradients: The directional gradients.
-    ///   - k1:        The weight on the minimum gradient.
-    ///   - k2:        The weight on the gradient range.
-    ///
-    /// - Returns: The threshold value, or `0` for an empty input.
-    private static func gradientThreshold( _ gradients: UnsafeBufferPointer< Double >, k1: Double = 1.5, k2: Double = 0.5 ) -> Double
-    {
-        guard let minimum = gradients.min(), let maximum = gradients.max()
-        else
-        {
-            return 0
-        }
-
-        return k1 * minimum + k2 * ( maximum - minimum )
-    }
-
-    /// Selects the "good" (low-variation) directions whose gradient is at or
-    /// below the VNG threshold.
-    ///
-    /// - Parameters:
-    ///   - gradients: The directional gradients (see `gradients(...)`).
-    ///   - k1:        The weight on the minimum gradient.
-    ///   - k2:        The weight on the gradient range.
-    ///
-    /// - Returns: Booleans aligned with `gradientDirections`; `true` marks a
-    ///            retained direction.
-    internal static func goodGradients( _ gradients: [ Double ], k1: Double = 1.5, k2: Double = 0.5 ) -> [ Bool ]
-    {
-        let threshold = self.gradientThreshold( gradients, k1: k1, k2: k2 )
-
-        return gradients.map { $0 <= threshold }
+        return self.threshold( gradients )
     }
 }

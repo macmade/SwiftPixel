@@ -71,9 +71,12 @@ public extension Processors
             /// average of its nearest same-color neighbors.
             case bilinear
 
-            /// Variable Number of Gradients: the green channel is interpolated
-            /// along low-variation directions selected per pixel, and red/blue
-            /// follow as a color difference against the reconstructed green.
+            /// Variable Number of Gradients (Chang–Cheng–Cok): per pixel, the
+            /// two missing colors are reconstructed as color differences
+            /// averaged over the low-variation directions selected from eight
+            /// like-colored gradients over a 5×5 window; the present color is
+            /// preserved. The two-pixel border replicates the nearest interior
+            /// pixel.
             case vng
 
             /// A human-readable name for the algorithm.

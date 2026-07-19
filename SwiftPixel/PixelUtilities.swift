@@ -286,14 +286,17 @@ public enum PixelUtilities
 
     /// Returns the values at the given lower and upper percentiles of `array`.
     ///
-    /// The array is sorted and the bounds are linearly interpolated between
-    /// adjacent samples. `lower` and `upper` are percentages in `0...100`; values
-    /// outside that range are clamped, and if `lower` exceeds `upper` they are
-    /// reordered, so the call never traps on out-of-range input.
+    /// The bounds are linearly interpolated between adjacent order statistics at
+    /// position `(n − 1)·p/100`. Rather than fully sorting, only the two (or four)
+    /// bracketing order statistics are located with an `O(n)` in-place selection
+    /// (quickselect), reproducing the sorted result exactly. `lower` and `upper`
+    /// are percentages in `0...100`; values outside that range are clamped, and if
+    /// `lower` exceeds `upper` they are reordered, so the call never traps on
+    /// out-of-range input.
     ///
     /// Non-finite samples (NaN / ±Inf, e.g. FITS blank pixels) are ignored, so
-    /// they cannot give the sort an undefined ordering; an array with no finite
-    /// samples is treated like an empty one.
+    /// they cannot give the ordering an undefined comparison; an array with no
+    /// finite samples is treated like an empty one.
     ///
     /// - Parameters:
     ///   - array: The samples to analyze. An empty array — or one with no finite
@@ -304,7 +307,7 @@ public enum PixelUtilities
     /// - Returns: The interpolated values at the lower and upper percentiles.
     public static func percentileBounds( in array: [ Double ], lower: Double, upper: Double ) -> ( lower: Double, upper: Double )
     {
-        // Drop non-finite blanks before sorting; the common all-finite case skips
+        // Drop non-finite blanks before selecting; the common all-finite case skips
         // the filtering copy entirely.
         let finite = array.contains { $0.isFinite == false } ? array.filter { $0.isFinite } : array
 
@@ -314,23 +317,20 @@ public enum PixelUtilities
             return ( 0, 0 )
         }
 
-        var sorted = finite
+        let clampedLower  = Swift.min( Swift.max( lower, 0.0 ), 100.0 )
+        let clampedUpper  = Swift.min( Swift.max( upper, 0.0 ), 100.0 )
+        let orderedLower  = Swift.min( clampedLower, clampedUpper )
+        let orderedUpper  = Swift.max( clampedLower, clampedUpper )
+        let lowerPosition = Double( finite.count - 1 ) * ( orderedLower / 100.0 )
+        let upperPosition = Double( finite.count - 1 ) * ( orderedUpper / 100.0 )
 
-        vDSP.sort( &sorted, sortOrder: .ascending )
+        // One mutable copy (the same a full sort would need) is partitioned in place
+        // by the selections below. When both percentiles coincide (e.g. the median),
+        // the single result is reused rather than selected twice.
+        var buffer = finite
 
-        let clampedLower = Swift.min( Swift.max( lower, 0.0 ), 100.0 )
-        let clampedUpper = Swift.min( Swift.max( upper, 0.0 ), 100.0 )
-        let orderedLower = Swift.min( clampedLower, clampedUpper )
-        let orderedUpper = Swift.max( clampedLower, clampedUpper )
-
-        let lowerPosition = Double( sorted.count - 1 ) * ( orderedLower / 100.0 )
-        let upperPosition = Double( sorted.count - 1 ) * ( orderedUpper / 100.0 )
-        let lowerIndex    = Int( floor( lowerPosition ) )
-        let upperIndex    = Int( floor( upperPosition ) )
-        let lowerWeight   = lowerPosition - Double( lowerIndex )
-        let upperWeight   = upperPosition - Double( upperIndex )
-        let lowerValue    = sorted[ lowerIndex ] * ( 1.0 - lowerWeight ) + sorted[ Swift.min( lowerIndex + 1, sorted.count - 1 ) ] * lowerWeight
-        let upperValue    = sorted[ upperIndex ] * ( 1.0 - upperWeight ) + sorted[ Swift.min( upperIndex + 1, sorted.count - 1 ) ] * upperWeight
+        let lowerValue = Self.interpolatedOrderStatistic( &buffer, at: lowerPosition )
+        let upperValue = upperPosition == lowerPosition ? lowerValue : Self.interpolatedOrderStatistic( &buffer, at: upperPosition )
 
         return ( lower: lowerValue, upper: upperValue )
     }
@@ -403,7 +403,7 @@ public enum PixelUtilities
     /// The median of a set of `Double` values — an Accelerate-backed fast path.
     ///
     /// The median is the 50th percentile, so this reuses
-    /// ``percentileBounds(in:lower:upper:)`` (a single `vDSP` sort +
+    /// ``percentileBounds(in:lower:upper:)`` (an `O(n)` in-place selection +
     /// interpolation) rather than carrying its own. Its interpolation matches the
     /// generic ``median(_:)``: the exact middle value for an odd count, the
     /// average of the two middle values for an even count.
@@ -446,7 +446,11 @@ public enum PixelUtilities
     /// the Accelerate-backed counterpart to the generic
     /// ``medianAbsoluteDeviation(_:around:)``.
     ///
-    /// Non-finite samples (NaN / ±Inf) are ignored, as in the generic overload.
+    /// The absolute deviations `|value − center|` are formed with Accelerate into a
+    /// single buffer (a `vsadd` + `vabs` pair, avoiding the generic overload's extra
+    /// allocation), then their median is taken with the same `O(n)` selection as
+    /// ``median(_:)``. Non-finite samples (NaN / ±Inf) are ignored, as in the
+    /// generic overload.
     ///
     /// - Parameters:
     ///   - values: The values to summarize.
@@ -455,7 +459,193 @@ public enum PixelUtilities
     ///   input or one with no finite samples.
     public static func medianAbsoluteDeviation( _ values: [ Double ], around center: Double ) -> Double?
     {
-        self.median( values.map { abs( $0 - center ) } )
+        guard values.isEmpty == false
+        else
+        {
+            return nil
+        }
+
+        // Form |values − center| into a single buffer with Accelerate, dropping the
+        // extra full-array allocation the generic `median(values.map { … })` path
+        // makes. `a − b` equals `a + (−b)` and `vDSP_vabsD` clears the sign bit, so
+        // each deviation is bit-identical to the scalar `abs($0 − center)`.
+        var deviations = [ Double ]( repeating: 0.0, count: values.count )
+
+        values.withUnsafeBufferPointer
+        {
+            input in
+
+            deviations.withUnsafeMutableBufferPointer
+            {
+                output in
+
+                guard let source = input.baseAddress, let destination = output.baseAddress
+                else
+                {
+                    return
+                }
+
+                let count = vDSP_Length( output.count )
+
+                vDSP_vsaddD( source, 1, [ -center ], destination, 1, count )
+                vDSP_vabsD( destination, 1, destination, 1, count )
+            }
+        }
+
+        // Drop non-finite deviations (|±Inf − c|, or any value when the center is
+        // non-finite), matching the sort-based median; the common all-finite case
+        // keeps the buffer as-is.
+        if deviations.contains( where: { $0.isFinite == false } )
+        {
+            deviations = deviations.filter { $0.isFinite }
+        }
+
+        guard deviations.isEmpty == false
+        else
+        {
+            return nil
+        }
+
+        // The median is the 50th percentile: interpolate at the midpoint of the
+        // finite deviations, exactly as `median(_:)` does via `percentileBounds`.
+        return Self.interpolatedOrderStatistic( &deviations, at: Double( deviations.count - 1 ) * 0.5 )
+    }
+
+    /// The value at fractional `position` in the ascending order of `buffer`,
+    /// linearly interpolated between the two bracketing order statistics — the
+    /// exact arithmetic a full ascending sort followed by interpolation would
+    /// produce, but via an `O(n)` in-place selection instead of an `O(n log n)`
+    /// sort.
+    ///
+    /// `buffer` is partitioned in place as a side effect. It must be non-empty and
+    /// hold only finite values (callers filter non-finite samples first), and
+    /// `position` must lie in `0 ... buffer.count − 1`.
+    ///
+    /// - Parameters:
+    ///   - buffer:   The finite samples to select from; reordered in place.
+    ///   - position: The fractional index into the ascending order.
+    ///
+    /// - Returns: The interpolated value at `position`.
+    private static func interpolatedOrderStatistic( _ buffer: inout [ Double ], at position: Double ) -> Double
+    {
+        let index  = Int( floor( position ) )
+        let weight = position - Double( index )
+        let last   = buffer.count - 1
+
+        Self.quickSelect( &buffer, k: index, low: 0, high: last )
+
+        let lowerValue = buffer[ index ]
+
+        guard index < last
+        else
+        {
+            // The top order statistic: `position` equals `last`, so the weight is
+            // zero and the upper term contributes nothing.
+            return lowerValue
+        }
+
+        // After selecting `index`, every element to its right is ≥ it, so the next
+        // order statistic is simply the minimum of that upper partition.
+        let upperValue = buffer[ ( index + 1 )... ].min() ?? lowerValue
+
+        return lowerValue * ( 1.0 - weight ) + upperValue * weight
+    }
+
+    /// Partitions `buffer[low ... high]` in place until `buffer[k]` holds the
+    /// `k`-th smallest value over that range (0-based), with every element to its
+    /// left `≤` it and every element to its right `≥` it — the exact value a full
+    /// ascending sort would place at index `k`.
+    ///
+    /// Median-of-three pivoting keeps sorted and reverse-sorted inputs off the
+    /// quadratic worst case, and a three-way (Dutch-national-flag) partition keeps
+    /// heavily duplicated inputs — a flat calibration frame is the extreme — linear
+    /// rather than quadratic. The loop is iterative (it recurses into neither
+    /// side), so a multi-megapixel frame cannot overflow the stack; each pass
+    /// either returns or strictly shrinks the active range, so it always
+    /// terminates.
+    ///
+    /// - Parameters:
+    ///   - buffer: The samples to partition, reordered in place.
+    ///   - k:      The 0-based rank to resolve.
+    ///   - low:    The inclusive lower bound of the active range.
+    ///   - high:   The inclusive upper bound of the active range.
+    private static func quickSelect( _ buffer: inout [ Double ], k: Int, low: Int, high: Int )
+    {
+        var lo = low
+        var hi = high
+
+        while lo < hi
+        {
+            let mid   = lo + ( hi - lo ) / 2
+            let pivot = Self.medianOfThree( buffer[ lo ], buffer[ mid ], buffer[ hi ] )
+
+            // Three-way partition: [lo, lt) < pivot, [lt, gt] == pivot, (gt, hi] > pivot.
+            var lt = lo
+            var gt = hi
+            var i  = lo
+
+            while i <= gt
+            {
+                let value = buffer[ i ]
+
+                if value < pivot
+                {
+                    buffer.swapAt( lt, i )
+
+                    lt += 1
+                    i  += 1
+                }
+                else if value > pivot
+                {
+                    buffer.swapAt( i, gt )
+
+                    gt -= 1
+                }
+                else
+                {
+                    i += 1
+                }
+            }
+
+            // The equal block [lt, gt] is now in its final sorted position.
+            if k < lt
+            {
+                hi = lt - 1
+            }
+            else if k > gt
+            {
+                lo = gt + 1
+            }
+            else
+            {
+                return
+            }
+        }
+    }
+
+    /// The median of three values, used to pick a quickselect pivot that resists
+    /// the sorted / reverse-sorted worst case. The result is always one of the
+    /// three inputs, so the pivot is a value actually present in the range being
+    /// partitioned.
+    ///
+    /// - Parameters:
+    ///   - a: The first value.
+    ///   - b: The second value.
+    ///   - c: The third value.
+    ///
+    /// - Returns: The middle of the three by value.
+    private static func medianOfThree( _ a: Double, _ b: Double, _ c: Double ) -> Double
+    {
+        if a < b
+        {
+            if b < c { return b }
+
+            return a < c ? c : a
+        }
+
+        if a < c { return a }
+
+        return b < c ? c : b
     }
 
     /// The scale factor that converts a median absolute deviation (MAD) into a

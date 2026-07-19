@@ -138,57 +138,99 @@ public enum PixelUtilities
 
         var result = [ Double ]( repeating: 0.0, count: count )
 
-        try result.withUnsafeMutableBufferPointer
+        // Decode the whole buffer with Accelerate rather than a per-sample closure:
+        // each format is brought into a host-endian, naturally-aligned typed buffer
+        // (a byte-wise copy that tolerates a misaligned `Data` slice, then a bulk
+        // big-endian swap) and widened to Double in one vectorized pass. This is
+        // value-for-value identical to the old per-sample decode — the integer
+        // conversions are exact and the float paths reinterpret the identical bit
+        // pattern — while replacing millions of closure invocations with a handful of
+        // bulk passes.
+        result.withUnsafeMutableBufferPointer
         {
-            nonisolated( unsafe ) let resultBuffer = $0
+            resultBuffer in
 
-            try data.withUnsafeBytes
+            guard let output = resultBuffer.baseAddress
+            else
             {
-                guard let baseAddress = $0.baseAddress
-                else
-                {
-                    throw PixelBufferError.bufferAccessFailed( role: .data )
-                }
+                return
+            }
 
-                nonisolated( unsafe ) let base = baseAddress
+            let n = vDSP_Length( count )
 
-                switch bitsPerPixel
-                {
-                    case .uint8:
+            switch bitsPerPixel
+            {
+                case .uint8:
 
-                        Self.parallelOrSerial( iterations: count )
+                    // 8-bit samples are single bytes: no byte order to correct, and a
+                    // raw byte pointer is always validly aligned as `UInt8`, so the
+                    // data is converted to Double straight from its own storage.
+                    data.withUnsafeBytes
+                    {
+                        rawBytes in
+
+                        guard let base = rawBytes.baseAddress
+                        else
                         {
-                            resultBuffer[ $0 ] = Double( base.loadUnaligned( fromByteOffset: $0, as: UInt8.self ) )
+                            return
                         }
 
-                    case .int16:
+                        vDSP_vfltu8D( base.assumingMemoryBound( to: UInt8.self ), 1, output, 1, n )
+                    }
 
-                        Self.parallelOrSerial( iterations: count )
+                case .int16:
+
+                    let samples = Self.hostEndianSamples( from: data, count: count, as: Int16.self )
+
+                    vDSP_vflt16D( samples, 1, output, 1, n )
+
+                case .int32:
+
+                    let samples = Self.hostEndianSamples( from: data, count: count, as: Int32.self )
+
+                    vDSP_vflt32D( samples, 1, output, 1, n )
+
+                case .float32:
+
+                    // Reinterpret the host-endian 32-bit patterns as `Float32`, then
+                    // widen to Double — identical to `Double(Float32(bitPattern:))`.
+                    let bits = Self.hostEndianSamples( from: data, count: count, as: UInt32.self )
+
+                    bits.withUnsafeBufferPointer
+                    {
+                        pattern in
+
+                        guard let base = pattern.baseAddress
+                        else
                         {
-                            resultBuffer[ $0 ] = Double( Int16( bigEndian: base.loadUnaligned( fromByteOffset: $0 * 2, as: Int16.self ) ) )
+                            return
                         }
 
-                    case .int32:
-
-                        Self.parallelOrSerial( iterations: count )
+                        base.withMemoryRebound( to: Float32.self, capacity: count )
                         {
-                            resultBuffer[ $0 ] = Double( Int32( bigEndian: base.loadUnaligned( fromByteOffset: $0 * 4, as: Int32.self ) ) )
+                            vDSP_vspdp( $0, 1, output, 1, n )
+                        }
+                    }
+
+                case .float64:
+
+                    // A 64-bit pattern widens to no larger type: copy the raw bytes
+                    // straight into the result and swap each pattern to host order in
+                    // place, yielding `Double(bitPattern:)`.
+                    _ = data.copyBytes( to: UnsafeMutableRawBufferPointer( resultBuffer ) )
+
+                    resultBuffer.withMemoryRebound( to: UInt64.self )
+                    {
+                        patterns in
+
+                        guard let base = patterns.baseAddress
+                        else
+                        {
+                            return
                         }
 
-                    case .float32:
-
-                        Self.parallelOrSerial( iterations: count )
-                        {
-                            resultBuffer[ $0 ] = Double( Float32( bitPattern: UInt32( bigEndian: base.loadUnaligned( fromByteOffset: $0 * 4, as: UInt32.self ) ) ) )
-                        }
-
-                    case .float64:
-
-                        Self.parallelOrSerial( iterations: count )
-                        {
-                            resultBuffer[ $0 ] = Double( bitPattern: UInt64( bigEndian: base.loadUnaligned( fromByteOffset: $0 * 8, as: UInt64.self ) ) )
-                        }
-                }
+                        ( 0 ..< count ).forEach { base[ $0 ] = UInt64( bigEndian: base[ $0 ] ) }
+                    }
             }
         }
 
@@ -213,6 +255,43 @@ public enum PixelUtilities
         }
 
         return result
+    }
+
+    /// Reads `count` big-endian samples of an integer type out of `data` into a
+    /// host-endian, naturally-aligned array.
+    ///
+    /// The raw bytes are copied first — a byte-wise copy, so a `Data` slice with a
+    /// non-zero start offset (misaligned storage) is handled — then each element is
+    /// swapped from big-endian to the host byte order in place. Used by
+    /// ``readRawPixels(data:width:height:bitsPerPixel:blank:)`` to bring multi-byte
+    /// FITS samples into a layout Accelerate can convert in a single pass.
+    ///
+    /// - Parameters:
+    ///   - data:  The raw big-endian sample bytes; its length must be at least
+    ///            `count × MemoryLayout<T>.stride`.
+    ///   - count: The number of samples to read.
+    ///   - type:  The fixed-width integer sample type.
+    ///
+    /// - Returns: The `count` samples in host byte order.
+    private static func hostEndianSamples< T: FixedWidthInteger >( from data: Data, count: Int, as type: T.Type ) -> [ T ]
+    {
+        var samples = [ T ]( repeating: 0, count: count )
+
+        samples.withUnsafeMutableBytes { _ = data.copyBytes( to: $0 ) }
+        samples.withUnsafeMutableBufferPointer
+        {
+            buffer in
+
+            guard let base = buffer.baseAddress
+            else
+            {
+                return
+            }
+
+            ( 0 ..< count ).forEach { base[ $0 ] = T( bigEndian: base[ $0 ] ) }
+        }
+
+        return samples
     }
 
     /// Interleaves separate channel planes into a single sample array.

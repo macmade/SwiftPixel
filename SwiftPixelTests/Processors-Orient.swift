@@ -141,6 +141,93 @@ struct Test_Processors_Orient
     }
 
     @Test
+    func largeMultiChannelRotationIsAnExactPermutation() async throws
+    {
+        // A large RGB buffer (past the parallel-row threshold) rotated 90° clockwise,
+        // checked against an explicit rotation formula written independently of the
+        // processor's `map` logic: for a source W×H, the output is H×W with
+        // out[r][c] = src[H − 1 − c][r]. Being a pure permutation, it must match
+        // bit-for-bit.
+        let width    = 128
+        let height   = 96
+        let channels = 3
+        let source   = ( 0 ..< width * height * channels ).map { Double( $0 ) }
+        var buffer   = try PixelBuffer( width: width, height: height, channels: channels, pixels: source, isNormalized: false )
+
+        try Processors.Orient( orientation: .init( rotation: .clockwise90, mirroredHorizontally: false ) ).process( buffer: &buffer )
+
+        try #require( buffer.width  == height )
+        try #require( buffer.height == width )
+
+        var expected = [ Double ]( repeating: .nan, count: source.count )
+
+        for r in 0 ..< width
+        {
+            for c in 0 ..< height
+            {
+                let sourceX = r
+                let sourceY = height - 1 - c
+
+                for channel in 0 ..< channels
+                {
+                    expected[ ( r * height + c ) * channels + channel ] = source[ ( sourceY * width + sourceX ) * channels + channel ]
+                }
+            }
+        }
+
+        #expect( buffer.pixels == expected )
+    }
+
+    @Test
+    func largeMultiChannelMirrorIsAnExactPermutation() async throws
+    {
+        // A large RGB buffer mirrored horizontally, checked against the explicit
+        // formula out[y][x] = src[y][W − 1 − x] (independent of `map`). The geometry
+        // is unchanged and the samples are a pure permutation.
+        let width    = 128
+        let height   = 96
+        let channels = 3
+        let source   = ( 0 ..< width * height * channels ).map { Double( $0 ) }
+        var buffer   = try PixelBuffer( width: width, height: height, channels: channels, pixels: source, isNormalized: false )
+
+        try Processors.Orient( orientation: .init( rotation: .none, mirroredHorizontally: true ) ).process( buffer: &buffer )
+
+        try #require( buffer.width  == width )
+        try #require( buffer.height == height )
+
+        var expected = [ Double ]( repeating: .nan, count: source.count )
+
+        for y in 0 ..< height
+        {
+            for x in 0 ..< width
+            {
+                for channel in 0 ..< channels
+                {
+                    expected[ ( y * width + x ) * channels + channel ] = source[ ( y * width + ( width - 1 - x ) ) * channels + channel ]
+                }
+            }
+        }
+
+        #expect( buffer.pixels == expected )
+    }
+
+    @Test
+    func zeroAreaSwapsGeometryWithoutCrashing() async throws
+    {
+        // A zero-area buffer has no samples to move, but a quarter-turn must still
+        // rebuild its geometry (a 0×3 image rotated clockwise becomes 3×0). This
+        // exercises the empty-buffer early-out (no per-row work, no threshold divide)
+        // and confirms the geometry swap is still applied.
+        var buffer = try PixelBuffer( width: 0, height: 3, channels: 1, pixels: [], isNormalized: false )
+
+        try Processors.Orient( orientation: .init( rotation: .clockwise90, mirroredHorizontally: false ) ).process( buffer: &buffer )
+
+        #expect( buffer.width  == 3 )
+        #expect( buffer.height == 0 )
+        #expect( buffer.pixels.isEmpty )
+    }
+
+    @Test
     func name() async throws
     {
         #expect( Processors.Orient( orientation: .identity ).name.isEmpty == false )

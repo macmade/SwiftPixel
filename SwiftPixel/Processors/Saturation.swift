@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+import Accelerate
 import Foundation
 
 public extension Processors
@@ -76,23 +77,64 @@ public extension Processors
             let factor     = self.saturation
             let pixelCount = buffer.width * buffer.height
 
+            guard pixelCount > 0
+            else
+            {
+                return
+            }
+
+            // Build the per-pixel Rec. 709 luma plane, then apply
+            // `out = luma + (channel − luma)·factor`, rewritten as
+            // `channel·factor + luma·(1 − factor)` so each channel is a single
+            // vectorized multiply-add against the shared luma plane; the whole buffer
+            // is then clipped to [0, 1]. Algebraically identical to the scalar form,
+            // to within floating-point rounding.
+            var luma = [ Double ]( repeating: 0.0, count: pixelCount )
+
             buffer.withUnsafeMutablePixels
             {
-                nonisolated( unsafe ) let pixels = $0
+                pixels in
 
-                PixelUtilities.parallelOrSerial( iterations: pixelCount )
+                luma.withUnsafeMutableBufferPointer
                 {
-                    let base = $0 * 3
-                    let r    = pixels[ base + 0 ]
-                    let g    = pixels[ base + 1 ]
-                    let b    = pixels[ base + 2 ]
+                    lumaBuffer in
 
-                    // Rec. 709 luma, matching Histogram's luma channel.
-                    let luma = 0.2126 * r + 0.7152 * g + 0.0722 * b
+                    guard let rgb = pixels.baseAddress, let l = lumaBuffer.baseAddress
+                    else
+                    {
+                        return
+                    }
 
-                    pixels[ base + 0 ] = min( 1.0, max( 0.0, luma + ( r - luma ) * factor ) )
-                    pixels[ base + 1 ] = min( 1.0, max( 0.0, luma + ( g - luma ) * factor ) )
-                    pixels[ base + 2 ] = min( 1.0, max( 0.0, luma + ( b - luma ) * factor ) )
+                    let n = vDSP_Length( pixelCount )
+
+                    // Rec. 709 luma, matching Histogram's luma channel, read strided
+                    // from the interleaved buffer.
+                    var weightRed   = 0.2126
+                    var weightGreen = 0.7152
+                    var weightBlue  = 0.0722
+
+                    vDSP_vsmulD( rgb + 0, 3, &weightRed,   l, 1, n )       // luma  = R · 0.2126
+                    vDSP_vsmaD(  rgb + 1, 3, &weightGreen, l, 1, l, 1, n ) // luma += G · 0.7152
+                    vDSP_vsmaD(  rgb + 2, 3, &weightBlue,  l, 1, l, 1, n ) // luma += B · 0.0722
+
+                    var scale      = factor
+                    var complement = 1.0 - factor
+
+                    // luma ← luma · (1 − factor); the shared additive term per channel.
+                    vDSP_vsmulD( l, 1, &complement, l, 1, n )
+
+                    // channel ← channel · factor + luma · (1 − factor)
+                    ( 0 ..< 3 ).forEach
+                    {
+                        channel in
+
+                        vDSP_vsmaD( rgb + channel, 3, &scale, l, 1, rgb + channel, 3, n )
+                    }
+
+                    var low  = 0.0
+                    var high = 1.0
+
+                    vDSP_vclipD( rgb, 1, &low, &high, rgb, 1, vDSP_Length( pixelCount * 3 ) )
                 }
             }
         }

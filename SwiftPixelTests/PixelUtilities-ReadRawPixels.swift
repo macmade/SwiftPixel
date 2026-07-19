@@ -186,6 +186,35 @@ struct Test_PixelUtilities_ReadRawPixels
     }
 
     @Test
+    func largeMisalignedRoundTrip_Int16() async throws
+    {
+        // A large buffer read from a one-byte-offset `Data` slice: the bulk decode
+        // must handle a non-zero base offset (misalignment) at scale, big-endian and
+        // exact, for every sample.
+        let count             = 100_000
+        let values: [ Int16 ] = ( 0 ..< count ).map { Int16( $0 % 30_000 - 15_000 ) }
+        let bytes             = values.flatMap { withUnsafeBytes( of: $0.bigEndian, Array.init ) }
+        let data              = Data( [ 0x00 ] + bytes ).dropFirst()
+        let result            = try PixelUtilities.readRawPixels( data: data, width: count, height: 1, bitsPerPixel: .int16 )
+
+        #expect( result == values.map { Double( $0 ) } )
+    }
+
+    @Test
+    func largeMisalignedRoundTrip_Float32() async throws
+    {
+        // The same large, misaligned stress applied to the floating-point reinterpret
+        // path (big-endian bit pattern → host Float32 → Double).
+        let count               = 100_000
+        let values: [ Float32 ] = ( 0 ..< count ).map { Float32( $0 ) * 0.5 - 1000.0 }
+        let bytes               = values.flatMap { withUnsafeBytes( of: $0.bitPattern.bigEndian, Array.init ) }
+        let data                = Data( [ 0x00 ] + bytes ).dropFirst()
+        let result              = try PixelUtilities.readRawPixels( data: data, width: count, height: 1, bitsPerPixel: .float32 )
+
+        #expect( result == values.map { Double( $0 ) } )
+    }
+
+    @Test
     func incorrectSize() async throws
     {
         #expect( throws: PixelBufferError.self )

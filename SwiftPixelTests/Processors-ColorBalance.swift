@@ -172,6 +172,58 @@ struct Test_Processors_ColorBalance
         #expect( abs( buffer.pixels[ 3 ] - 1.0 ) < self.tolerance )
     }
 
+    /// The exact scalar formula, computed independently of the production code, for
+    /// the large-buffer parity check below.
+    private func referenceColorBalance( _ input: [ Double ], ranges: Processors.ColorBalance.Ranges ) -> [ Double ]
+    {
+        func smoothstep( _ edge0: Double, _ edge1: Double, _ x: Double ) -> Double
+        {
+            let t = min( 1.0, max( 0.0, ( x - edge0 ) / ( edge1 - edge0 ) ) )
+
+            return t * t * ( 3.0 - 2.0 * t )
+        }
+
+        return Swift.stride( from: 0, to: input.count, by: 3 ).flatMap
+        {
+            base -> [ Double ] in
+
+            let r               = input[ base + 0 ]
+            let g               = input[ base + 1 ]
+            let b               = input[ base + 2 ]
+            let luma            = 0.2126 * r + 0.7152 * g + 0.0722 * b
+            let shadowWeight    = 1.0 - smoothstep( 0.0, 0.5, luma )
+            let highlightWeight = smoothstep( 0.5, 1.0, luma )
+            let midtoneWeight   = 1.0 - shadowWeight - highlightWeight
+
+            return
+                [
+                    ( r, ranges.shadows.red,   ranges.midtones.red,   ranges.highlights.red   ),
+                    ( g, ranges.shadows.green, ranges.midtones.green, ranges.highlights.green ),
+                    ( b, ranges.shadows.blue,  ranges.midtones.blue,  ranges.highlights.blue  ),
+                ]
+                .map { channel, shadow, midtone, highlight in max( 0.0, min( 1.0, channel + shadow * shadowWeight + midtone * midtoneWeight + highlight * highlightWeight ) ) }
+        }
+    }
+
+    @Test
+    func largeBufferMatchesScalarReferenceWithinTolerance() async throws
+    {
+        // A many-pixel buffer spanning the full luma range (so every tonal weight is
+        // exercised, including the smoothstep transitions and the [0, 1] clip),
+        // checked against an independent scalar implementation. This drives the
+        // whole-buffer vectorized path the 1-pixel pivot tests never reach.
+        let count  = 4_096
+        let input  = ( 0 ..< count * 3 ).map { Double( ( $0 * 53 ) % 100 ) / 99.0 }
+        var buffer = try PixelBuffer( width: count, height: 1, channels: 3, pixels: input, isNormalized: true )
+        let ranges = self.ranges( shadows: .init( red: 0.3, green: -0.1, blue: 0.05 ), midtones: .init( red: -0.05, green: 0.2, blue: 0.1 ), highlights: .init( red: 0.1, green: -0.15, blue: -0.2 ) )
+
+        try Processors.ColorBalance( ranges: ranges ).process( buffer: &buffer )
+
+        let expected = self.referenceColorBalance( input, ranges: ranges )
+
+        #expect( zip( buffer.pixels, expected ).allSatisfy { abs( $0 - $1 ) < self.tolerance } )
+    }
+
     @Test
     func remainsNormalized() async throws
     {

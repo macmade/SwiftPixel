@@ -260,37 +260,85 @@ public extension Processors
                 return
             }
 
-            let inputWidth  = buffer.width
-            let inputHeight = buffer.height
-            let channels    = buffer.channels
-            let orientation = self.orientation
-            let output      = orientation.outputSize( sourceWidth: inputWidth, sourceHeight: inputHeight )
-            let source      = buffer.pixels
+            let inputWidth   = buffer.width
+            let inputHeight  = buffer.height
+            let channels     = buffer.channels
+            let orientation  = self.orientation
+            let output       = orientation.outputSize( sourceWidth: inputWidth, sourceHeight: inputHeight )
+            let outputWidth  = output.width
+            let outputHeight = output.height
 
-            var result = [ Double ]( repeating: 0.0, count: source.count )
+            var result = [ Double ]( repeating: 0.0, count: buffer.pixels.count )
 
-            result.withUnsafeMutableBufferPointer
+            buffer.pixels.withUnsafeBufferPointer
             {
-                nonisolated( unsafe ) let sendableResult = $0
+                sourceBuffer in
 
-                // One iteration per source pixel; each scatters its channels to a
-                // distinct destination, so parallel writes never overlap.
-                PixelUtilities.parallelOrSerial( iterations: inputWidth * inputHeight )
+                result.withUnsafeMutableBufferPointer
                 {
-                    let x             = $0 % inputWidth
-                    let y             = $0 / inputWidth
-                    let mapped        = orientation.map( x: x, y: y, inputWidth: inputWidth, inputHeight: inputHeight )
-                    let sourceBase    = ( y * inputWidth + x ) * channels
-                    let destinationBase = ( mapped.y * output.width + mapped.x ) * channels
+                    destinationBuffer in
 
-                    for channel in 0 ..< channels
+                    guard let source = sourceBuffer.baseAddress, let destination = destinationBuffer.baseAddress
+                    else
                     {
-                        sendableResult[ destinationBase + channel ] = source[ sourceBase + channel ]
+                        // A zero-area image has no samples to move; the empty result,
+                        // with the (possibly swapped) geometry applied below, is correct.
+                        return
+                    }
+
+                    nonisolated( unsafe ) let sendableSource      = source
+                    nonisolated( unsafe ) let sendableDestination = destination
+
+                    // Reorientation is a pure per-pixel permutation. Rather than
+                    // scatter every source pixel through a per-pixel modulo/divide,
+                    // gather each contiguous *destination row* from the source: for a
+                    // fixed display row the source coordinate is affine in the column,
+                    // so it advances by a constant pixel step and the whole output row
+                    // is one strided copy. Destination rows are disjoint, so the row
+                    // fan-out is write-safe. Rows are parallelized once the sample
+                    // count is large enough to warrant it — parallelOrSerial's element
+                    // threshold, counted in rows (outputWidth is non-zero here, since
+                    // the base-address guard above returns for a zero-area image).
+                    let rowThreshold = Swift.max( 1, 4096 / outputWidth )
+
+                    PixelUtilities.parallelOrSerial( iterations: outputHeight, threshold: rowThreshold )
+                    {
+                        displayY in
+
+                        let start = orientation.sourceCoordinate( displayX: 0, displayY: displayY, sourceWidth: inputWidth, sourceHeight: inputHeight )
+
+                        // The per-column step in source pixels; a single-column output
+                        // never advances a column, so the step is unused there.
+                        let step: Int
+
+                        if outputWidth >= 2
+                        {
+                            let next = orientation.sourceCoordinate( displayX: 1, displayY: displayY, sourceWidth: inputWidth, sourceHeight: inputHeight )
+                            step     = ( ( next.y - start.y ) * inputWidth ) + ( next.x - start.x )
+                        }
+                        else
+                        {
+                            step = 0
+                        }
+
+                        let sourceRowBase      = ( ( start.y * inputWidth ) + start.x ) * channels
+                        let destinationRowBase = displayY * outputWidth * channels
+
+                        for displayX in 0 ..< outputWidth
+                        {
+                            let sourceIndex      = sourceRowBase + ( displayX * step * channels )
+                            let destinationIndex = destinationRowBase + ( displayX * channels )
+
+                            for channel in 0 ..< channels
+                            {
+                                sendableDestination[ destinationIndex + channel ] = sendableSource[ sourceIndex + channel ]
+                            }
+                        }
                     }
                 }
             }
 
-            buffer = try PixelBuffer( width: output.width, height: output.height, channels: channels, pixels: result, isNormalized: buffer.isNormalized )
+            buffer = try PixelBuffer( width: outputWidth, height: outputHeight, channels: channels, pixels: result, isNormalized: buffer.isNormalized )
         }
     }
 }

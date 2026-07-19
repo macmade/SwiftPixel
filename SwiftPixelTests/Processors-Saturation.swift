@@ -122,6 +122,41 @@ struct Test_Processors_Saturation
         #expect( abs( buffer.pixels[ 3 ] - l1 ) < 1e-12 )
     }
 
+    /// The exact scalar formula, computed independently of the production code, for
+    /// the large-buffer parity check below.
+    private func referenceSaturation( _ input: [ Double ], factor: Double ) -> [ Double ]
+    {
+        Swift.stride( from: 0, to: input.count, by: 3 ).flatMap
+        {
+            base -> [ Double ] in
+
+            let r = input[ base + 0 ]
+            let g = input[ base + 1 ]
+            let b = input[ base + 2 ]
+            let l = 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+            return [ r, g, b ].map { max( 0.0, min( 1.0, l + ( $0 - l ) * factor ) ) }
+        }
+    }
+
+    @Test
+    func largeBufferMatchesScalarReferenceWithinTolerance() async throws
+    {
+        // A many-pixel buffer with values that both stay in range and clip, checked
+        // against an independent scalar implementation of `luma + (c − luma)·factor`
+        // clipped to [0, 1]. This exercises the whole-buffer vectorized path (the
+        // other tests use 1–2 pixels) and pins parity to within floating-point noise.
+        let count  = 4_096
+        let input  = ( 0 ..< count * 3 ).map { Double( ( $0 * 37 ) % 100 ) / 99.0 }
+        var buffer = try PixelBuffer( width: count, height: 1, channels: 3, pixels: input, isNormalized: true )
+
+        try Processors.Saturation( saturation: 1.8 ).process( buffer: &buffer )
+
+        let expected = self.referenceSaturation( input, factor: 1.8 )
+
+        #expect( zip( buffer.pixels, expected ).allSatisfy { abs( $0 - $1 ) < 1e-12 } )
+    }
+
     @Test
     func remainsNormalized() async throws
     {

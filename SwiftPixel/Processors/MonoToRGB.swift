@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+import Accelerate
 import Foundation
 
 public extension Processors
@@ -67,22 +68,37 @@ public extension Processors
                 throw PixelBufferError.dataSizeMismatch( expected: expected, actual: buffer.pixels.count )
             }
 
-            let count       = buffer.pixels.count
-            let inputPixels = buffer.pixels
-            var rgb         = [ Double ]( repeating: 0.0, count: count * 3 )
+            let count = buffer.pixels.count
+            var rgb   = [ Double ]( repeating: 0.0, count: count * 3 )
 
-            rgb.withUnsafeMutableBufferPointer
+            buffer.pixels.withUnsafeBufferPointer
             {
-                nonisolated( unsafe ) let sendableRGBBuffer = $0
+                source in
 
-                PixelUtilities.parallelOrSerial( iterations: count )
+                rgb.withUnsafeMutableBufferPointer
                 {
-                    let value = inputPixels[ $0 ]
-                    let base  = $0 * 3
+                    destination in
 
-                    sendableRGBBuffer[ base + 0 ] = value
-                    sendableRGBBuffer[ base + 1 ] = value
-                    sendableRGBBuffer[ base + 2 ] = value
+                    guard let base = source.baseAddress, let output = destination.baseAddress
+                    else
+                    {
+                        // A zero-sample buffer has no plane to scatter; the empty
+                        // result is already correct.
+                        return
+                    }
+
+                    // Scatter the single mono plane into each of the three interleaved
+                    // channels with one strided Accelerate move apiece — a contiguous
+                    // read into every third output slot — so channel `c` fills
+                    // indices c, c + 3, c + 6, … This replicates each gray sample into
+                    // R, G and B exactly (a pure copy), the same idiom as
+                    // ``PixelUtilities/interleave(planes:)``.
+                    ( 0 ..< 3 ).forEach
+                    {
+                        channel in
+
+                        vDSP_mmovD( base, output + channel, 1, vDSP_Length( count ), 1, 3 )
+                    }
                 }
             }
 

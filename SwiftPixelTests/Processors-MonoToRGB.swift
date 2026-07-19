@@ -90,6 +90,26 @@ struct Test_Processors_MonoToRGB
     }
 
     @Test
+    func largeBufferReplicatesEveryChannel() async throws
+    {
+        // A buffer large enough to exercise the strided Accelerate copy: every gray
+        // sample must appear, unchanged, in all three interleaved channels. The
+        // values are non-normalized and include negatives, pinning the copy as pure
+        // and range-independent.
+        let width  = 200
+        let height = 150
+        let mono   = ( 0 ..< width * height ).map { Double( $0 ) * 0.5 - 1000.0 }
+        var buffer = try PixelBuffer( width: width, height: height, channels: 1, pixels: mono, isNormalized: false )
+
+        try Processors.MonoToRGB().process( buffer: &buffer )
+
+        try #require( buffer.channels     == 3 )
+        try #require( buffer.pixels.count == mono.count * 3 )
+
+        #expect( mono.indices.allSatisfy { buffer.pixels[ $0 * 3 ] == mono[ $0 ] && buffer.pixels[ $0 * 3 + 1 ] == mono[ $0 ] && buffer.pixels[ $0 * 3 + 2 ] == mono[ $0 ] } )
+    }
+
+    @Test
     func invalidChannels() async throws
     {
         var buffer = try PixelBuffer(

@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+import Accelerate
 import Foundation
 
 public extension Processors
@@ -148,51 +149,108 @@ public extension Processors
                 throw PixelBufferError.unsupportedChannelCount( actual: buffer.channels, supported: [ 3 ] )
             }
 
-            let shadows    = self.ranges.shadows
-            let midtones   = self.ranges.midtones
-            let highlights = self.ranges.highlights
             let pixelCount = buffer.width * buffer.height
+
+            guard pixelCount > 0
+            else
+            {
+                return
+            }
+
+            // Build the per-pixel Rec. 709 luma plane, derive the three tonal-range
+            // weight planes from it (the shadow, midtone and highlight smoothstep
+            // weights, which sum to 1), then add the per-channel shifts scaled by
+            // those weights and clip to [0, 1]. Every step is a whole-plane
+            // vectorized operation, reproducing the scalar
+            // `channel + shadow·wS + midtone·wM + highlight·wH` to within
+            // floating-point rounding.
+            let shadowShifts    = [ self.ranges.shadows.red,    self.ranges.shadows.green,    self.ranges.shadows.blue    ]
+            let midtoneShifts   = [ self.ranges.midtones.red,   self.ranges.midtones.green,   self.ranges.midtones.blue   ]
+            let highlightShifts = [ self.ranges.highlights.red, self.ranges.highlights.green, self.ranges.highlights.blue ]
+
+            // Three working planes carved from a single contiguous store, sized
+            // pixelCount·3 = pixels.count for a 3-channel buffer — so the allocation is
+            // bounded by the same invariant PixelBuffer already enforces and cannot
+            // overflow. The luma is computed into the midtone-weight plane (free until
+            // the weights are combined) and read by both smoothsteps before that plane
+            // is repurposed as scratch and then the midtone weight; the highlight plane
+            // doubles as scratch for the shadow smoothstep's `(3 − 2t)` term.
+            var planes = [ Double ]( repeating: 0.0, count: pixelCount * 3 )
 
             buffer.withUnsafeMutablePixels
             {
-                nonisolated( unsafe ) let pixels = $0
+                pixels in
 
-                PixelUtilities.parallelOrSerial( iterations: pixelCount )
+                planes.withUnsafeMutableBufferPointer
                 {
-                    let base = $0 * 3
-                    let r    = pixels[ base + 0 ]
-                    let g    = pixels[ base + 1 ]
-                    let b    = pixels[ base + 2 ]
+                    store in
+
+                    guard let rgb = pixels.baseAddress, let base = store.baseAddress
+                    else
+                    {
+                        return
+                    }
+
+                    let n               = vDSP_Length( pixelCount )
+                    let shadowWeight    = base
+                    let midtoneWeight   = base + pixelCount
+                    let highlightWeight = base + pixelCount * 2
+                    let luma            = midtoneWeight // Occupies the midtone plane until the weights are combined.
 
                     // Rec. 709 luma, matching the Saturation stage's channel.
-                    let luma            = 0.2126 * r + 0.7152 * g + 0.0722 * b
-                    let shadowWeight    = 1.0 - Self.smoothstep( 0.0, 0.5, luma )
-                    let highlightWeight = Self.smoothstep( 0.5, 1.0, luma )
-                    let midtoneWeight   = 1.0 - shadowWeight - highlightWeight
+                    var weightRed   = 0.2126
+                    var weightGreen = 0.7152
+                    var weightBlue  = 0.0722
 
-                    pixels[ base + 0 ] = min( 1.0, max( 0.0, r + shadows.red   * shadowWeight + midtones.red   * midtoneWeight + highlights.red   * highlightWeight ) )
-                    pixels[ base + 1 ] = min( 1.0, max( 0.0, g + shadows.green * shadowWeight + midtones.green * midtoneWeight + highlights.green * highlightWeight ) )
-                    pixels[ base + 2 ] = min( 1.0, max( 0.0, b + shadows.blue  * shadowWeight + midtones.blue  * midtoneWeight + highlights.blue  * highlightWeight ) )
+                    vDSP_vsmulD( rgb + 0, 3, &weightRed,   luma, 1, n )          // luma  = R · 0.2126
+                    vDSP_vsmaD(  rgb + 1, 3, &weightGreen, luma, 1, luma, 1, n ) // luma += G · 0.7152
+                    vDSP_vsmaD(  rgb + 2, 3, &weightBlue,  luma, 1, luma, 1, n ) // luma += B · 0.0722
+
+                    var two    = 2.0
+                    var negOne = -1.0
+                    var negTwo = -2.0
+                    var three  = 3.0
+                    var zero   = 0.0
+                    var one    = 1.0
+
+                    // shadowWeight ← smoothstep(0, 0.5, luma): t = clip(2·luma, 0, 1),
+                    // then t²·(3 − 2t), using the highlight plane as scratch for (3 − 2t).
+                    vDSP_vsmulD( luma, 1, &two, shadowWeight, 1, n )
+                    vDSP_vclipD( shadowWeight, 1, &zero, &one, shadowWeight, 1, n )
+                    vDSP_vsmsaD( shadowWeight, 1, &negTwo, &three, highlightWeight, 1, n )
+                    vDSP_vmulD(  shadowWeight, 1, shadowWeight, 1, shadowWeight, 1, n )
+                    vDSP_vmulD(  shadowWeight, 1, highlightWeight, 1, shadowWeight, 1, n ) // smoothstep(0, 0.5)
+
+                    // highlightWeight ← smoothstep(0.5, 1, luma): t = clip(2·luma − 1, 0, 1).
+                    vDSP_vsmsaD( luma, 1, &two, &negOne, highlightWeight, 1, n )
+                    vDSP_vclipD( highlightWeight, 1, &zero, &one, highlightWeight, 1, n )
+                    vDSP_vsmsaD( highlightWeight, 1, &negTwo, &three, midtoneWeight, 1, n ) // luma now consumed; its plane is the (3 − 2t) scratch
+                    vDSP_vmulD(  highlightWeight, 1, highlightWeight, 1, highlightWeight, 1, n )
+                    vDSP_vmulD(  highlightWeight, 1, midtoneWeight, 1, highlightWeight, 1, n ) // smoothstep(0.5, 1)
+
+                    // midtone = low − high (= 1 − shadow − highlight); shadow = 1 − low.
+                    // `vDSP_vsubD` computes C = A − B with A and B passed swapped, so
+                    // (highlight, shadow) yields shadow − highlight, i.e. low − high.
+                    vDSP_vsubD(  highlightWeight, 1, shadowWeight, 1, midtoneWeight, 1, n )
+                    vDSP_vsmsaD( shadowWeight, 1, &negOne, &one, shadowWeight, 1, n )
+
+                    // channel ← channel + shadow·wS + midtone·wM + highlight·wH
+                    ( 0 ..< 3 ).forEach
+                    {
+                        channel in
+
+                        var shadowShift    = shadowShifts[ channel ]
+                        var midtoneShift   = midtoneShifts[ channel ]
+                        var highlightShift = highlightShifts[ channel ]
+
+                        vDSP_vsmaD( shadowWeight,    1, &shadowShift,    rgb + channel, 3, rgb + channel, 3, n )
+                        vDSP_vsmaD( midtoneWeight,   1, &midtoneShift,   rgb + channel, 3, rgb + channel, 3, n )
+                        vDSP_vsmaD( highlightWeight, 1, &highlightShift, rgb + channel, 3, rgb + channel, 3, n )
+                    }
+
+                    vDSP_vclipD( rgb, 1, &zero, &one, rgb, 1, vDSP_Length( pixelCount * 3 ) )
                 }
             }
-        }
-
-        /// Smooth Hermite interpolation between two edges, clamped to `[0, 1]`.
-        ///
-        /// Returns `0` at or below `edge0`, `1` at or above `edge1`, and a smooth
-        /// S-curve between, with zero slope at both ends so the tonal weights meet
-        /// seamlessly.
-        ///
-        /// - Parameters:
-        ///   - edge0: The lower edge, mapped to `0`.
-        ///   - edge1: The upper edge, mapped to `1`.
-        ///   - x:     The value to interpolate.
-        /// - Returns: The interpolated weight in `[0, 1]`.
-        private static func smoothstep( _ edge0: Double, _ edge1: Double, _ x: Double ) -> Double
-        {
-            let t = min( 1.0, max( 0.0, ( x - edge0 ) / ( edge1 - edge0 ) ) )
-
-            return t * t * ( 3.0 - 2.0 * t )
         }
     }
 }

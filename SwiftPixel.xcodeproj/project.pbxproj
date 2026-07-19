@@ -78,6 +78,7 @@
 		40378674B8F5A089A3D12269 /* BenchmarkReportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAECCDA3548125B88B676560 /* BenchmarkReportTests.swift */; };
 		4646E1926A91566BBF9F460C /* BenchmarkEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 093BCC4B3065CCB72F9E214E /* BenchmarkEnvironment.swift */; };
 		4ED1A4B5910ADEBF4F2E133C /* PixelBufferError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057F9EC4B1B716EEDD1791E1 /* PixelBufferError.swift */; };
+		538EB58DDC4B76A0B8AB3F32 /* PixelUtilities-FiniteExtent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72A2AE902B06E272E5170FB2 /* PixelUtilities-FiniteExtent.swift */; };
 		5AA7BDEE257F2D10E9419940 /* SwiftPixelBenchmarks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F19961E72345968F4B4AD4E /* SwiftPixelBenchmarks.swift */; };
 		64363D47203F2D18C24507E2 /* BenchmarkFrameSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 701C7A5B47929F5F89DA1E4F /* BenchmarkFrameSet.swift */; };
 		6642642C917648BC036DFB11 /* BenchmarkReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7FE032817855E108D0BB138 /* BenchmarkReport.swift */; };
@@ -251,6 +252,7 @@
 		4D2C8916DAFCC1CC3058C179 /* BenchmarkClock.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkClock.swift; sourceTree = "<group>"; };
 		701C7A5B47929F5F89DA1E4F /* BenchmarkFrameSet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkFrameSet.swift; sourceTree = "<group>"; };
 		706CB8C7AF9E8995025FCC84 /* BenchmarkTimings.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkTimings.swift; sourceTree = "<group>"; };
+		72A2AE902B06E272E5170FB2 /* PixelUtilities-FiniteExtent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "PixelUtilities-FiniteExtent.swift"; sourceTree = "<group>"; };
 		75848490BE664AF547BB297C /* BenchmarkMeasurement.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkMeasurement.swift; sourceTree = "<group>"; };
 		8575F3774DFFBC562501BB62 /* BenchmarkFrame.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BenchmarkFrame.swift; sourceTree = "<group>"; };
 		89DDD186A9AB422101A2CA5C /* MarkdownReportTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MarkdownReportTests.swift; sourceTree = "<group>"; };
@@ -394,6 +396,7 @@
 				05D710C02DF1D85000CE32E3 /* Processors-Stretch.swift */,
 				05D710BE2DF1D84A00CE32E3 /* Processors-WhiteBalance.swift */,
 				1D8C29E315031B3BBB098BFB /* Benchmarks */,
+				72A2AE902B06E272E5170FB2 /* PixelUtilities-FiniteExtent.swift */,
 			);
 			path = SwiftPixelTests;
 			sourceTree = "<group>";
@@ -836,6 +839,7 @@
 				09EB553696FD8DB12FBDC550 /* BenchmarkFrames.swift in Sources */,
 				7A75B694C15A20ADCB337D5D /* SwiftPixelBenchmarkSuite.swift in Sources */,
 				5AA7BDEE257F2D10E9419940 /* SwiftPixelBenchmarks.swift in Sources */,
+				538EB58DDC4B76A0B8AB3F32 /* PixelUtilities-FiniteExtent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

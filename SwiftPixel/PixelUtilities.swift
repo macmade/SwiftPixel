@@ -335,6 +335,36 @@ public enum PixelUtilities
         return ( lower: lowerValue, upper: upperValue )
     }
 
+    /// The smallest and largest finite values in a set of samples.
+    ///
+    /// Non-finite samples (NaN / ±Inf, e.g. FITS blank pixels) are ignored,
+    /// matching the sibling robust helpers ``median(_:)`` /
+    /// ``medianAbsoluteDeviation(_:around:)`` /
+    /// ``percentileBounds(in:lower:upper:)``: unlike the standard-library `min()` /
+    /// `max()`, a leading `NaN` cannot poison the result and a `±Inf` cannot leak
+    /// into the extremes. The common all-finite case skips the filtering copy
+    /// entirely, so callers that need blank-safe extremes can route through this
+    /// single layer rather than touching raw `min()` / `max()`.
+    ///
+    /// - Parameter values: The samples to summarize.
+    /// - Returns: The minimum and maximum finite samples, or `nil` for an empty
+    ///   input or one with no finite samples.
+    public static func finiteExtent( _ values: [ Double ] ) -> ( minimum: Double, maximum: Double )?
+    {
+        // Drop non-finite blanks before scanning; the common all-finite case
+        // reuses the input without a copy, exactly as the median / percentile
+        // helpers do.
+        let finite = values.contains { $0.isFinite == false } ? values.filter { $0.isFinite } : values
+
+        guard let minimum = finite.min(), let maximum = finite.max()
+        else
+        {
+            return nil
+        }
+
+        return ( minimum: minimum, maximum: maximum )
+    }
+
     /// The median of a set of values: the middle value for an odd count, the
     /// average of the two middle values for an even count, or `nil` when empty.
     ///

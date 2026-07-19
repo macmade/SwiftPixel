@@ -297,9 +297,15 @@ public enum GaussianFit
     /// parameter — fourteen extra `exp`-laden passes over the window every
     /// iteration, which dominates a frame's detection time. The rotated Gaussian's
     /// partials are known in closed form (derived from `arg = −[xr²/(2σx²) +
-    /// yr²/(2σy²)]` and the rotation of `(x−x₀, y−y₀)`), so a single pass computes
-    /// the model and all seven derivatives together, accumulating `JᵀJ` and `Jᵀr`
-    /// as it goes.
+    /// yr²/(2σy²)]` and the rotation of `(x−x₀, y−y₀)`).
+    ///
+    /// The seven partials are built as full-length columns on `vDSP` — reusing the
+    /// same rotate-and-`exp` construction as ``modelResiduals(_:xs:ys:values:)``, so
+    /// the per-sample `exp` is a single batched `vForce.exp` rather than `count`
+    /// scalar calls — and `JᵀJ` / `Jᵀr` are then formed by dot products over those
+    /// columns. This is the fit's hot path (called once per Levenberg–Marquardt
+    /// iteration over the whole window); the dot products reorder the same sums the
+    /// scalar accumulation formed, so the result matches to floating-point rounding.
     ///
     /// - Parameters:
     ///   - vector: The parameter vector, in fitting order.
@@ -317,59 +323,138 @@ public enum GaussianFit
         let theta      = vector[ 5 ]
         let background = vector[ 6 ]
 
-        let cosT = Foundation.cos( theta )
-        let sinT = Foundation.sin( theta )
-        let sx2  = Swift.max( sigmaX * sigmaX, 1e-12 )
-        let sy2  = Swift.max( sigmaY * sigmaY, 1e-12 )
-        let sx3  = sigmaX * sx2
-        let sy3  = sigmaY * sy2
+        let cosT  = Foundation.cos( theta )
+        let sinT  = Foundation.sin( theta )
+        let sx2   = Swift.max( sigmaX * sigmaX, 1e-12 )
+        let sy2   = Swift.max( sigmaY * sigmaY, 1e-12 )
+        let sx3   = sigmaX * sx2
+        let sy3   = sigmaY * sy2
+        let count = xs.count
+
+        var dx  = [ Double ]( repeating: 0, count: count )
+        var dy  = [ Double ]( repeating: 0, count: count )
+        var xr  = [ Double ]( repeating: 0, count: count )
+        var yr  = [ Double ]( repeating: 0, count: count )
+        var tmp = [ Double ]( repeating: 0, count: count )
+
+        // Centre and rotate: xr = dx·cosθ + dy·sinθ, yr = −dx·sinθ + dy·cosθ.
+        vDSP.add( -x0, xs, result: &dx )
+        vDSP.add( -y0, ys, result: &dy )
+
+        vDSP.multiply( cosT, dx, result: &xr )
+        vDSP.multiply( sinT, dy, result: &tmp )
+        vDSP.add( xr, tmp, result: &xr )
+
+        vDSP.multiply( -sinT, dx, result: &yr )
+        vDSP.multiply( cosT, dy, result: &tmp )
+        vDSP.add( yr, tmp, result: &yr )
+
+        var xr2 = [ Double ]( repeating: 0, count: count )
+        var yr2 = [ Double ]( repeating: 0, count: count )
+
+        vDSP.multiply( xr, xr, result: &xr2 )
+        vDSP.multiply( yr, yr, result: &yr2 )
+
+        // g = exp( −[ xr²/(2σx²) + yr²/(2σy²) ] ), one batched exp; ag = amplitude·g.
+        var g  = [ Double ]( repeating: 0, count: count )
+        var ag = [ Double ]( repeating: 0, count: count )
+
+        vDSP.multiply( -1 / ( 2 * sx2 ), xr2, result: &g )
+        vDSP.multiply( -1 / ( 2 * sy2 ), yr2, result: &tmp )
+        vDSP.add( g, tmp, result: &g )
+        vForce.exp( g, result: &g )
+        vDSP.multiply( amplitude, g, result: &ag )
+
+        // The seven analytic partials ∂model/∂[amplitude, x₀, y₀, σx, σy, θ,
+        // background], each a full-length Jacobian column.
+        var partialX     = [ Double ]( repeating: 0, count: count )
+        var partialY     = [ Double ]( repeating: 0, count: count )
+        var partialSX    = [ Double ]( repeating: 0, count: count )
+        var partialSY    = [ Double ]( repeating: 0, count: count )
+        var partialTheta = [ Double ]( repeating: 0, count: count )
+
+        // ∂/∂x₀ = ag·( xr·cosθ/σx² − yr·sinθ/σy² ).
+        vDSP.multiply( cosT / sx2, xr, result: &partialX )
+        vDSP.multiply( sinT / sy2, yr, result: &tmp )
+        vDSP.subtract( partialX, tmp, result: &partialX )
+        vDSP.multiply( partialX, ag, result: &partialX )
+
+        // ∂/∂y₀ = ag·( xr·sinθ/σx² + yr·cosθ/σy² ).
+        vDSP.multiply( sinT / sx2, xr, result: &partialY )
+        vDSP.multiply( cosT / sy2, yr, result: &tmp )
+        vDSP.add( partialY, tmp, result: &partialY )
+        vDSP.multiply( partialY, ag, result: &partialY )
+
+        // ∂/∂σx = ag·xr²/σx³, guarded as in the scalar form (zero when σx³ underflows).
+        if abs( sx3 ) > 1e-18
+        {
+            vDSP.multiply( 1 / sx3, xr2, result: &partialSX )
+            vDSP.multiply( partialSX, ag, result: &partialSX )
+        }
+
+        // ∂/∂σy = ag·yr²/σy³.
+        if abs( sy3 ) > 1e-18
+        {
+            vDSP.multiply( 1 / sy3, yr2, result: &partialSY )
+            vDSP.multiply( partialSY, ag, result: &partialSY )
+        }
+
+        // ∂/∂θ = ag·xr·yr·( 1/σy² − 1/σx² ).
+        vDSP.multiply( xr, yr, result: &partialTheta )
+        vDSP.multiply( ( 1 / sy2 ) - ( 1 / sx2 ), partialTheta, result: &partialTheta )
+        vDSP.multiply( partialTheta, ag, result: &partialTheta )
+
+        // residual = background + ag − value.
+        var residual = [ Double ]( repeating: 0, count: count )
+
+        vDSP.add( background, ag, result: &residual )
+        vDSP.subtract( residual, values, result: &residual )
+
+        // ∂/∂amplitude = g; ∂/∂background = 1.
+        let columns = [ g, partialX, partialY, partialSX, partialSY, partialTheta, [ Double ]( repeating: 1, count: count ) ]
 
         var jtj = [ [ Double ] ]( repeating: [ Double ]( repeating: 0, count: Self.parameterCount ), count: Self.parameterCount )
         var jtr = [ Double ]( repeating: 0, count: Self.parameterCount )
 
-        for k in xs.indices
+        // JᵀJ (symmetric — fill the upper triangle by dot products) and Jᵀr.
+        ( 0 ..< Self.parameterCount ).forEach
         {
-            let dx = xs[ k ] - x0
-            let dy = ys[ k ] - y0
-            let xr = ( dx * cosT ) + ( dy * sinT )
-            let yr = ( -dx * sinT ) + ( dy * cosT )
-            let g  = Foundation.exp( -( ( ( xr * xr ) / ( 2 * sx2 ) ) + ( ( yr * yr ) / ( 2 * sy2 ) ) ) )
-            let ag = amplitude * g
+            i in
 
-            // ∂/∂[ amplitude, x₀, y₀, σx, σy, θ, background ].
-            let row = [
-                g,
-                ag * ( ( ( xr * cosT ) / sx2 ) - ( ( yr * sinT ) / sy2 ) ),
-                ag * ( ( ( xr * sinT ) / sx2 ) + ( ( yr * cosT ) / sy2 ) ),
-                abs( sx3 ) > 1e-18 ? ag * ( ( xr * xr ) / sx3 ) : 0,
-                abs( sy3 ) > 1e-18 ? ag * ( ( yr * yr ) / sy3 ) : 0,
-                ag * xr * yr * ( ( 1 / sy2 ) - ( 1 / sx2 ) ),
-                1,
-            ]
+            jtr[ i ] = Self.dot( columns[ i ], residual )
 
-            let residual = background + ag - values[ k ]
-
-            for i in 0 ..< Self.parameterCount
+            ( i ..< Self.parameterCount ).forEach
             {
-                jtr[ i ] += row[ i ] * residual
+                j in
 
-                for j in i ..< Self.parameterCount
-                {
-                    jtj[ i ][ j ] += row[ i ] * row[ j ]
-                }
+                jtj[ i ][ j ] = Self.dot( columns[ i ], columns[ j ] )
             }
         }
 
         // Mirror the lower triangle: JᵀJ is symmetric.
-        for i in 0 ..< Self.parameterCount
+        ( 0 ..< Self.parameterCount ).forEach
         {
-            for j in 0 ..< i
-            {
-                jtj[ i ][ j ] = jtj[ j ][ i ]
-            }
+            i in
+
+            ( 0 ..< i ).forEach { jtj[ i ][ $0 ] = jtj[ $0 ][ i ] }
         }
 
         return ( jtj: jtj, jtr: jtr )
+    }
+
+    /// The dot product of two equal-length vectors, on Accelerate.
+    ///
+    /// - Parameters:
+    ///   - a: The first vector.
+    ///   - b: The second vector, the same length as `a`.
+    /// - Returns: `Σ a·b`.
+    private static func dot( _ a: [ Double ], _ b: [ Double ] ) -> Double
+    {
+        var result = 0.0
+
+        vDSP_dotprD( a, 1, b, 1, &result, vDSP_Length( a.count ) )
+
+        return result
     }
 
     /// Solves the linear system `A · x = b` by Gaussian elimination with partial

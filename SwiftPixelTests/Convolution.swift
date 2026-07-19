@@ -170,6 +170,117 @@ struct Test_Convolution
         }
     }
 
+    /// The separable ``Convolution/zeroSumResponse(of:kernel:)`` reproduces a dense
+    /// 2D convolution with the same zero-sum kernel, to floating-point rounding,
+    /// across small and large kernels and structured content — so the matched-filter
+    /// response the star detector reads is unchanged by the separable optimization.
+    ///
+    /// This is an equivalence lock, not a red→green test: both paths are correct, and
+    /// a structural error in the separable form (a transposed axis, a wrong border, a
+    /// missing DC term) would differ from the dense reference by ~the response
+    /// magnitude — hundreds to thousands here — not the ~1e-11 of reordered sums.
+    @Test
+    func zeroSumResponseMatchesADenseConvolution() throws
+    {
+        let width  = 96
+        let height = 72
+
+        // A deterministic mix of a gradient, a pedestal, noise and Gaussian blobs —
+        // the structure a real star field carries — so the comparison exercises the
+        // interior and the replicated borders alike.
+        var seed: UInt64 = 0x9E37_79B9_7F4A_7C15
+
+        func noise() -> Double
+        {
+            seed = ( seed &* 6_364_136_223_846_793_005 ) &+ 1_442_695_040_888_963_407
+
+            return Double( seed >> 11 ) / Double( 1 << 53 )
+        }
+
+        var pixels = ( 0 ..< ( width * height ) ).map
+        {
+            index -> Double in
+
+            let x = Double( index % width )
+            let y = Double( index / width )
+
+            return 100 + ( 0.5 * x ) + ( 0.3 * y ) + ( 20 * noise() )
+        }
+
+        [ ( x: 24, y: 18, amplitude: 3000.0, sigma: 2.0 ), ( x: 70, y: 50, amplitude: 1500.0, sigma: 4.0 ), ( x: 10, y: 60, amplitude: 800.0, sigma: 1.2 ) ].forEach
+        {
+            star in
+
+            ( 0 ..< ( width * height ) ).forEach
+            {
+                index in
+
+                let dx       = Double( index % width ) - Double( star.x )
+                let dy       = Double( index / width ) - Double( star.y )
+                let exponent = ( ( dx * dx ) + ( dy * dy ) ) / ( 2 * star.sigma * star.sigma )
+
+                pixels[ index ] += star.amplitude * exp( -exponent )
+            }
+        }
+
+        let image = try self.buffer( width: width, height: height, pixels: pixels )
+
+        [ 1.0, 2.5, 5.0, 7.5 ].forEach
+        {
+            sigma in
+
+            let kernel    = GaussianKernel( sigma: sigma )
+            let separable = Convolution.zeroSumResponse( of: image, kernel: kernel )
+            let dense     = Convolution.convolve( image.pixels, width: width, height: height, kernel: kernel.zeroSumValues, radius: kernel.radius )
+
+            #expect( separable.count == dense.count )
+
+            let maxDiff = zip( separable, dense ).map { abs( $0 - $1 ) }.max() ?? 0
+
+            #expect( maxDiff < 1e-6 )
+        }
+    }
+
+    /// `zeroSumResponse` must stay crash-free and correct on small single-channel
+    /// images: the separable path's `vDSP.convolve` requires a minimum signal size
+    /// (≥ 3 rows / ≥ 4 columns), so below the 4×3 boundary the method falls back to
+    /// the dense path — which pads to that minimum, so even a 1-pixel-wide image with
+    /// a radius-1 kernel (padded width 3) no longer traps. Each small geometry both
+    /// avoids the trap and matches the dense reference — identically for the fallback
+    /// sizes, to rounding at the separable boundary — across kernels down to radius 1.
+    @Test
+    func zeroSumResponseHandlesSmallImagesWithoutTrapping() throws
+    {
+        let geometries = [ ( 1, 1 ), ( 2, 2 ), ( 3, 3 ), ( 3, 5 ), ( 5, 3 ), ( 4, 2 ), ( 2, 4 ), ( 1, 10 ), ( 10, 1 ), ( 4, 3 ), ( 4, 4 ), ( 6, 5 ) ]
+
+        try geometries.forEach
+        {
+            geometry in
+
+            let ( width, height ) = geometry
+            let pixels            = ( 0 ..< ( width * height ) ).map { 100 + Double( ( $0 * 37 ) % 19 ) }
+            let image             = try self.buffer( width: width, height: height, pixels: pixels )
+
+            // sigma 0.3 / 0.5 give a radius-1 kernel (padded width 3 for width 1) —
+            // the case that trapped before the dense path was hardened.
+            [ 0.3, 0.5, 1.0, 5.0 ].forEach
+            {
+                sigma in
+
+                let kernel    = GaussianKernel( sigma: sigma )
+                let separable = Convolution.zeroSumResponse( of: image, kernel: kernel )
+                let dense     = Convolution.convolve( image.pixels, width: width, height: height, kernel: kernel.zeroSumValues, radius: kernel.radius )
+
+                #expect( separable.count == width * height )
+                #expect( separable.count == dense.count )
+
+                let maxDiff = zip( separable, dense ).map { abs( $0 - $1 ) }.max() ?? 0
+
+                #expect( maxDiff < 1e-6 )
+            }
+        }
+    }
+
     /// The public `convolve` validates its preconditions, returning [] instead of
     /// trapping on a short sample array, over-reading a wrong-sized kernel, or
     /// mishandling a negative radius (CR-11).

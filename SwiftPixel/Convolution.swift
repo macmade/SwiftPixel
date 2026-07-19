@@ -48,13 +48,49 @@ public enum Convolution
     ///   geometry as `image`), or an empty array if `image` is not single-channel.
     public static func zeroSumResponse( of image: PixelBuffer, kernel: GaussianKernel ) -> [ Double ]
     {
-        guard image.channels == 1
+        guard image.channels == 1, image.width > 0, image.height > 0
         else
         {
             return []
         }
 
-        return self.convolve( image.pixels, width: image.width, height: image.height, kernel: kernel.zeroSumValues, radius: kernel.radius )
+        let width  = image.width
+        let height = image.height
+        let size   = kernel.size
+
+        // The separable path drives two degenerate 2D convolutions (a 1×size kernel
+        // for the rows, a size×1 kernel for the columns). `vDSP.convolve` requires the
+        // *non-convolved* signal dimension of each to clear a small fixed minimum —
+        // at least 3 rows for the 1×size pass and 4 columns for the size×1 pass,
+        // independent of the kernel size — below which it traps. An image that small
+        // is not a real detection frame, and the dense path handles every geometry
+        // correctly and negligibly cheaply, so fall back to it (covered by
+        // `zeroSumResponseHandlesSmallImagesWithoutTrapping`).
+        guard width >= 4, height >= 3
+        else
+        {
+            return self.convolve( image.pixels, width: width, height: height, kernel: kernel.zeroSumValues, radius: kernel.radius )
+        }
+
+        // The zero-sum Gaussian kernel is `Gaussian − mean`, so by linearity its
+        // response is a Gaussian blur minus a box-mean over the same footprint. Both
+        // are separable — the 2D Gaussian `values` factor as the outer product of
+        // `kernel.separableValues`, and the box factors into a 1D mean — so the
+        // response is built from 1D passes along each axis instead of one dense 2D
+        // convolution: `O(width·height·size)` rather than `O(width·height·size²)`. It
+        // reproduces `convolve(_:kernel: kernel.zeroSumValues, …)` to floating-point
+        // rounding, which `zeroSumResponseMatchesADenseConvolution` guards.
+        let blur   = self.separableConvolveReplicating( image.pixels, width: width, height: height, kernel1D: kernel.separableValues, radius: kernel.radius )
+        let boxSum = self.separableConvolveReplicating( image.pixels, width: width, height: height, kernel1D: [ Double ]( repeating: 1, count: size ), radius: kernel.radius )
+
+        var response = [ Double ]( repeating: 0, count: width * height )
+
+        // response = blur − boxSum / size²: the box-mean subtracts the constant the
+        // zero-sum kernel removes, so a flat region maps to zero.
+        vDSP.multiply( 1 / Double( size * size ), boxSum, result: &response )
+        vDSP.subtract( blur, response, result: &response )
+
+        return response
     }
 
     /// Convolves a row-major sample grid with a square, centred kernel, extending
@@ -94,8 +130,18 @@ public enum Convolution
             return []
         }
 
-        let paddedWidth  = width  + ( 2 * radius )
-        let paddedHeight = height + ( 2 * radius )
+        // `vDSP.convolve` requires the padded signal to clear a small fixed minimum —
+        // at least 3 rows and 4 columns, independent of the kernel — or it traps: a
+        // 1-pixel-wide image with a radius-1 kernel (padded width 3) would otherwise
+        // abort. Pad each axis by the kernel radius (for the replicated border) and by
+        // enough more to reach that minimum. Extra replicated padding does not change
+        // the cropped central block — a border pixel replicates the same edge value
+        // however wide the ring — so the result is identical for every larger image.
+        let padX = Swift.max( radius, ( 4 - width  + 1 ) / 2 )
+        let padY = Swift.max( radius, ( 3 - height + 1 ) / 2 )
+
+        let paddedWidth  = width  + ( 2 * padX )
+        let paddedHeight = height + ( 2 * padY )
 
         // Replicate the border pixels into the padding ring so the convolution
         // extends the image rather than reading zeros past its edges.
@@ -103,21 +149,20 @@ public enum Convolution
         {
             index -> Double in
 
-            let x = Swift.min( Swift.max( ( index % paddedWidth ) - radius, 0 ), width  - 1 )
-            let y = Swift.min( Swift.max( ( index / paddedWidth ) - radius, 0 ), height - 1 )
+            let x = Swift.min( Swift.max( ( index % paddedWidth ) - padX, 0 ), width  - 1 )
+            let y = Swift.min( Swift.max( ( index / paddedWidth ) - padY, 0 ), height - 1 )
 
             return values[ ( y * width ) + x ]
         }
 
         let convolved = vDSP.convolve( padded, rowCount: paddedHeight, columnCount: paddedWidth, withKernel: kernel, kernelRowCount: size, kernelColumnCount: size )
 
-        // Crop the central width×height block back out at offset (radius, radius).
-        // This pins the border convention relied on from vDSP.convolve: it returns a
-        // full, padded-size output whose outer radius-wide ring is where the kernel
-        // overhangs the padded edge, so the valid, fully-overlapped result sits in
-        // the central block — exactly the ring that was replicated above. Were that
-        // convention ever to shift, the edge and corner samples would stop matching a
-        // replicated-border filter; `convolveExtendsBordersByReplication` guards it.
+        // Crop the central width×height block back out at offset (padX, padY). The
+        // kernel overhangs the padded edge by its radius, so the valid, fully-
+        // overlapped result sits in the central block — the ring replicated above.
+        // Were that convention ever to shift, the edge and corner samples would stop
+        // matching a replicated-border filter; `convolveExtendsBordersByReplication`
+        // guards it.
         return ( 0 ..< ( width * height ) ).map
         {
             index in
@@ -125,7 +170,87 @@ public enum Convolution
             let x = index % width
             let y = index / width
 
-            return convolved[ ( ( y + radius ) * paddedWidth ) + ( x + radius ) ]
+            return convolved[ ( ( y + padY ) * paddedWidth ) + ( x + padX ) ]
+        }
+    }
+
+    /// Convolves a row-major grid with a 1D kernel applied separably along both
+    /// axes — horizontally, then vertically — extending the grid at its borders by
+    /// replicating edge pixels, the same convention as
+    /// ``convolve(_:width:height:kernel:radius:)``.
+    ///
+    /// For a separable 2D kernel `k ⊗ k`, this yields the same result as a full 2D
+    /// convolution with that kernel (to floating-point rounding) at
+    /// `O(width·height·kernel.count)` cost instead of `O(width·height·kernel.count²)`.
+    /// Edge replication commutes with the separable decomposition — clamping the
+    /// column index in the horizontal pass and then the row index in the vertical
+    /// pass reproduces the 2D replicated-border result — so a border pixel is
+    /// extended identically to the dense path.
+    ///
+    /// Each pass runs as a degenerate 2D `vDSP.convolve`: a `1×size` kernel for the
+    /// rows and a `size×1` kernel for the columns, so neither pass mixes samples
+    /// across the orthogonal axis.
+    ///
+    /// - Parameters:
+    ///   - values:   The samples, in row-major order (`width·height` of them).
+    ///   - width:    The grid width, in pixels.
+    ///   - height:   The grid height, in pixels.
+    ///   - kernel1D: The 1D kernel weights, of length `2·radius + 1`.
+    ///   - radius:   The kernel radius, in pixels.
+    /// - Returns: The convolved samples, same length and geometry as `values`.
+    private static func separableConvolveReplicating( _ values: [ Double ], width: Int, height: Int, kernel1D: [ Double ], radius: Int ) -> [ Double ]
+    {
+        let size         = kernel1D.count
+        let paddedWidth  = width  + ( 2 * radius )
+        let paddedHeight = height + ( 2 * radius )
+
+        // Horizontal pass: replicate each row's end pixels into a `radius`-wide ring,
+        // convolve every row with the 1D kernel (a 1×size kernel touches no other
+        // row), and crop the valid central columns back to `width`.
+        let paddedRows = ( 0 ..< ( paddedWidth * height ) ).map
+        {
+            index -> Double in
+
+            let x = Swift.min( Swift.max( ( index % paddedWidth ) - radius, 0 ), width - 1 )
+            let y = index / paddedWidth
+
+            return values[ ( y * width ) + x ]
+        }
+
+        let rowConvolved = vDSP.convolve( paddedRows, rowCount: height, columnCount: paddedWidth, withKernel: kernel1D, kernelRowCount: 1, kernelColumnCount: size )
+
+        let horizontal = ( 0 ..< ( width * height ) ).map
+        {
+            index -> Double in
+
+            let x = index % width
+            let y = index / width
+
+            return rowConvolved[ ( y * paddedWidth ) + ( x + radius ) ]
+        }
+
+        // Vertical pass: replicate each column's end pixels, convolve every column
+        // (a size×1 kernel touches no other column), and crop the valid central rows.
+        let paddedColumns = ( 0 ..< ( width * paddedHeight ) ).map
+        {
+            index -> Double in
+
+            let x = index % width
+            let y = Swift.min( Swift.max( ( index / width ) - radius, 0 ), height - 1 )
+
+            return horizontal[ ( y * width ) + x ]
+        }
+
+        let columnConvolved = vDSP.convolve( paddedColumns, rowCount: paddedHeight, columnCount: width, withKernel: kernel1D, kernelRowCount: size, kernelColumnCount: 1 )
+
+        return ( 0 ..< ( width * height ) ).map
+        {
+            index -> Double in
+
+            let x = index % width
+            let y = index / width
+
+            return columnConvolved[ ( ( y + radius ) * width ) + x ]
         }
     }
 }

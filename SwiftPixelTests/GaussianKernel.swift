@@ -50,6 +50,39 @@ struct Test_GaussianKernel
         #expect( abs( sum ) < 1e-12 )
     }
 
+    /// The 1D `separableValues` sum to one and reconstruct the dense 2D `values`
+    /// through their outer product (to rounding), so convolving with them along each
+    /// axis matches a dense 2D Gaussian blur.
+    @Test
+    func separableValuesReconstructTheDenseKernel() throws
+    {
+        [ 0.8, 1.5, 3.0, 6.0 ].forEach
+        {
+            sigma in
+
+            let kernel = GaussianKernel( sigma: sigma )
+            let size   = kernel.size
+
+            #expect( kernel.separableValues.count == size )
+            #expect( abs( kernel.separableValues.reduce( 0, + ) - 1 ) < 1e-12 )
+
+            ( 0 ..< size ).forEach
+            {
+                y in
+
+                ( 0 ..< size ).forEach
+                {
+                    x in
+
+                    let dense     = kernel.values[ ( y * size ) + x ]
+                    let separable = kernel.separableValues[ x ] * kernel.separableValues[ y ]
+
+                    #expect( abs( dense - separable ) < 1e-12 )
+                }
+            }
+        }
+    }
+
     /// The kernel has an odd, square footprint sized from its radius.
     @Test
     func footprintIsSquareAndOddFromRadius() throws

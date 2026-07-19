@@ -57,6 +57,16 @@ public struct GaussianKernel: Sendable
     /// row-major order, summing to approximately zero.
     public let zeroSumValues: [ Double ]
 
+    /// The normalized 1D Gaussian weights, summing to one, whose outer product with
+    /// itself reproduces ``values`` (to floating-point rounding): the separable
+    /// factor of the 2D Gaussian.
+    ///
+    /// Convolving a grid with these along each axis in turn is the separable form of
+    /// the 2D Gaussian blur — `O(size)` taps per pixel instead of `O(size²)` — which
+    /// is how ``Convolution/zeroSumResponse(of:kernel:)`` builds its matched-filter
+    /// response.
+    public let separableValues: [ Double ]
+
     /// An upper bound on the kernel radius. It guards against a pathological or
     /// non-finite scale that would otherwise overflow the `(2·radius + 1)²`
     /// footprint arithmetic or request an impossible allocation, and it sits far
@@ -117,10 +127,18 @@ public struct GaussianKernel: Sendable
         let values = samples.map { $0 / total }
         let mean   = values.reduce( 0, + ) / Double( values.count )
 
-        self.sigma         = safeSigma
-        self.radius        = radius
-        self.size          = size
-        self.values        = values
-        self.zeroSumValues = values.map { $0 - mean }
+        // The 1D separable factor: the same Gaussian sampled along a single axis over
+        // the identical `-radius ... radius` footprint and normalized to sum to one,
+        // so `separableValues[x] · separableValues[y]` reproduces `values[x, y]`
+        // (`total` equals this line's sum squared, to rounding).
+        let line      = ( 0 ..< size ).map { Foundation.exp( -Double( ( $0 - radius ) * ( $0 - radius ) ) / ( 2 * safeSigma * safeSigma ) ) }
+        let lineTotal = line.reduce( 0, + )
+
+        self.sigma           = safeSigma
+        self.radius          = radius
+        self.size            = size
+        self.values          = values
+        self.zeroSumValues   = values.map { $0 - mean }
+        self.separableValues = line.map { $0 / lineTotal }
     }
 }

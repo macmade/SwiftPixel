@@ -114,19 +114,6 @@
 		};
 /* End PBXContainerItemProxy section */
 
-/* Begin PBXCopyFilesBuildPhase section */
-		05398CE12DEECF24005904EC /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
 		050F37F42DEE0BBE00E84F97 /* BitsPerPixel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitsPerPixel.swift; sourceTree = "<group>"; };
 		050F37F62DEE0BBE00E84F97 /* PixelBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelBuffer.swift; sourceTree = "<group>"; };
@@ -279,13 +266,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		05C5277F2DD8E36300843626 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		05C527882DD8E36300843626 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -571,7 +551,6 @@
 			children = (
 				057F9EC4B1B716EEDD1791E1 /* PixelBufferError.swift */,
 			);
-			name = Errors;
 			path = Errors;
 			sourceTree = "<group>";
 		};
@@ -584,7 +563,6 @@
 				493027EC6C2CF55A5DAB8381 /* SwiftPixelBenchmarkSuite.swift */,
 				0F19961E72345968F4B4AD4E /* SwiftPixelBenchmarks.swift */,
 			);
-			name = Benchmarks;
 			path = Benchmarks;
 			sourceTree = "<group>";
 		};
@@ -600,7 +578,6 @@
 				89DDD186A9AB422101A2CA5C /* MarkdownReportTests.swift */,
 				E9886A85ADEF899D2CE6174E /* SwiftPixelBenchmarkSuiteTests.swift */,
 			);
-			name = CoreTests;
 			path = CoreTests;
 			sourceTree = "<group>";
 		};
@@ -611,7 +588,6 @@
 				701C7A5B47929F5F89DA1E4F /* BenchmarkFrameSet.swift */,
 				F9B95207318F108519FD7C39 /* BenchmarkFrames.swift */,
 			);
-			name = Fixtures;
 			path = Fixtures;
 			sourceTree = "<group>";
 		};
@@ -629,32 +605,17 @@
 				706CB8C7AF9E8995025FCC84 /* BenchmarkTimings.swift */,
 				A51CD55CA1D31D4D882B2F0B /* MarkdownReport.swift */,
 			);
-			name = Core;
 			path = Core;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
-
-/* Begin PBXHeadersBuildPhase section */
-		05C5277D2DD8E36300843626 /* Headers */ = {
-			isa = PBXHeadersBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
 		05C527812DD8E36300843626 /* SwiftPixel */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 05C527942DD8E36300843626 /* Build configuration list for PBXNativeTarget "SwiftPixel" */;
 			buildPhases = (
-				05C5277D2DD8E36300843626 /* Headers */,
 				05C5277E2DD8E36300843626 /* Sources */,
-				05C5277F2DD8E36300843626 /* Frameworks */,
-				05C527802DD8E36300843626 /* Resources */,
-				05398CE12DEECF24005904EC /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -671,7 +632,6 @@
 			buildPhases = (
 				05C527872DD8E36300843626 /* Sources */,
 				05C527882DD8E36300843626 /* Frameworks */,
-				05C527892DD8E36300843626 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -720,23 +680,6 @@
 			);
 		};
 /* End PBXProject section */
-
-/* Begin PBXResourcesBuildPhase section */
-		05C527802DD8E36300843626 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		05C527892DD8E36300843626 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		05C5277E2DD8E36300843626 /* Sources */ = {
